@@ -290,6 +290,10 @@
         <label>Backend URL</label>
         <input type="text" id="be-url" style="width:100%;background:#16201B;color:#9fdcc6;border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;">
       </div>
+      <div class="cb-field" style="min-width:180px;">
+        <label>Access token &mdash; paste once, stays on this device</label>
+        <input type="password" id="be-token" autocomplete="off" placeholder="paste token" style="width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;">
+      </div>
       <div class="cb-field">
         <label>Max HR (bpm)</label>
         <input type="number" id="be-maxhr" placeholder="e.g. 190" style="width:120px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;">
@@ -910,6 +914,17 @@ document.getElementById("stage").addEventListener("click",e=>{
   const urlInput=document.getElementById('be-url');
   urlInput.value=localStorage.getItem('fc_backend')||DEFAULT_BACKEND;
   urlInput.addEventListener('change',()=>localStorage.setItem('fc_backend',urlInput.value.trim()));
+  /* Access token: kept in localStorage on this device only — never in the page
+     source (this app is public static HTML) and never in a draft snapshot. */
+  const tokenInput=document.getElementById('be-token');
+  if(tokenInput){
+    tokenInput.value=localStorage.getItem('fc_token')||'';
+    tokenInput.addEventListener('change',()=>{
+      const v=tokenInput.value.trim();
+      if(v)localStorage.setItem('fc_token',v);else localStorage.removeItem('fc_token');
+      setStatus(v?'Access token saved on this device.':'Access token cleared.','ok');
+    });
+  }
   function backend(){return (urlInput.value.trim()||DEFAULT_BACKEND).replace(/\/+$/,'');}
 
   let lastDraft=null; /* the AI's original draft, kept so /complete can log corrections */
@@ -1289,7 +1304,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     setBodyAttr('data-fc-draft-id',draftId);
     setBodyAttr('data-fc-cloud-id',cloudId);
     setBodyAttr('data-fc-cloud-name',cloudSavedName);
-    /* bake field values so they survive HTML serialization */
+    /* bake field values so they survive HTML serialization.
+       DELIBERATELY excludes input[type=password]: #be-token must never be baked
+       into a snapshot, because cloud drafts upload this HTML to the backend. The
+       token lives in localStorage only. Do not add password to this selector. */
     document.querySelectorAll('input[type=text],input[type=number],input[type=url]').forEach(function(i){if(i.id)i.setAttribute('value',i.value);});
     document.querySelectorAll('textarea').forEach(function(t){t.textContent=t.value;});
     /* detach transient UI so it isn't baked in */
@@ -1941,6 +1959,40 @@ document.getElementById("stage").addEventListener("click",e=>{
   document.addEventListener('fc-raw-updated',function(){ensureRows();render();});
 })();
 /* ===== END DATA COLLECTION SCREEN ===== */
+</script>
+<script>
+/* =========================================================
+   BACKEND AUTH — attach the access token to backend calls.
+
+   Wrapping fetch once, rather than editing each call site, is deliberate: the
+   backend is called from three separate IIFEs (extract / draft / complete /
+   editor-drafts / compute-thresholds) and a missed call site would fail at
+   runtime with a 401. This also covers any call added later.
+
+   The token is only ever attached to requests aimed at the backend URL, never
+   to the font/CDN requests. It is read from localStorage per call, so pasting a
+   token takes effect immediately with no reload. Guarded so the document.write
+   draft-restore can't double-wrap fetch.
+   ========================================================= */
+(function(){
+  if(window.__fcAuthWrapped)return;window.__fcAuthWrapped=true;
+  var origFetch=window.fetch;
+  window.fetch=function(input,init){
+    try{
+      var url=(typeof input==='string')?input:((input&&input.url)||'');
+      var el=document.getElementById('be-url');
+      var be=((el&&el.value)||localStorage.getItem('fc_backend')||'').trim().replace(/\/+$/,'');
+      var tok=(localStorage.getItem('fc_token')||'').trim();
+      if(tok&&be&&url.indexOf(be)===0){
+        init=init||{};
+        var h=new Headers(init.headers||((typeof input!=='string'&&input&&input.headers)||{}));
+        if(!h.has('Authorization'))h.set('Authorization','Bearer '+tok);
+        init.headers=h;
+      }
+    }catch(e){/* never let auth wiring break a request */}
+    return origFetch.call(this,input,init);
+  };
+})();
 </script>
 <script>
 /* Register the service worker (offline app shell). Runs only over https or
