@@ -1,7 +1,7 @@
 /* FitnessCheck service worker — offline app shell + runtime caching.
    Bump CACHE_VERSION whenever index.html or the asset list changes; old caches
    are cleaned up on activate. */
-const CACHE_VERSION = 'fc-v2';
+const CACHE_VERSION = 'fc-v3';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
@@ -27,9 +27,12 @@ const RUNTIME_HOSTS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // {cache:'reload'} bypasses the browser HTTP cache. GitHub Pages serves the app
+  // with Cache-Control: max-age=600, so a plain fetch here can precache a STALE
+  // index.html and then serve that old build offline until the next version bump.
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then((c) => c.addAll(SHELL_ASSETS))
+      .then((c) => c.addAll(SHELL_ASSETS.map((u) => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -52,8 +55,10 @@ self.addEventListener('fetch', (event) => {
   // Navigations: network-first so an online load gets the latest app, with the
   // cached shell as the offline fallback.
   if (req.mode === 'navigate') {
+    // {cache:'no-cache'} revalidates with the server (cheap 304 when unchanged) so an
+    // online load always gets the current build rather than a stale HTTP-cached copy.
     event.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone();
           caches.open(SHELL_CACHE).then((c) => c.put('./index.html', copy));
