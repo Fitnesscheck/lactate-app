@@ -1976,21 +1976,41 @@ document.getElementById("stage").addEventListener("click",e=>{
    ========================================================= */
 (function(){
   if(window.__fcAuthWrapped)return;window.__fcAuthWrapped=true;
+  var NEEDS_TOKEN='Access token missing or invalid — open "Backend & AI" and paste this device’s access token.';
   var origFetch=window.fetch;
   window.fetch=function(input,init){
+    var isBackend=false;
     try{
       var url=(typeof input==='string')?input:((input&&input.url)||'');
       var el=document.getElementById('be-url');
       var be=((el&&el.value)||localStorage.getItem('fc_backend')||'').trim().replace(/\/+$/,'');
+      isBackend=!!(be&&url&&url.indexOf(be)===0);
       var tok=(localStorage.getItem('fc_token')||'').trim();
-      if(tok&&be&&url.indexOf(be)===0){
+      if(isBackend&&tok){
         init=init||{};
         var h=new Headers(init.headers||((typeof input!=='string'&&input&&input.headers)||{}));
         if(!h.has('Authorization'))h.set('Authorization','Bearer '+tok);
         init.headers=h;
       }
     }catch(e){/* never let auth wiring break a request */}
-    return origFetch.call(this,input,init);
+    var p=origFetch.call(this,input,init);
+    if(!isBackend)return p;
+    /* Turn the backend's terse 401 into something actionable. Handled here, once,
+       because the five features fail through different paths: some show the body
+       ("HTTP 401 {detail:Unauthorized}"), the cloud list/open show only the status,
+       and cloud delete never checks it at all — so the toast is what guarantees the
+       instruction is seen no matter which one failed. Body is also rewritten so the
+       panels' own inline "...failed: HTTP 401 <body>" lines read as instructions. */
+    return p.then(function(res){
+      if(res&&res.status===401){
+        try{if(typeof showToast==='function')showToast(NEEDS_TOKEN);}catch(e){}
+        try{
+          return new Response(NEEDS_TOKEN,{status:401,statusText:'Unauthorized',
+            headers:{'Content-Type':'text/plain'}});
+        }catch(e){return res;}
+      }
+      return res;
+    });
   };
 })();
 </script>
