@@ -233,6 +233,8 @@
     <div id="dc-grid"></div>
     <div class="cb-btns" style="gap:8px;flex-wrap:wrap;">
       <button class="btn" id="dc-add">&#65291; Add step</button>
+      <input type="file" id="be-photo" accept="image/*" style="display:none;">
+      <button class="btn cb-btn2" id="be-extract" title="Read a photo of a paper data sheet into the table (needs internet)">&#128247; Extract from photo</button>
     </div>
     <div style="border-top:1px solid #2A3A33;padding-top:8px;font-size:10px;color:#8FA096;">
       Tip: tap the <b style="color:#9fdcc6;">&#9678;</b> dot to the left of any row to <b style="color:#9fdcc6;">check treadmill calibration</b> (belt length &times; revolutions &divide; time &times; 3.6) and write the measured speed into that step.
@@ -256,6 +258,16 @@
   </div>
   <div class="cb-status" id="dc-status">Baseline &amp; warm-up rows are always included. Enter each step&rsquo;s values &mdash; they fill the appendix automatically. New steps default to +1 km/h; warm-up 10 min, steps 4 min.</div>
 </details>
+<details class="chart-builder no-print" id="engine-panel">
+  <summary><span class="cb-arrow">&#9656;</span> Threshold engine &mdash; compute candidates from the appendix data</summary>
+  <div class="cb-inner" style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div class="cb-btns" style="align-items:center;">
+      <button class="btn" id="te-run">&#129518; Compute thresholds</button>
+      <span style="font-size:11px;color:#8FA096;">Opens a visual panel &middot; running protocol &middot; uses the Backend URL in Backend &amp; AI</span>
+    </div>
+  </div>
+  <div class="cb-status" id="te-status">Fill the appendix raw data table, then compute. The engine proposes candidates &mdash; you choose which to use.</div>
+</details>
 <details class="chart-builder no-print" id="chart-builder">
   <summary><span class="cb-arrow">▸</span> Chart builder — reads from the appendix raw data table</summary>
   <div class="cb-inner">
@@ -270,18 +282,8 @@
   </div>
   <div class="cb-status" id="cb-status">Fill in the appendix raw data table, enter thresholds, then click Generate.</div>
 </details>
-<details class="chart-builder no-print" id="engine-panel">
-  <summary><span class="cb-arrow">&#9656;</span> Threshold engine &mdash; compute candidates from the appendix data</summary>
-  <div class="cb-inner" style="flex-direction:column;align-items:stretch;gap:10px;">
-    <div class="cb-btns" style="align-items:center;">
-      <button class="btn" id="te-run">&#129518; Compute thresholds</button>
-      <span style="font-size:11px;color:#8FA096;">Opens a visual panel &middot; running protocol &middot; uses the Backend URL above</span>
-    </div>
-  </div>
-  <div class="cb-status" id="te-status">Fill the appendix raw data table, then compute. The engine proposes candidates &mdash; you choose which to use.</div>
-</details>
 <details class="chart-builder no-print" id="backend-panel">
-  <summary><span class="cb-arrow">&#9656;</span> Backend &amp; AI &mdash; extract from photo, draft prose, save to library</summary>
+  <summary><span class="cb-arrow">&#9656;</span> Backend &amp; AI &mdash; draft prose, save to library</summary>
   <div class="cb-inner" style="flex-direction:column;align-items:stretch;">
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
       <div class="cb-field" style="flex:1;min-width:240px;">
@@ -298,8 +300,6 @@
       <textarea id="be-context" rows="3" style="width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
     </div>
     <div class="cb-btns" style="align-items:center;">
-      <input type="file" id="be-photo" accept="image/*" style="display:none;">
-      <button class="btn" id="be-extract">&#128247; Extract from photo</button>
       <button class="btn" id="be-draft">&#10024; Draft Analysis &amp; Recommendations</button>
       <button class="btn cb-btn2" id="be-save">&#128190; Save to library</button>
       <span style="font-size:11px;color:#8FA096;">Attach PDF (optional):</span>
@@ -310,7 +310,7 @@
       <input type="text" id="be-note" style="width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;">
     </div>
   </div>
-  <div class="cb-status" id="be-status">Workflow: Extract a photo &rarr; verify the table &rarr; enter thresholds + context note &rarr; Draft &rarr; edit the prose &rarr; Save to library.</div>
+  <div class="cb-status" id="be-status">Workflow: collect or extract the data (Data collection) &rarr; verify the table &rarr; compute thresholds &rarr; enter the context note &rarr; Draft &rarr; edit the prose &rarr; Save to library.</div>
 </details>
 <details class="chart-builder no-print" id="drafts-panel">
   <summary><span class="cb-arrow">&#9656;</span> Saved reports (this device) &mdash; autosaves as you edit</summary>
@@ -1064,6 +1064,10 @@ document.getElementById("stage").addEventListener("click",e=>{
       });
       if(d.client_name)document.querySelectorAll('.cov-name').forEach(e=>e.textContent=d.client_name);
       if(d.test_date)document.querySelectorAll('.cov-date b').forEach(e=>e.textContent=d.test_date);
+      /* Extract rebuilds #raw-body from scratch, which drops the permanent baseline /
+         warm-up rows and leaves the collection grid showing stale rows. Tell the
+         collection screen to put them back and re-render. */
+      document.dispatchEvent(new Event('fc-raw-updated'));
       const blanks=(d.stages||[]).reduce((n,s)=>n+[s.speed,s.hr,s.lactate,s.rpe].filter(v=>v==null).length,0);
       setStatus('✓ Read '+(d.stages||[]).length+' row(s)'+(blanks?(' — '+blanks+' blank cell(s) left empty for you to fill'):'')+'. Verify every value before use.','ok');
     }catch(e){setStatus('Extract failed: '+e.message,'err');}
@@ -1932,6 +1936,9 @@ document.getElementById("stage").addEventListener("click",e=>{
   var panel=document.getElementById('collect-panel');
   function init(){ensureRows();render();refreshTarget(false);}
   if(panel){panel.addEventListener('toggle',function(){if(panel.open)init();});if(panel.open)init();}
+  /* Fired after "Extract from photo" rewrites the appendix table: restore the
+     baseline / warm-up rows it wiped and re-sync the grid to the new rows. */
+  document.addEventListener('fc-raw-updated',function(){ensureRows();render();});
 })();
 /* ===== END DATA COLLECTION SCREEN ===== */
 </script>
