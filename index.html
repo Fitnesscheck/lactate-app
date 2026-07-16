@@ -223,6 +223,7 @@
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload — print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
     <button class="btn" onclick="checkAndPrint()">Save as PDF</button>
+    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="draftReportEmail()" title="Opens a Gmail draft with the report email — attach the PDF &amp; card yourself">✉ Draft email</button>
   </div>
 </div>
 <details class="chart-builder no-print" id="collect-panel">
@@ -659,6 +660,43 @@ function showToast(msg){
   clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),4500);
 }
 
+/* ---- Report naming (files + email) ----
+   Read from the cover so edits to the name/date on the page are respected; the
+   month/year comes from the client's TEST DATE, not today, so a report written up
+   later still carries the month the test happened. */
+function fcClientName(){
+  var el=document.querySelector('.cov-name');
+  return (((el&&el.textContent)||(typeof report!=='undefined'?report.client:'')||'client')).trim();
+}
+function fcMonthYear(){
+  var el=document.querySelector('.cov-date b');
+  var s=(((el&&el.textContent)||(typeof report!=='undefined'?report.date:'')||'')).trim();
+  var d=new Date(s);
+  if(!isNaN(d.getTime()))return d.toLocaleString('en-GB',{month:'long'})+' '+d.getFullYear();
+  var m=s.match(/([A-Za-z]{3,9})\s+(\d{4})/);        // fallback: "Month YYYY" out of the string
+  return m?(m[1]+' '+m[2]):s;
+}
+function fcSafeFile(s){return s.replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim();}
+
+/* Open a Gmail compose window pre-filled with the client's report email. Gmail
+   (and mailto) cannot carry attachments, and "Save as PDF" hands the file to the
+   OS rather than to this page, so the PDF + Instagram card are attached by hand —
+   the toast reminds you. This drafts, never sends. */
+function draftReportEmail(){
+  var name=fcClientName();
+  var first=(name.split(/\s+/)[0])||'there';
+  var subject=fcSafeFile('FitnessCheck - '+name+' '+fcMonthYear());
+  var body='Dear '+first+',\n\n'+
+    'Please find your report attached.\n\n'+
+    'We hope you find this useful. If you have any questions or feedback, please let us know. Both help us continually improve.\n\n'+
+    'Please consider leaving a review on our new Google Business profile.\n'+
+    'https://g.page/r/CazscKHWmR64EBI/review\n\n'+
+    'Best wishes,\n\nSim and Luke';
+  var url='https://mail.google.com/mail/?view=cm&fs=1&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  window.open(url,'_blank','noopener');
+  showToast('Gmail draft opened — now attach the PDF and the Instagram card from your Downloads.');
+}
+
 /* Save a portable draft HTML file with all current edits baked in */
 function saveAsDraft(){
   let html=document.documentElement.outerHTML;
@@ -717,7 +755,7 @@ if(dlBtn) dlBtn.addEventListener("click", async ()=>{
       canvas.toBlob(blob=>{
         const a=document.createElement("a");
         a.href=URL.createObjectURL(blob);
-        a.download="fitnesscheck-"+(report.client||"client").replace(/\s+/g,"-").toLowerCase()+".png";
+        a.download=fcSafeFile(fcClientName()+" FitnessCheck QuickRefCard "+fcMonthYear())+".png";
         document.body.appendChild(a);a.click();a.remove();
       });
     })
@@ -1263,7 +1301,13 @@ document.getElementById("stage").addEventListener("click",e=>{
         '\n\nYour thresholds:\n  Aerobic   '+report.aet.speed+' km/h · '+pace(report.aet.speed)+'/km · '+report.aet.hr+' bpm\n  Anaerobic '+report.ant.speed+' km/h · '+pace(report.ant.speed)+'/km · '+report.ant.hr+' bpm\n\nSave as PDF anyway?';
       if(!window.confirm(msg))return;
     }
+    /* The browser's Save-as-PDF dialog pre-fills its filename from document.title,
+       so set it to "FitnessCheck - <client> <Month Year>" for the duration of the
+       print, then restore. It's a suggested name the user can still change. */
+    var prevTitle=document.title;
+    try{document.title=fcSafeFile('FitnessCheck - '+fcClientName()+' '+fcMonthYear());}catch(e){}
     window.print();
+    setTimeout(function(){document.title=prevTitle;},1500);
   };
 })();
 /* ===== END THRESHOLD SYNC + CONSISTENCY CHECK ===== */
