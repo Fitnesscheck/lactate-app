@@ -363,7 +363,12 @@ var GYMS = {
     email:"info@teamrees.co.uk",                  /* TODO: confirm Team Rees email */
     ig:"https://www.instagram.com/teamrees/",     /* TODO: confirm Team Rees Instagram URL */
     igHandle:"@teamrees",                         /* TODO: confirm Team Rees handle */
-    community:"Team Rees is a community-driven gym in Caerphilly with a busy calendar of events. Follow them on Instagram to keep up with what\u2019s on:"
+    community:"Team Rees is a community-driven gym in Caerphilly with a busy calendar of events. Follow them on Instagram to keep up with what\u2019s on:",
+    /* Optional promo shown in the coach block (only gyms with an `offer` show one). */
+    offer:{
+      text:"Team Rees are currently offering gym membership for just \u00a310 for the first month, check out their website to take advantage of it before it\u2019s gone!",
+      url:"https://www.teamreesgym.com/"
+    }
   }
 };
 
@@ -534,6 +539,10 @@ function coachBlock(){
     '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">Let us put you in touch with a coach at '+g.name+' who can build a programme around your data. The button below gets a message ready to send to them.</p>'+
     '<a class="cta" href="'+mailto+'" onclick="return emailCoach(event)">Email '+g.name+' &rarr;</a>'+
     '<div class="mail-opts">Or email <a href="mailto:'+g.email+'">'+g.email+'</a> directly.</div>'+
+    (g.offer?('<div class="gym-offer" style="border:1px solid #1D9E75;background:#EAF6F1;border-radius:10px;padding:12px 14px;margin:16px 0 4px;">'+
+      '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#0F6E56;margin:0 0 7px;">'+g.offer.text+'</p>'+
+      '<a href="'+g.offer.url+'" target="_blank" rel="noopener" style="font-size:13px;color:#0F6E56;font-weight:600;word-break:break-all;">'+g.offer.url+'</a>'+
+      '</div>'):'')+
     '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:16px 0 10px;">'+g.community+'</p>'+
     '<a class="ig-link" href="'+g.ig+'" target="_blank" rel="noopener">'+igGlyph()+'<span>'+g.igHandle+'</span></a>'+
     '</div>';
