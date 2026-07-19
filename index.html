@@ -678,6 +678,18 @@ function fcMonthYear(){
 }
 function fcSafeFile(s){return s.replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim();}
 
+/* Push the cover's name + location onto the Instagram card's client line (and
+   report.*). Called on every cover edit AND just before the card is exported, so
+   the card can't keep a stale name. */
+function fcSyncCoverToCard(){
+  var nmEl=document.querySelector('.cov-name');
+  var locEl=document.querySelector('.cov-loc');
+  var nm=(((nmEl&&nmEl.textContent)||'')).trim();
+  var loc=(((locEl&&locEl.textContent)||'')).trim();
+  if(typeof report!=='undefined'){report.client=nm;report.location=loc;}
+  document.querySelectorAll('.ig-client').forEach(function(el){el.textContent=nm+(loc?(' · '+loc):'');});
+}
+
 /* Open a Gmail compose window pre-filled with the client's report email. Gmail
    (and mailto) cannot carry attachments, and "Save as PDF" hands the file to the
    OS rather than to this page, so the PDF + Instagram card are attached by hand —
@@ -724,6 +736,7 @@ if(dlBtn) dlBtn.addEventListener("click", async ()=>{
   if(typeof html2canvas==="undefined"){alert("Couldn't load the image library — you need an internet connection to export the PNG.");return;}
   const card=document.querySelector(".ig-card");
   if(!card){alert("No Instagram card found.");return;}
+  fcSyncCoverToCard();   // make sure the card shows the current cover name before export
 
   /* 1. Pre-render SVG images to high-res PNG — html2canvas can't render SVG */
   const imgs=[...card.querySelectorAll("img")];
@@ -1266,16 +1279,19 @@ document.getElementById("stage").addEventListener("click",e=>{
     onEdit(which,cell.classList.contains('spd')?'speed':'hr',n(cell.textContent),cell);
   });
 
-  /* keep the "At a glance" card's client line in sync with the cover's name +
-     location as they are edited */
-  document.getElementById('stage').addEventListener('input',function(e){
+  /* Keep the Instagram card's client line in sync with the cover's name +
+     location. Listen to BOTH input (live typing) AND focusout — input is skipped
+     by dictation, autocorrect acceptance and spellcheck "correct to", which was
+     why the card sometimes kept the old name; focusout fires when you leave the
+     field however the edit was made. */
+  function coverEdit(e){
     var t=e.target;if(!t||!t.classList)return;
     if(!t.classList.contains('cov-name')&&!t.classList.contains('cov-loc'))return;
-    var nm=((document.querySelector('.cov-name')||{}).textContent||'').trim();
-    var loc=((document.querySelector('.cov-loc')||{}).textContent||'').trim();
-    if(typeof report!=='undefined'){report.client=nm;report.location=loc;}
-    document.querySelectorAll('.ig-client').forEach(function(el){el.textContent=nm+(loc?(' · '+loc):'');});
-  });
+    fcSyncCoverToCard();
+  }
+  var stageEl=document.getElementById('stage');
+  stageEl.addEventListener('input',coverEdit);
+  stageEl.addEventListener('focusout',coverEdit);
 
   /* ---- consistency check ---- */
   function issues(){
