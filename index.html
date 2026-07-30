@@ -222,6 +222,7 @@
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload — print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
+    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="checkDocument()" title="AI proofread — spelling, grammar, consistency, leftover placeholders (needs internet)">&#128269; Check document</button>
     <button class="btn" onclick="checkAndPrint()">Save as PDF</button>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="draftReportEmail()" title="Opens a Gmail draft with the report email — attach the PDF &amp; card yourself">✉ Draft email</button>
   </div>
@@ -347,7 +348,73 @@
   </div>
   <div class="cb-status" id="cl-status">Save the current report to the cloud so it is safe and your partner can open it. It then auto-syncs as you edit.</div>
 </details>
+<div id="chk-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10002;background:rgba(6,10,8,0.82);overflow:auto;padding:24px 16px;">
+  <div style="background:#0F1714;border:1px solid #2A3A33;border-radius:14px;max-width:640px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #2A3A33;">
+      <div style="font-size:15px;font-weight:600;color:var(--cream);">&#128269; Document check</div>
+      <button id="chk-close" style="cursor:pointer;background:transparent;border:none;color:#8FA096;font-size:22px;line-height:1;">&times;</button>
+    </div>
+    <div id="chk-body" style="padding:16px 18px;font-size:13px;color:var(--cream);"></div>
+  </div>
+</div>
 <div class="stage" id="stage"></div>
+<script>
+/* Document check — sends the report's prose to the backend AI proofreader and
+   lists the issues it finds. Read-only: it never edits the report; the doctor
+   fixes each item by hand. Additive + guarded so document.write restore is safe. */
+(function(){
+  if(window.__fcCheckWired)return;window.__fcCheckWired=true;
+  var DEF_BACKEND='https://web-production-bb0d36.up.railway.app';
+  function backendUrl(){var el=document.getElementById('be-url');return ((el&&el.value)||localStorage.getItem('fc_backend')||DEF_BACKEND).trim().replace(/\/+$/,'');}
+  function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var SEV={high:['#e53935','#2a1414','#f0a0a0'],medium:['#b8860b','#2a1f12','#f0c674'],low:['#3f6b57','#16201B','#9fdcc6']};
+  /* Extract the report's readable prose. Clone the sheets, drop the no-print UI
+     and the numeric raw-data table, attach off-screen briefly so innerText yields
+     proper line breaks, then remove. */
+  function reportText(){
+    var stage=document.getElementById('stage');if(!stage)return '';
+    var clone=stage.cloneNode(true);
+    Array.prototype.forEach.call(clone.querySelectorAll('.no-print, table.raw, button, .add'),function(el){el.remove();});
+    clone.style.position='fixed';clone.style.left='-99999px';clone.style.top='0';clone.style.width='800px';
+    document.body.appendChild(clone);
+    var t=(clone.innerText||clone.textContent||'');
+    document.body.removeChild(clone);
+    return t.replace(/\n{3,}/g,'\n\n').trim();
+  }
+  function openM(){var m=document.getElementById('chk-modal');if(m){m.style.display='block';document.body.style.overflow='hidden';}}
+  function closeM(){var m=document.getElementById('chk-modal');if(m){m.style.display='none';document.body.style.overflow='';}}
+  function render(issues){
+    var body=document.getElementById('chk-body');if(!body)return;
+    if(!issues||!issues.length){body.innerHTML='<div style="padding:22px 4px;text-align:center;color:#7fe0b8;font-size:14px;">&#10003; No issues found &mdash; the report reads clean.</div>';return;}
+    var order={high:0,medium:1,low:2};
+    issues=issues.slice().sort(function(a,b){return (order[a.severity]==null?3:order[a.severity])-(order[b.severity]==null?3:order[b.severity]);});
+    body.innerHTML='<div style="font-size:11px;color:#8FA096;margin-bottom:10px;">'+issues.length+' item'+(issues.length>1?'s':'')+' to review &mdash; these are suggestions; you decide what to change.</div>'+
+      issues.map(function(i){
+        var c=SEV[i.severity]||SEV.low;
+        return '<div style="border:1px solid '+c[0]+';background:'+c[1]+';border-radius:8px;padding:10px 12px;margin-bottom:8px;">'+
+          '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:'+c[2]+';margin-bottom:5px;">'+esc(i.severity)+' &middot; '+esc(i.category)+'</div>'+
+          '<div style="font-size:13px;color:var(--cream);background:#0b110e;border-radius:6px;padding:6px 8px;margin-bottom:6px;white-space:pre-wrap;">&ldquo;'+esc(i.quote)+'&rdquo;</div>'+
+          '<div style="font-size:12.5px;color:#c8d3cc;">&#8594; '+esc(i.suggestion)+'</div>'+
+        '</div>';
+      }).join('');
+  }
+  window.checkDocument=function(){
+    var text=reportText();
+    if(text.length<20){if(typeof showToast==='function')showToast('Nothing to check yet.');return;}
+    openM();
+    var body=document.getElementById('chk-body');
+    if(body)body.innerHTML='<div style="padding:22px 4px;text-align:center;color:#8FA096;">Checking the document with the AI&hellip; this takes a few seconds.</div>';
+    fetch(backendUrl()+'/check-report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text})})
+      .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error('HTTP '+r.status+' '+t);return JSON.parse(t);});})
+      .then(function(d){render(d.issues||[]);})
+      .catch(function(e){var b=document.getElementById('chk-body');if(b)b.innerHTML='<div style="color:#f0a0a0;font-size:13px;">Check failed: '+esc(e.message)+'</div>';});
+  };
+  document.addEventListener('click',function(e){
+    if(e.target&&(e.target.id==='chk-close'||e.target.id==='chk-modal'))closeM();
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('chk-modal');if(m&&m.style.display==='block')closeM();}});
+})();
+</script>
 
 <script>
 /* =========================================================
