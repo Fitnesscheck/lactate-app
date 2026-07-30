@@ -232,8 +232,9 @@
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;font-size:12px;color:#9fdcc6;">
       <label>Warm-up (km/h)<br><input id="dc-warmup" type="number" inputmode="decimal" step="0.1" placeholder="km/h" style="width:92px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
       <label>Predicted top (km/h)<br><input id="dc-top" type="number" inputmode="decimal" step="0.1" placeholder="km/h" style="width:104px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
-      <button class="btn cb-btn2" id="dc-build" style="margin-bottom:1px;">Build 8 steps</button>
-      <span style="font-size:11px;color:#8FA096;padding-bottom:8px;">8 equal steps, ending on the predicted top &middot; increment <b id="dc-inc" style="color:#9fdcc6;">&mdash;</b></span>
+      <label>Steps<br><input id="dc-steps" type="number" inputmode="numeric" min="1" step="1" value="8" style="width:64px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
+      <button class="btn cb-btn2" id="dc-build" style="margin-bottom:1px;">Build steps</button>
+      <span style="font-size:11px;color:#8FA096;padding-bottom:8px;">equal steps ending on the predicted top &middot; increment <b id="dc-inc" style="color:#9fdcc6;">&mdash;</b></span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;font-size:12px;color:#9fdcc6;">
       <label>Belt length (m)<br><input id="dc-belt" type="number" inputmode="decimal" step="0.01" placeholder="m" style="width:90px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
@@ -267,7 +268,7 @@
       </div>
     </div>
   </div>
-  <div class="cb-status" id="dc-status">Enter warm-up + predicted top, then Build 8 steps. Baseline &amp; warm-up rows are always included; fill HR / lactate / RPE per step. Warm-up 10 min, steps 4 min; &ldquo;Add step&rdquo; continues the same increment.</div>
+  <div class="cb-status" id="dc-status">Enter warm-up + predicted top, set the number of steps (default 8), then Build steps. Baseline &amp; warm-up rows are always included; fill HR / lactate / RPE per step. Warm-up 10 min, steps 4 min; &ldquo;Add step&rdquo; continues the same increment.</div>
 </details>
 <details class="chart-builder no-print" id="engine-panel">
   <summary><span class="cb-arrow">&#9656;</span> Threshold engine &mdash; compute candidates from the appendix data</summary>
@@ -1997,11 +1998,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var sp=NaN;rows().forEach(function(row){if(!kindOf(row)){var s=parseFloat(cellVal(row,COL.speed));if(!isNaN(s))sp=s;}});
     return sp;
   }
-  /* Protocol: 8 equal steps from the warm-up speed up to the predicted top, so
-     step 8 lands exactly on the predicted top. increment = (top - warm-up) / 8. */
+  /* Protocol: N equal steps from the warm-up speed up to the predicted top, so
+     step N lands exactly on the predicted top. increment = (top - warm-up) / N.
+     N is the "Steps" input (default 8; some athletes need 9 or more). */
+  function numSteps(){var n=Math.round(num('dc-steps'));return (isNaN(n)||n<1)?8:Math.min(n,40);}
   function stepIncrement(){
     var wu=num('dc-warmup'),tp=num('dc-top');
-    if(!isNaN(wu)&&!isNaN(tp)&&tp>wu)return (tp-wu)/8;
+    if(!isNaN(wu)&&!isNaN(tp)&&tp>wu)return (tp-wu)/numSteps();
     var s=stepRows().map(function(r){return parseFloat(cellVal(r,COL.speed));}).filter(function(x){return !isNaN(x);});
     if(s.length>=2)return s[s.length-1]-s[s.length-2];   // otherwise continue the existing spacing
     return 1;
@@ -2009,22 +2012,22 @@ document.getElementById("stage").addEventListener("click",e=>{
   function updateInc(){
     var el=document.getElementById('dc-inc');if(!el)return;
     var wu=num('dc-warmup'),tp=num('dc-top');
-    el.textContent=(!isNaN(wu)&&!isNaN(tp)&&tp>wu)?String(round2((tp-wu)/8)):'—';
+    el.textContent=(!isNaN(wu)&&!isNaN(tp)&&tp>wu)?String(round2((tp-wu)/numSteps())):'—';
   }
   function buildSteps(){
     var b=body();if(!b||typeof rawRow!=='function')return;
-    var wu=num('dc-warmup'),tp=num('dc-top');
+    var wu=num('dc-warmup'),tp=num('dc-top'),N=numSteps();
     if(isNaN(wu)){status('Enter the warm-up speed.');return;}
     if(isNaN(tp)||tp<=wu){status('Enter a predicted top speed above the warm-up speed.');return;}
     var existing=stepRows();
     var hasData=existing.some(function(r){return cellVal(r,COL.hr)||cellVal(r,COL.lactate)||cellVal(r,COL.rpe);});
-    if(hasData&&!window.confirm('Replace the current '+existing.length+' step(s) with a fresh 8-step protocol? Entered HR / lactate / RPE will be cleared.'))return;
-    var inc=(tp-wu)/8;
+    if(hasData&&!window.confirm('Replace the current '+existing.length+' step(s) with a fresh '+N+'-step protocol? Entered HR / lactate / RPE will be cleared.'))return;
+    var inc=(tp-wu)/N;
     rows().forEach(function(r){if(kindOf(r)==='warm'){setCell(r,COL.speed,String(round2(wu)));setCell(r,COL.pace,wu>0?fmtPace(wu):'');}});
     existing.forEach(function(r){r.remove();});
-    for(var i=1;i<=8;i++){var sp=round2(wu+i*inc);b.insertAdjacentHTML('beforeend',rawRow([String(sp),fmtPace(sp),'4','','','']));}
+    for(var i=1;i<=N;i++){var sp=round2(wu+i*inc);b.insertAdjacentHTML('beforeend',rawRow([String(sp),fmtPace(sp),'4','','','']));}
     render();
-    status('Built 8 steps '+round2(wu+inc)+'–'+round2(tp)+' km/h (increment '+round2(inc)+'). Fill HR / lactate / RPE per step as you go.');
+    status('Built '+N+' steps '+round2(wu+inc)+'–'+round2(tp)+' km/h (increment '+round2(inc)+'). Fill HR / lactate / RPE per step as you go.');
   }
   function addStep(){
     var b=body();if(!b||typeof rawRow!=='function')return;
@@ -2038,7 +2041,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   document.addEventListener('input',function(e){
     var el=e.target,id=el.id;
-    if(id==='dc-warmup'||id==='dc-top'){updateInc();return;}
+    if(id==='dc-warmup'||id==='dc-top'||id==='dc-steps'){updateInc();return;}
     if(id==='dc-age'||id==='dc-maxhr'){refreshTarget(true);return;}
     if(id==='dc-belt'){var cb=document.getElementById('dc-cal-belt');if(cb)cb.value=el.value;return;}
     if(id==='dc-cal-belt'){var tb=document.getElementById('dc-belt');if(tb)tb.value=el.value;calcCal();return;}
