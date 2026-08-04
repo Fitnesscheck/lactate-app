@@ -461,6 +461,7 @@ var GYMS = {
    read by anyone with the URL. Real reports live in the cloud drafts / report library. */
 var report = {
   client:"Joe Bloggs", date:"01 January 2026",
+  testType:"lt_treadmill",       /* which report to build — see TEST_TYPES near the assembly */
   gymKey:"KORE",                 /* which gym this report is for — also pickable on the cover */
   authors:["Dr Simran Baker-Singh","Dr Luke Nixon"],
   website:"fitnesscheck.co.uk", handle:"@fitnesscheckuk",
@@ -661,7 +662,26 @@ function appendix(){
     '<button class="add no-print" data-add="def">+ Add definition</button></div>';
 }
 
-document.getElementById("stage").innerHTML = cover()+ataGlance()+analysis()+recommendations()+appendix();
+/* ---------- REPORT COMPOSITION ----------
+   A report is assembled from an ordered list of section builders chosen by its
+   test type. Adding a new report type = add one entry here (label + modality +
+   sections) and write any new section functions; nothing else changes. Shared
+   sections (cover, coach block inside recommendations, definitions) are reused;
+   type-specific sections differ per entry. */
+var TEST_TYPES = {
+  lt_treadmill:{
+    label:"Lactate threshold — treadmill",
+    modality:"treadmill",
+    sections:[cover, ataGlance, analysis, recommendations, appendix]
+  }
+};
+if(!report.testType || !TEST_TYPES[report.testType]) report.testType = "lt_treadmill";
+report.modality = TEST_TYPES[report.testType].modality;
+function assembleReport(){
+  var t = TEST_TYPES[report.testType] || TEST_TYPES.lt_treadmill;
+  return t.sections.map(function(fn){return fn();}).join("");
+}
+document.getElementById("stage").innerHTML = assembleReport();
 
 /* cover curve */
 (function(){
@@ -796,7 +816,7 @@ function saveAsDraft(){
   let html=document.documentElement.outerHTML;
   /* Stop the draft from re-rendering the stage and overwriting saved content */
   html=html.replace(
-    'document.getElementById("stage").innerHTML = cover()+ataGlance()+analysis()+recommendations()+appendix();',
+    'document.getElementById("stage").innerHTML = assembleReport();',
     '/* stage: pre-loaded from draft */'
   );
   /* Stop threshold init from overwriting the saved input values */
@@ -1471,7 +1491,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     tmp.forEach(function(node){if(node.parentNode)node.parentNode.removeChild(node);});
     var h=document.documentElement.outerHTML;
     spots.forEach(function(s){if(s[1])s[1].insertBefore(s[0],s[2]);});
-    h=h.replace('document.getElementById("stage").innerHTML = cover()+ataGlance()+analysis()+recommendations()+appendix();','/* stage: restored from autosave */');
+    h=h.replace('document.getElementById("stage").innerHTML = assembleReport();','/* stage: restored from autosave */');
     h=h.replace('if(a)a.value=report.aet.speed;if(n)n.value=report.ant.speed;','/* thresholds: restored from autosave */');
     return '<!DOCTYPE html>\n'+h;
   }
