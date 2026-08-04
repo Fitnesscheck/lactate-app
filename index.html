@@ -483,8 +483,8 @@ report.location = report.gym.location;
    helpers so the same code renders either report. Add a report type by adding a
    TEST_TYPES entry (label + modality + section list). */
 var MODALITIES = {
-  treadmill:{ intLabel:"Speed", unit:"km/h", hasPace:true, verb:"running", plural:"runs" },
-  bike:{ intLabel:"Power", unit:"W", hasPace:false, verb:"cycling", plural:"rides" }
+  treadmill:{ name:"Treadmill", intLabel:"Speed", unit:"km/h", hasPace:true, verb:"running", plural:"runs" },
+  bike:{ name:"Bike", intLabel:"Power", unit:"W", hasPace:false, verb:"cycling", plural:"rides" }
 };
 var TEST_TYPES = {
   lt_treadmill:{ label:"Lactate threshold — treadmill", modality:"treadmill", sections:[cover, ataGlance, analysis, recommendations, appendix] },
@@ -580,7 +580,7 @@ function cover(){
   const picker='<div class="cover-pickers no-print">'+typePicker+gymPicker+'</div>';
   return '<div class="cover">'+bg+picker+
     '<div class="layer cov-head"><div class="wm">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>'+
-    '<div class="layer cov-title"><div class="cov-eyebrow">Performance Report</div><h1 class="cov-h1">Lactate<br>Threshold Test</h1><div class="cov-sub">Lactate Thresholds and Training Zones</div></div>'+
+    '<div class="layer cov-title"><div class="cov-eyebrow">Performance Report · '+MODALITIES[report.modality].name+' Test</div><h1 class="cov-h1">Lactate<br>Threshold Test</h1><div class="cov-sub">Lactate Thresholds and Training Zones</div></div>'+
     '<div class="layer cov-meta"><div class="cov-rule"></div><div class="cov-lab">Prepared for</div>'+
       '<div class="cov-name edit" contenteditable="true">'+report.client+'</div>'+
       '<div class="cov-loc edit" contenteditable="true">'+report.location+'</div>'+
@@ -1742,8 +1742,8 @@ document.getElementById("stage").addEventListener("click",e=>{
         </label>
         <label>Method
           <select id="te-source" title="affects LogPoly + LTP break-points (ModDmax &amp; LT ratio match in both)" style="background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;margin-left:4px;">
+            <option value="r" selected>ExPhysLab (exact)</option>
             <option value="interp">FitnessCheck (smoothed)</option>
-            <option value="r">ExPhysLab (exact)</option>
           </select>
         </label>
       </div>
