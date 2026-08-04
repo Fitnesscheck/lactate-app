@@ -156,6 +156,10 @@
   table.raw td{padding:6px 8px;border-bottom:0.5px solid var(--line);text-align:right;}
   table.raw td.rmcell{width:24px;padding:6px 2px;text-align:center;}
   table.raw td.computed{color:var(--muted);font-style:italic;}
+  /* bike report: hide the pace column (kept in the DOM so cell indices are stable) */
+  table.raw.no-pace th:nth-child(2),table.raw.no-pace td:nth-child(2){display:none;}
+  /* bike test: hide treadmill-only belt-calibration controls */
+  body.modality-bike .cal-only{display:none;}
 
   table.rec-table{width:100%;border-collapse:collapse;font-size:13px;margin:0 0 20px;break-inside:avoid;}
   table.rec-table th{text-align:left;font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:0 12px 8px;border-bottom:0.5px solid var(--line);}
@@ -165,9 +169,10 @@
   .edu-list{margin:0 0 18px;padding-left:20px;font-size:13.5px;line-height:1.7;color:#2c332f;}
   .edu-list li{margin-bottom:3px;}
   .defs a{color:#0F6E56;}
-  .gym-picker{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:8px;background:rgba(13,20,17,0.9);border:1px solid #2A3A33;border-radius:9px;padding:7px 11px;}
-  .gym-picker label{font-size:10px;color:#8FA096;text-transform:uppercase;letter-spacing:0.06em;}
-  .gym-picker select{background:#16201B;color:#F3F2EC;border:1px solid #2A3A33;border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;cursor:pointer;}
+  .cover-pickers{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;gap:6px;align-items:center;}
+  .gym-picker,.type-picker{display:flex;align-items:center;gap:8px;background:rgba(13,20,17,0.9);border:1px solid #2A3A33;border-radius:9px;padding:7px 11px;}
+  .gym-picker label,.type-picker label{font-size:10px;color:#8FA096;text-transform:uppercase;letter-spacing:0.06em;}
+  .gym-picker select,.type-picker select{background:#16201B;color:#F3F2EC;border:1px solid #2A3A33;border-radius:6px;padding:5px 9px;font-size:12px;font-family:inherit;cursor:pointer;}
 
   .defs .def{margin-bottom:13px;break-inside:avoid;position:relative;}
   .defs .def .row{display:flex;align-items:flex-start;gap:8px;}
@@ -238,7 +243,7 @@
       <span style="font-size:11px;color:#8FA096;padding-bottom:8px;">equal steps ending on the predicted top &middot; increment <b id="dc-inc" style="color:#9fdcc6;">&mdash;</b></span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;font-size:12px;color:#9fdcc6;">
-      <label>Belt length (m)<br><input id="dc-belt" type="number" inputmode="decimal" step="0.01" placeholder="m" style="width:90px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
+      <label class="cal-only">Belt length (m)<br><input id="dc-belt" type="number" inputmode="decimal" step="0.01" placeholder="m" style="width:90px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
       <label>Age<br><input id="dc-age" type="number" inputmode="numeric" placeholder="yrs" style="width:70px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
       <label style="color:#8FA096;">or Max HR<br><input id="dc-maxhr" type="number" inputmode="numeric" placeholder="bpm" style="width:80px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:9px 8px;font-size:16px;font-family:inherit;"></label>
       <span style="font-size:11px;color:#8FA096;padding-bottom:8px;">Warm-up target HR: <b id="dc-target" style="color:#1D9E75;">&mdash;</b> bpm</span>
@@ -249,7 +254,7 @@
       <input type="file" id="be-photo" accept="image/*" style="display:none;">
       <button class="btn cb-btn2" id="be-extract" title="Read a photo of a paper data sheet into the table (needs internet)">&#128247; Extract from photo</button>
     </div>
-    <div style="border-top:1px solid #2A3A33;padding-top:8px;font-size:10px;color:#8FA096;">
+    <div class="cal-only" style="border-top:1px solid #2A3A33;padding-top:8px;font-size:10px;color:#8FA096;">
       Tip: tap the <b style="color:#9fdcc6;">&#9678;</b> dot to the left of any row to <b style="color:#9fdcc6;">check treadmill calibration</b> (belt length &times; revolutions &divide; time &times; 3.6) and write the measured speed into that step.
     </div>
     <div id="dc-cal-pop" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10001;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
@@ -471,31 +476,63 @@ var report = {
 };
 report.gym = GYMS[report.gymKey];
 report.location = report.gym.location;
-var DEFAULTS = {
-  oneline:"Train easy below "+report.aet.speed+" km/h ("+pace(report.aet.speed)+"/km), hold threshold work at "+report.ant.speed+" km/h ("+pace(report.ant.speed)+"/km). Everything else builds off those two numbers.",
+
+/* ---------- MODALITY + TEST TYPES ----------
+   Modality drives units and wording: treadmill = speed (km/h) with pace,
+   bike = power (watts) with no pace. Section builders and the engine read these
+   helpers so the same code renders either report. Add a report type by adding a
+   TEST_TYPES entry (label + modality + section list). */
+var MODALITIES = {
+  treadmill:{ intLabel:"Speed", unit:"km/h", hasPace:true, verb:"running", plural:"runs" },
+  bike:{ intLabel:"Power", unit:"W", hasPace:false, verb:"cycling", plural:"rides" }
+};
+var TEST_TYPES = {
+  lt_treadmill:{ label:"Lactate threshold — treadmill", modality:"treadmill", sections:[cover, ataGlance, analysis, recommendations, appendix] },
+  lt_bike:{ label:"Lactate threshold — bike", modality:"bike", sections:[cover, ataGlance, analysis, recommendations, appendix] }
+};
+/* sample thresholds + curve per modality (fictional demo data, replaced per test) */
+var DEMO = {
+  treadmill:{ aet:{speed:15.5,hr:160}, ant:{speed:17.5,hr:176},
+    raw:[["9","6:40","4","","1.1",""],["10","6:00","4","","1.2",""],["11","5:27","4","","1.4",""],
+         ["12","5:00","4","","1.8",""],["13","4:37","4","","2.4",""],["14","4:17","4","","3.5",""],
+         ["15","4:00","4","","5.2",""],["16","3:45","4","","8.5",""]] },
+  bike:{ aet:{speed:210,hr:150}, ant:{speed:270,hr:172},
+    raw:[["120","","4","","1.0",""],["150","","4","","1.1",""],["180","","4","","1.3",""],
+         ["210","","4","","1.7",""],["240","","4","","2.6",""],["260","","4","","3.8",""],
+         ["280","","4","","5.4",""],["300","","4","","7.6",""]] }
+};
+/* a restored draft bakes its test type on <body>; adopt it so modality is right */
+var _savedType = document.body && document.body.getAttribute("data-fc-test-type");
+if(_savedType && TEST_TYPES[_savedType]) report.testType = _savedType;
+if(!report.testType || !TEST_TYPES[report.testType]) report.testType = "lt_treadmill";
+report.modality = TEST_TYPES[report.testType].modality;
+function MOD(){ return MODALITIES[report.modality] || MODALITIES.treadmill; }
+function UNIT(){ return MOD().unit; }
+function HASPACE(){ return MOD().hasPace; }
+/* full intensity display: "15.5 km/h (4:37/km)" for run, "250 W" for bike */
+function intVal(v){ if(v==null||v==='')return ''; return HASPACE() ? (v+" "+UNIT()+" ("+pace(v)+"/km)") : (v+" "+UNIT()); }
+
+function buildDefaults(){ return {
+  oneline:"Train easy below "+intVal(report.aet.speed)+", hold threshold work at "+intVal(report.ant.speed)+". Everything else builds off those two numbers.",
   analysis:[
     {h:"Aerobic Threshold, Your Easy Ceiling",
-     p:"Your aerobic threshold sits at "+report.aet.speed+" km/h ("+pace(report.aet.speed)+"/km) at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy running. Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
+     p:"Your aerobic threshold sits at "+intVal(report.aet.speed)+" at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy "+MOD().verb+". Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
-     p:"Your anaerobic threshold is "+report.ant.speed+" km/h ("+pace(report.ant.speed)+"/km) at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
+     p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
     {h:"Between Your Thresholds",
-     p:"The difference between your aerobic and anaerobic thresholds is just "+(report.ant.hr-report.aet.hr)+" beats per minute or "+(Math.round((report.ant.speed-report.aet.speed)*10)/10)+"km/h. This can be influenced by a range of physiological and training factors. In your case, it aligns with the other indicators of a well developed aerobic system."},
+     p:"The difference between your aerobic and anaerobic thresholds is just "+(report.ant.hr-report.aet.hr)+" beats per minute or "+(Math.round((report.ant.speed-report.aet.speed)*10)/10)+" "+UNIT()+". This can be influenced by a range of physiological and training factors. In your case, it aligns with the other indicators of a well developed aerobic system."},
     {h:"Your Rate of Perceived Exertion (RPE)",
      p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
   recs:[
-    "Cap easy runs at "+pace(report.aet.speed)+"/km ("+report.aet.speed+" km/h) or slower. If your easy days have been faster than this, that is the first thing to fix.",
-    "Anchor threshold sessions at "+pace(report.ant.speed)+"/km ("+report.ant.speed+" km/h) rather than going by feel \u2014 for example, 4 \u00D7 6 min at "+pace(report.ant.speed)+"/km with 90 seconds easy between.",
+    "Cap easy "+MOD().plural+" at "+intVal(report.aet.speed)+" or "+(HASPACE()?"slower":"lower")+". If your easy days have been "+(HASPACE()?"faster":"harder")+" than this, that is the first thing to fix.",
+    "Anchor threshold sessions at "+intVal(report.ant.speed)+" rather than going by feel \u2014 for example, 4 \u00D7 6 min at "+intVal(report.ant.speed)+" with 90 seconds easy between.",
     "[Pick one for this athlete: more easy volume / a mix of volume and threshold / more threshold work / add VO\u2082 intervals. Edit to match their history and the size of the gap.]"
   ],
   paces:"",
   retest:"People often see benefits after at least an 8 to 12 week period of structured training. The first test is your baseline, the re-test shows whether the work actually moved your thresholds.<br><br>As a thank you for choosing us, you will receive an email with a discount code that is valid for six months and for one use only. It can be used either by you or passed to a friend.<br><br>Re-tests are designed to be more streamlined than an initial test. The questionnaire is abbreviated and the testing protocol is focused around your previous data. If the booking dates are not yet released on our website, simply click to join the waitlist. Those on the waitlist are prioritised and told dates before others.",
   /* Sample curve, no name attached — replaced by real data on every test. */
-  raw:[
-    ["9","6:40","4","","1.1",""],["10","6:00","4","","1.2",""],["11","5:27","4","","1.4",""],
-    ["12","5:00","4","","1.8",""],["13","4:37","4","","2.4",""],["14","4:17","4","","3.5",""],
-    ["15","4:00","4","","5.2",""],["16","3:45","4","","8.5",""]
-  ],
+  raw: (DEMO[report.modality]||DEMO.treadmill).raw.map(function(r){return r.slice();}),
   defs:[
     {t:"Lactate",
      d:"A naturally occurring compound produced during energy metabolism. As exercise intensity increases, lactate accumulates in the blood at predictable rates, providing valuable insight into how the body is responding to training. By measuring blood lactate directly, we can accurately identify key physiological thresholds and prescribe training zones tailored to your fitness and performance goals."},
@@ -512,7 +549,8 @@ var DEFAULTS = {
     {t:"VO\u2082 Max",
      d:"The maximum rate at which your body can take in, transport and use oxygen during intense exercise. It sets the upper limit for endurance performance, while your thresholds determine how much of that capacity you can sustain over time."}
   ]
-};
+}; }
+var DEFAULTS = buildDefaults();
 
 function pace(kmh){const t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);return ss===60?(mm+1)+":00":mm+":"+String(ss).padStart(2,"0");}
 function hrTxt(v){return (v==null?"\u2014":v)+" bpm";}
@@ -534,7 +572,12 @@ function cover(){
     var city=GYMS[k].location.split(",").pop().trim();
     return '<option value="'+k+'"'+(k===report.gymKey?" selected":"")+'>'+GYMS[k].name+" \u2014 "+city+'</option>';
   }).join("");
-  const picker='<div class="gym-picker no-print"><label>Gym partner</label><select onchange="selectGym(this.value)">'+gymOpts+'</select></div>';
+  const gymPicker='<div class="gym-picker no-print"><label>Gym partner</label><select onchange="selectGym(this.value)">'+gymOpts+'</select></div>';
+  const typeOpts=Object.keys(TEST_TYPES).map(function(k){
+    return '<option value="'+k+'"'+(k===report.testType?" selected":"")+'>'+TEST_TYPES[k].label+'</option>';
+  }).join("");
+  const typePicker='<div class="type-picker no-print"><label>Test type</label><select onchange="selectTestType(this.value)">'+typeOpts+'</select></div>';
+  const picker='<div class="cover-pickers no-print">'+typePicker+gymPicker+'</div>';
   return '<div class="cover">'+bg+picker+
     '<div class="layer cov-head"><div class="wm">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>'+
     '<div class="layer cov-title"><div class="cov-eyebrow">Performance Report</div><h1 class="cov-h1">Lactate<br>Threshold Test</h1><div class="cov-sub">Lactate Thresholds and Training Zones</div></div>'+
@@ -547,14 +590,22 @@ function cover(){
 }
 
 /* ---------- AT A GLANCE ---------- */
+/* one threshold tile on the IG card; shows pace only for treadmill */
+function igTh(lab,t){
+  var meta=(HASPACE()?'<span class="pc">'+pace(t.speed)+'</span> /km · ':'')+
+    '<span class="hr edit" contenteditable="true">'+(t.hr==null?"—":t.hr)+'</span> bpm';
+  return '<div class="ig-th"><div class="lab edit" contenteditable="true">'+lab+'</div>'+
+    '<div class="v"><span class="spd edit" contenteditable="true">'+t.speed+'</span> <small>'+UNIT()+'</small></div>'+
+    '<div class="meta">'+meta+'</div></div>';
+}
 function ataGlance(){
   const card='<div class="ig-card">'+
     '<div class="ig-top"><div class="wm">'+tick()+' Fitness<b>Check</b></div><div class="handle">'+report.handle+'</div></div>'+
     '<div class="ig-title edit" contenteditable="true">Lactate Threshold Test</div>'+
     '<div class="ig-client edit" contenteditable="true">'+report.client+' · '+report.location+'</div>'+
     '<div class="ig-ths">'+
-      '<div class="ig-th"><div class="lab edit" contenteditable="true">Aerobic Threshold</div><div class="v"><span class="spd edit" contenteditable="true">'+report.aet.speed+'</span> <small>km/h</small></div><div class="meta"><span class="pc">'+pace(report.aet.speed)+'</span> /km · <span class="hr edit" contenteditable="true">'+(report.aet.hr==null?"\u2014":report.aet.hr)+'</span> bpm</div></div>'+
-      '<div class="ig-th"><div class="lab edit" contenteditable="true">Anaerobic Threshold</div><div class="v"><span class="spd edit" contenteditable="true">'+report.ant.speed+'</span> <small>km/h</small></div><div class="meta"><span class="pc">'+pace(report.ant.speed)+'</span> /km · <span class="hr edit" contenteditable="true">'+(report.ant.hr==null?"\u2014":report.ant.hr)+'</span> bpm</div></div>'+
+      igTh("Aerobic Threshold",report.aet)+
+      igTh("Anaerobic Threshold",report.ant)+
     '</div>'+
     '<div class="ig-graph">'+slot("slot-ig")+'</div>'+
     '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
@@ -580,11 +631,13 @@ function recItem(txt){
   return '<li data-block><span class="txt edit" contenteditable="true">'+txt+'</span><button class="rm no-print" data-rm title="Remove">✕</button></li>';
 }
 function recTable(){
-  const aH=report.aet.hr, aP=pace(report.aet.speed);
-  const nH=report.ant.hr, nP=pace(report.ant.speed);
-  return '<table class="rec-table"><thead><tr><th>Goal</th><th>Heart rate</th><th>Pace</th></tr></thead><tbody>'+
-    '<tr><td class="goal" contenteditable="true">Improve aerobic base</td><td contenteditable="true">Below '+aH+' bpm</td><td contenteditable="true">Slower than '+aP+'/km</td></tr>'+
-    '<tr><td class="goal" contenteditable="true">Target anaerobic threshold</td><td contenteditable="true">Use '+nH+' bpm as a guide</td><td contenteditable="true">Use '+nP+'/km as a guide</td></tr>'+
+  const aH=report.aet.hr, nH=report.ant.hr;
+  const col=HASPACE()?"Pace":"Power";
+  const aI=HASPACE()?("Slower than "+pace(report.aet.speed)+"/km"):("Below "+report.aet.speed+" "+UNIT());
+  const nI=HASPACE()?("Use "+pace(report.ant.speed)+"/km as a guide"):("Use "+report.ant.speed+" "+UNIT()+" as a guide");
+  return '<table class="rec-table"><thead><tr><th>Goal</th><th>Heart rate</th><th>'+col+'</th></tr></thead><tbody>'+
+    '<tr><td class="goal" contenteditable="true">Improve aerobic base</td><td contenteditable="true">Below '+aH+' bpm</td><td contenteditable="true">'+aI+'</td></tr>'+
+    '<tr><td class="goal" contenteditable="true">Target anaerobic threshold</td><td contenteditable="true">Use '+nH+' bpm as a guide</td><td contenteditable="true">'+nI+'</td></tr>'+
     '</tbody></table>';
 }
 function retestBlock(){
@@ -634,8 +687,8 @@ function coachBlock(){
 function recommendations(){
   let items=DEFAULTS.recs.map(recItem).join("");
   return '<div class="sheet">'+rh()+'<div class="eyebrow">03 · What to do next</div><h2 class="title">Recommendations</h2>'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 10px;">Training programmes are written in different ways. Some prescribe target paces, others target heart rates. To account for both, we have given you the data for each below. We recommend you don\u2019t try to hit both at once. Pick whichever is most suited to how your programme is structured.</p>'+
-    '<p class="edit" contenteditable="true" style="font-size:12.5px;line-height:1.55;color:#6B756F;margin:0 0 16px;">(Factors such as fatigue, illness, injury and terrain can affect the pace you are able to sustain. Likewise, heart rate can be influenced by factors including caffeine intake and hydration status. It is important to bear this in mind when training.)</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 10px;">Training programmes are written in different ways. Some prescribe target '+(HASPACE()?'paces':'power targets')+', others target heart rates. To account for both, we have given you the data for each below. We recommend you don\u2019t try to hit both at once. Pick whichever is most suited to how your programme is structured.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:12.5px;line-height:1.55;color:#6B756F;margin:0 0 16px;">(Factors such as fatigue, illness, injury and terrain can affect the '+(HASPACE()?'pace':'power')+' you are able to sustain. Likewise, heart rate can be influenced by factors including caffeine intake and hydration status. It is important to bear this in mind when training.)</p>'+
     recTable()+
     eduBlock()+
     '<ol class="recs" id="rec-list">'+items+'</ol>'+
@@ -655,44 +708,73 @@ function defItem(d){
 function appendix(){
   let rows=DEFAULTS.raw.map(rawRow).join("");
   let defs=DEFAULTS.defs.map(defItem).join("");
+  /* Bike keeps the 6-cell row structure (so the engine/collection index maps are
+     unchanged) but relabels col 0 and hides the pace column via class no-pace. */
+  var intHead=HASPACE()?"Speed (km/h)":"Power (W)";
+  var rawClass=HASPACE()?"raw":"raw no-pace";
   return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
-    '<table class="raw"><thead><tr><th>Speed (km/h)</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE (Rate of Perceived Exertion)</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
+    '<table class="'+rawClass+'"><thead><tr><th>'+intHead+'</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE (Rate of Perceived Exertion)</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
     '<button class="add no-print" data-add="row">+ Add row</button>'+
     '<div class="defs" style="margin-top:22px;" id="def-list">'+defs+'</div>'+
     '<button class="add no-print" data-add="def">+ Add definition</button></div>';
 }
 
-/* ---------- REPORT COMPOSITION ----------
-   A report is assembled from an ordered list of section builders chosen by its
-   test type. Adding a new report type = add one entry here (label + modality +
-   sections) and write any new section functions; nothing else changes. Shared
-   sections (cover, coach block inside recommendations, definitions) are reused;
-   type-specific sections differ per entry. */
-var TEST_TYPES = {
-  lt_treadmill:{
-    label:"Lactate threshold — treadmill",
-    modality:"treadmill",
-    sections:[cover, ataGlance, analysis, recommendations, appendix]
-  }
-};
-if(!report.testType || !TEST_TYPES[report.testType]) report.testType = "lt_treadmill";
-report.modality = TEST_TYPES[report.testType].modality;
+/* Report composition — TEST_TYPES / MODALITIES / helpers are defined up near the
+   report object (before DEFAULTS). assembleReport() joins the chosen type's
+   section builders; renderStage() rebuilds everything for a test-type switch. */
 function assembleReport(){
   var t = TEST_TYPES[report.testType] || TEST_TYPES.lt_treadmill;
   return t.sections.map(function(fn){return fn();}).join("");
 }
+function renderStage(){
+  DEFAULTS = buildDefaults();
+  document.getElementById("stage").innerHTML = assembleReport();
+  if(typeof drawCoverCurve==='function')drawCoverCurve();
+}
+/* Switch the whole report to another test type (picked on the cover). Resets to
+   that type's demo data + units and re-renders; panels outside #stage keep their
+   wiring (delegated / on persistent elements). */
+function selectTestType(key){
+  if(!TEST_TYPES[key])return;
+  report.testType=key;
+  document.body.setAttribute("data-fc-test-type",key);   /* persists into draft snapshots */
+  report.modality=TEST_TYPES[key].modality;
+  var d=DEMO[report.modality]||DEMO.treadmill;
+  report.aet={speed:d.aet.speed,hr:d.aet.hr};
+  report.ant={speed:d.ant.speed,hr:d.ant.hr};
+  renderStage();
+  var a=document.getElementById('cb-aet'),n2=document.getElementById('cb-ant');
+  if(a)a.value=report.aet.speed; if(n2)n2.value=report.ant.speed;
+  var ah=document.getElementById('cb-aet-hr'),nh=document.getElementById('cb-ant-hr');
+  if(ah)ah.value=report.aet.hr; if(nh)nh.value=report.ant.hr;
+  if(typeof syncCollectionLabels==='function')syncCollectionLabels();
+}
+/* Relabel the static side panels (chart builder, data collection) for the current
+   modality, and toggle the bike body class (hides treadmill-only calibration). */
+function syncCollectionLabels(){
+  var u=UNIT();
+  document.body.classList.toggle('modality-bike', report.modality==='bike');
+  var ca=document.getElementById('cb-aet'); if(ca){var l=ca.closest('.cb-field').querySelector('label'); if(l)l.textContent='Aerobic threshold ('+u+')';}
+  var cn=document.getElementById('cb-ant'); if(cn){var l2=cn.closest('.cb-field').querySelector('label'); if(l2)l2.textContent='Anaerobic threshold ('+u+')';}
+  var wu=document.getElementById('dc-warmup'); if(wu){wu.placeholder=u; var lw=wu.closest('label'); if(lw&&lw.childNodes[0])lw.childNodes[0].nodeValue='Warm-up ('+u+')';}
+  var tp=document.getElementById('dc-top'); if(tp){tp.placeholder=u; var lt=tp.closest('label'); if(lt&&lt.childNodes[0])lt.childNodes[0].nodeValue='Predicted top ('+u+')';}
+  if(typeof window.__dcRender==='function')window.__dcRender();
+}
+document.body.setAttribute("data-fc-test-type", report.testType);
 document.getElementById("stage").innerHTML = assembleReport();
 
 /* cover curve */
-(function(){
+function drawCoverCurve(){
   const pts=[[80,846],[134,828],[187,818],[241,813],[294,809],[348,801],[402,787],[428,776],[455,762],[482,744],[509,722],[536,696],[562,665],[589,628],[616,585]];
   let d="M"+pts[0][0]+" "+pts[0][1];
   for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[0],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||pts[pts.length-1];
     const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
     d+=" C"+c1x.toFixed(1)+" "+c1y.toFixed(1)+" "+c2x.toFixed(1)+" "+c2y.toFixed(1)+" "+p2[0]+" "+p2[1];}
-  document.getElementById("cov-curve").setAttribute("d",d);
-  document.getElementById("cov-fill").setAttribute("d",d+" L616 940 L80 940 Z");
-})();
+  var cc=document.getElementById("cov-curve");if(cc)cc.setAttribute("d",d);
+  var cf=document.getElementById("cov-fill");if(cf)cf.setAttribute("d",d+" L616 940 L80 940 Z");
+}
+drawCoverCurve();
+syncCollectionLabels();
 
 /* image slots */
 function wireSlot(slotEl){
@@ -713,6 +795,7 @@ document.getElementById('raw-body').addEventListener('input',e=>{
   const td=e.target.closest('td.first');if(!td)return;
   const speed=parseFloat(td.textContent);
   const paceTd=td.nextElementSibling;if(!paceTd)return;
+  if(!HASPACE()){paceTd.textContent='';return;}   // bike: intensity is watts, no pace
   if(!isNaN(speed)&&speed>0){
     const t=60/speed,mm=Math.floor(t),ss=Math.round((t-mm)*60);
     paceTd.textContent=mm+':'+(ss<10?'0':'')+ss;
@@ -931,7 +1014,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       const speed=parseFloat(cells[0].textContent);
       const lactate=parseFloat(cells[4].textContent);
       const hr=parseFloat(cells[3].textContent);
-      if(!isNaN(speed)&&!isNaN(lactate)&&speed>0&&speed<50&&lactate>=0&&lactate<30){
+      if(!isNaN(speed)&&!isNaN(lactate)&&speed>0&&speed<(HASPACE()?50:2000)&&lactate>=0&&lactate<30){
         xs.push(speed);ys.push(lactate);hrs.push(isNaN(hr)?null:hr);
       }
     });
@@ -1011,7 +1094,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       s+=`<text x="${x.toFixed(1)}" y="${H-mb+14}" text-anchor="middle" font-size="10.5" fill="${tc}" font-family="sans-serif">${v}</text>`;
       s+=`<text x="${x.toFixed(1)}" y="${H-mb+27}" text-anchor="middle" font-size="9" fill="${tc}" font-family="sans-serif">${fmtPace(v)}</text>`;
     }
-    s+=`<text x="${(ml+(W-mr))/2}" y="${H-mb+41}" text-anchor="middle" font-size="9.5" fill="${tc}" font-family="sans-serif">Speed (km/h) \u00B7 Pace (min/km)</text>`;
+    s+=`<text x="${(ml+(W-mr))/2}" y="${H-mb+41}" text-anchor="middle" font-size="9.5" fill="${tc}" font-family="sans-serif">${HASPACE()?'Speed (km/h) \u00B7 Pace (min/km)':'Power (W)'}</text>`;
     /* Watch zone bar — blended gradient, labels above */
     const barY=H-mb+52,barH=16;
     const mid12=xmin+(aetSpd-xmin)*0.4,mid34=(aetSpd+antSpd)/2;
@@ -1049,7 +1132,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     insertSlot('slot-ig',svgURL(_igSVG));
     insertSlot('slot-curve',svgURL(buildSVG(true,aetSpd,antSpd)));
     const fit=r2fn(_xs,_ys,_coeffs);
-    setStatus('\u2713 '+xs.length+' rows read. Aerobic '+aetSpd+' km/h \u00B7 Anaerobic '+antSpd+' km/h \u00B7 R\u00B2\u2248'+fit.toFixed(3),'ok');
+    setStatus('\u2713 '+xs.length+' rows read. Aerobic '+aetSpd+' '+UNIT()+' \u00B7 Anaerobic '+antSpd+' '+UNIT()+' \u00B7 R\u00B2\u2248'+fit.toFixed(3),'ok');
   });
 
   document.getElementById('cb-dl').addEventListener('click',()=>{
@@ -1330,7 +1413,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       const k=pair[0],box=pair[1];if(!box)return;
       const spd=box.querySelector('.spd'),pc=box.querySelector('.pc'),hr=box.querySelector('.hr');
       if(spd&&spd!==skip)spd.textContent=report[k].speed;
-      if(pc)pc.textContent=pace(report[k].speed);
+      if(pc&&HASPACE())pc.textContent=pace(report[k].speed);
       if(hr&&hr!==skip)hr.textContent=(report[k].hr==null?'—':report[k].hr);
     });
     const a=document.getElementById('cb-aet'),an=document.getElementById('cb-ant');
@@ -1341,8 +1424,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(nh&&nh!==skip)nh.value=(report.ant.hr==null?'':report.ant.hr);
     const rt=document.querySelector('.rec-table');
     if(rt){const rows=rt.querySelectorAll('tbody tr');
-      if(rows[0]){const td=rows[0].querySelectorAll('td');if(td[1])td[1].textContent='Below '+report.aet.hr+' bpm';if(td[2])td[2].textContent='Slower than '+pace(report.aet.speed)+'/km';}
-      if(rows[1]){const td=rows[1].querySelectorAll('td');if(td[1])td[1].textContent='Use '+report.ant.hr+' bpm as a guide';if(td[2])td[2].textContent='Use '+pace(report.ant.speed)+'/km as a guide';}
+      var aI=HASPACE()?('Slower than '+pace(report.aet.speed)+'/km'):('Below '+report.aet.speed+' '+UNIT());
+      var nI=HASPACE()?('Use '+pace(report.ant.speed)+'/km as a guide'):('Use '+report.ant.speed+' '+UNIT()+' as a guide');
+      if(rows[0]){const td=rows[0].querySelectorAll('td');if(td[1])td[1].textContent='Below '+report.aet.hr+' bpm';if(td[2])td[2].textContent=aI;}
+      if(rows[1]){const td=rows[1].querySelectorAll('td');if(td[1])td[1].textContent='Use '+report.ant.hr+' bpm as a guide';if(td[2])td[2].textContent=nI;}
     }
   }
 
@@ -1351,8 +1436,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(field==='speed'){
       const oldS=report[which].speed;if(oldS===val){refreshStructured(src);return;}
       report[which].speed=val;
-      replaceEverywhere(oldS+' km/h',val+' km/h');
-      replaceEverywhere(pace(oldS)+'/km',pace(val)+'/km');
+      replaceEverywhere(oldS+' '+UNIT(),val+' '+UNIT());
+      if(HASPACE())replaceEverywhere(pace(oldS)+'/km',pace(val)+'/km');
     }else{
       const oldH=report[which].hr;if(oldH===val){refreshStructured(src);return;}
       report[which].hr=val;
@@ -1405,8 +1490,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(maxHr)okHr.add(String(maxHr));
     const cs=[document.getElementById('an-list'),document.getElementById('rec-list'),document.querySelector('.rec-table'),document.getElementById('def-list')].filter(Boolean);
     const text=cs.map(function(c){return c.innerText;}).join('\n');
-    (text.match(/\d+(?:\.\d+)?\s*km\/h/g)||[]).forEach(function(t){const v=t.match(/[\d.]+/)[0];if(!okSpd.has(v))out.push('Speed “'+v+' km/h” does not match a threshold (aerobic '+aet.speed+', anaerobic '+ant.speed+') or the gap.');});
-    (text.match(/\d{1,2}:\d{2}\s*\/?\s*km/g)||[]).forEach(function(t){const v=t.match(/\d{1,2}:\d{2}/)[0];if(!okPace.has(v))out.push('Pace “'+v+'/km” does not match a threshold pace ('+pace(aet.speed)+', '+pace(ant.speed)+').');});
+    var spdRe=HASPACE()?/\d+(?:\.\d+)?\s*km\/h/g:/\d+(?:\.\d+)?\s*W\b/g;
+    var spdLab=MOD().intLabel;
+    (text.match(spdRe)||[]).forEach(function(t){const v=t.match(/[\d.]+/)[0];if(!okSpd.has(v))out.push(spdLab+' “'+v+' '+UNIT()+'” does not match a threshold (aerobic '+aet.speed+', anaerobic '+ant.speed+') or the gap.');});
+    if(HASPACE())(text.match(/\d{1,2}:\d{2}\s*\/?\s*km/g)||[]).forEach(function(t){const v=t.match(/\d{1,2}:\d{2}/)[0];if(!okPace.has(v))out.push('Pace “'+v+'/km” does not match a threshold pace ('+pace(aet.speed)+', '+pace(ant.speed)+').');});
     var bpmRe=/\d{2,3}\s*bpm/g,bm;
     while((bm=bpmRe.exec(text))){var bv=bm[0].match(/\d{2,3}/)[0];if(okHr.has(bv))continue;var ctx=text.slice(Math.max(0,bm.index-45),bm.index).toLowerCase();if(ctx.indexOf('max')>-1)continue;out.push('Heart rate “'+bv+' bpm” does not match a threshold ('+aet.hr+', '+ant.hr+'), the max HR, or the gap.');}
     const seen={};return out.filter(function(m){if(seen[m])return false;seen[m]=1;return true;});
@@ -1416,7 +1503,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     const probs=issues();
     if(probs.length){
       const msg='Before saving, please double-check these numbers — they do not match your current thresholds:\n\n• '+probs.join('\n• ')+
-        '\n\nYour thresholds:\n  Aerobic   '+report.aet.speed+' km/h · '+pace(report.aet.speed)+'/km · '+report.aet.hr+' bpm\n  Anaerobic '+report.ant.speed+' km/h · '+pace(report.ant.speed)+'/km · '+report.ant.hr+' bpm\n\nSave as PDF anyway?';
+        '\n\nYour thresholds:\n  Aerobic   '+intVal(report.aet.speed)+' · '+report.aet.hr+' bpm\n  Anaerobic '+intVal(report.ant.speed)+' · '+report.ant.hr+' bpm\n\nSave as PDF anyway?';
       if(!window.confirm(msg))return;
     }
     /* The browser's Save-as-PDF dialog pre-fills its filename from document.title,
@@ -1714,7 +1801,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       var s=parseFloat(c[0].textContent),l=parseFloat(c[4].textContent),h=parseFloat(c[3].textContent);
       // s>=0 so the resting baseline row (0 km/h) enters as the intensity-0 point,
       // sourced straight from the appendix; a blank lactate (NaN) still skips it.
-      if(!isNaN(s)&&!isNaN(l)&&s>=0&&s<50&&l>=0&&l<30){
+      if(!isNaN(s)&&!isNaN(l)&&s>=0&&s<(HASPACE()?50:2000)&&l>=0&&l<30){
         var p={intensity:s,lactate:l};if(!isNaN(h))p.hr=h;pts.push(p);
       }
     });
@@ -1741,7 +1828,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     for(var yv=0;yv<=ymax;yv+=(ymax>6?2:1)){var Y=py(yv);
       s+='<line x1="'+(ml-4)+'" y1="'+Y+'" x2="'+ml+'" y2="'+Y+'" stroke="#2A3A33"/>';
       s+='<text x="'+(ml-7)+'" y="'+(Y+3)+'" fill="#8FA096" font-size="9" text-anchor="end">'+yv+'</text>';}
-    s+='<text x="'+(ml+pw/2)+'" y="'+(H-6)+'" fill="#8FA096" font-size="10" text-anchor="middle">Speed (km/h)</text>';
+    s+='<text x="'+(ml+pw/2)+'" y="'+(H-6)+'" fill="#8FA096" font-size="10" text-anchor="middle">'+MOD().intLabel+' ('+UNIT()+')</text>';
     s+='<text transform="translate(12,'+(mt+ph/2)+') rotate(-90)" fill="#8FA096" font-size="10" text-anchor="middle">Lactate (mmol/L)</text>';
     var d=curve.map(function(p,i){return (i?'L':'M')+px(p[0]).toFixed(1)+' '+py(p[1]).toFixed(1);}).join(' ');
     s+='<path d="'+d+'" fill="none" stroke="#EFE7D6" stroke-width="2"/>';
@@ -1757,7 +1844,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       return '<tr>'+
         '<td style="padding:4px 8px;color:'+color+';white-space:nowrap;">'+(it.def?'★ ':'')+it.label+'</td>'+
         '<td style="padding:4px 8px;text-align:right;">'+(m.intensity!=null?m.intensity.toFixed(2):'—')+'</td>'+
-        '<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+pace(m.intensity)+'</td>'+
+        (HASPACE()?('<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+pace(m.intensity)+'</td>'):'')+
         '<td style="padding:4px 8px;text-align:right;">'+(m.hr!=null?m.hr:'—')+'</td>'+
         '<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+(m.lactate!=null?m.lactate:'—')+'</td>'+
         '<td style="padding:4px 8px;text-align:right;white-space:nowrap;">'+
@@ -1768,7 +1855,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     return '<div style="flex:1;min-width:300px;">'+
       '<div style="font-weight:600;color:'+color+';margin-bottom:4px;font-size:12px;">'+title+'</div>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--cream);">'+
-      '<thead><tr style="color:#8FA096;font-size:10px;"><th style="text-align:left;padding:2px 8px;">method</th><th style="text-align:right;padding:2px 8px;">km/h</th><th style="text-align:right;padding:2px 8px;">pace</th><th style="text-align:right;padding:2px 8px;">HR</th><th style="text-align:right;padding:2px 8px;">lac</th><th></th></tr></thead>'+
+      '<thead><tr style="color:#8FA096;font-size:10px;"><th style="text-align:left;padding:2px 8px;">method</th><th style="text-align:right;padding:2px 8px;">'+UNIT()+'</th>'+(HASPACE()?'<th style="text-align:right;padding:2px 8px;">pace</th>':'')+'<th style="text-align:right;padding:2px 8px;">HR</th><th style="text-align:right;padding:2px 8px;">lac</th><th></th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table></div>';
   }
   var METHOD_LABEL={Loglog:'Log-log',LogPolyModDmax:'Log-Poly-ModDmax',ModDmax:'ModDmax',LTratio:'LT ratio',LTP1:'LTP1',LTP2:'LTP2'};
@@ -1804,7 +1891,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     for(var yv=0;yv<=ymax+1e-9;yv+=ystep){var Y=py(yv);
       s+='<line x1="'+(ml-4)+'" y1="'+Y+'" x2="'+ml+'" y2="'+Y+'" stroke="#2A3A33"/>';
       s+='<text x="'+(ml-7)+'" y="'+(Y+3)+'" fill="#8FA096" font-size="9" text-anchor="end">'+(isRatio?yv.toFixed(2):yv)+'</text>';}
-    s+='<text x="'+(ml+pw/2)+'" y="'+(H-6)+'" fill="#8FA096" font-size="10" text-anchor="middle">Speed (km/h)</text>';
+    s+='<text x="'+(ml+pw/2)+'" y="'+(H-6)+'" fill="#8FA096" font-size="10" text-anchor="middle">'+MOD().intLabel+' ('+UNIT()+')</text>';
     s+='<text transform="translate(13,'+(mt+ph/2)+') rotate(-90)" fill="#8FA096" font-size="10" text-anchor="middle">'+(isRatio?'Lactate / speed':'Lactate (mmol/L)')+'</text>';
     var d=curve.map(function(p,i){return (i?'L':'M')+px(p[0]).toFixed(1)+' '+py(p[1]).toFixed(1);}).join(' ');
     s+='<path d="'+d+'" fill="none" stroke="#e05a8a" stroke-width="2"/>';
@@ -1826,7 +1913,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var incl=readAllPoints().filter(function(p){return !excluded[p.intensity];}).map(function(p){return {x:p.intensity,y:p.lactate};});
     var m=lastResult.methods[key];
     var extra=(key==='LogPolyModDmax'&&m.source==='raw')?' (ExPhysLab raw)':'';
-    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' — '+m.intensity+' km/h';
+    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' — '+m.intensity+' '+UNIT();
     document.getElementById('te-view-body').innerHTML=buildMethodSVG(lastResult,key,incl);
     document.getElementById('te-view-desc').textContent=METHOD_INFO[key]||'';
   }
@@ -1848,11 +1935,11 @@ document.getElementById("stage").addEventListener("click",e=>{
         var ex=!!excluded[p.intensity];
         return '<span data-te-toggle="'+p.intensity+'" title="click to '+(ex?'include':'exclude')+'" style="cursor:pointer;user-select:none;display:inline-block;margin:2px;padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+(ex?'#5a3a3a':'#2A3A33')+';background:'+(ex?'#2a1414':'#16201B')+';color:'+(ex?'#e08a8a':'var(--cream)')+';text-decoration:'+(ex?'line-through':'none')+';">'+p.intensity+(ex?' ✕':'')+'</span>';
       }).join('');
-      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points (km/h) — click to include / exclude from the fit</div>'+chips+'</div>';
+      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points ('+UNIT()+') — click to include / exclude from the fit</div>'+chips+'</div>';
     }
     if(data.suggested_exclusions&&data.suggested_exclusions.length){
       html+='<div style="background:#2a1f12;border:1px solid #b8860b;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#f0c674;">'+
-        data.suggested_exclusions.map(function(e){return '⚠ '+e.reason+' (at '+e.intensity+' km/h) <button data-te-exclude="'+e.intensity+'" style="margin-left:4px;cursor:pointer;background:#3a2a12;color:#f0c674;border:1px solid #b8860b;border-radius:6px;padding:1px 7px;font-size:11px;font-family:inherit;">Exclude</button>';}).join('<br>')+'</div>';
+        data.suggested_exclusions.map(function(e){return '⚠ '+e.reason+' (at '+e.intensity+' '+UNIT()+') <button data-te-exclude="'+e.intensity+'" style="margin-left:4px;cursor:pointer;background:#3a2a12;color:#f0c674;border:1px solid #b8860b;border-radius:6px;padding:1px 7px;font-size:11px;font-family:inherit;">Exclude</button>';}).join('<br>')+'</div>';
     }
     html+=buildChart(data);
     html+='<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;">'+
@@ -1893,7 +1980,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       else{lastResult=data;}
       render(lastResult);
       var lp=lastResult.methods.LogPolyModDmax;
-      teStatus(only?('Log-log '+val.toFixed(2)+' · LogPoly '+(lp?lp.intensity+' km/h':'—'))
+      teStatus(only?('Log-log '+val.toFixed(2)+' · LogPoly '+(lp?lp.intensity+' '+UNIT():'—'))
                    :('Computed '+Object.keys(lastResult.methods).length+' candidates from '+pts.length+' points (fit: '+lastResult.fit_used+').'),'ok');
       if(typeof after==='function')after();
     })
@@ -1937,7 +2024,7 @@ document.getElementById("stage").addEventListener("click",e=>{
         baseline:readPoints().some(function(p){return p.intensity<=0;}),at:new Date().toISOString()};
       document.body.setAttribute('data-fc-'+field+'-engine',JSON.stringify(audit));
     }catch(e){}
-    teStatus((field==='aet'?'Aerobic':'Anaerobic')+' threshold set to '+method+' '+spd+' km/h'+(hr&&hr!==''?(' / '+hr+' bpm'):'')+' (engine).','ok');
+    teStatus((field==='aet'?'Aerobic':'Anaerobic')+' threshold set to '+method+' '+spd+' '+UNIT()+(hr&&hr!==''?(' / '+hr+' bpm'):'')+' (engine).','ok');
   }
   var outEl=document.getElementById('te-output');
   if(outEl)outEl.addEventListener('click',function(e){
@@ -2039,7 +2126,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     return '<span style="font-size:12px;color:#8FA096;">'+step+'</span>';
   }
   function leftCell(k,step,i){
-    var cal=(k==='baseline')?'' :
+    /* belt calibration is treadmill-only; no dot on a bike test */
+    var cal=(k==='baseline'||!HASPACE())?'' :
       '<button class="dc-cal-btn" data-dc-cal="'+i+'" title="Check treadmill calibration for this row" '+
       'style="cursor:pointer;background:transparent;border:1px solid #2A3A33;border-radius:50%;width:19px;height:19px;line-height:1;color:#8FA096;font-size:11px;padding:0;">&#9678;</button>';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">'+rowLabel(k,step)+cal+'</div>';
@@ -2047,7 +2135,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   function render(){
     var g=document.getElementById('dc-grid');if(!g)return;
     var head='<div style="display:grid;'+GT+'gap:6px;font-size:10px;color:#8FA096;padding:0 2px 3px;text-align:center;">'+
-      '<div></div><div>speed</div><div>HR</div><div>lactate</div><div>RPE</div><div>mins</div><div></div></div>';
+      '<div></div><div>'+(HASPACE()?'speed':'power')+'</div><div>HR</div><div>lactate</div><div>RPE</div><div>mins</div><div></div></div>';
     var step=0;
     var rs=rows().map(function(row,i){
       var k=kindOf(row);var stageV=cellVal(row,COL.stage);
@@ -2056,7 +2144,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       var rm=k?'<span></span>':'<button data-dc-rm="'+i+'" title="remove step" style="cursor:pointer;background:transparent;border:none;color:#8FA096;font-size:17px;line-height:1;">&times;</button>';
       return '<div data-dc-row="'+i+'" style="display:grid;'+GT+'gap:6px;align-items:center;margin-bottom:6px;">'+
         leftCell(k,step,i)+
-        inp('speed',cellVal(row,COL.speed),'km/h')+
+        inp('speed',cellVal(row,COL.speed),UNIT())+
         inp('hr',cellVal(row,COL.hr),'bpm')+
         inp('lactate',cellVal(row,COL.lactate),'mmol')+
         inp('rpe',cellVal(row,COL.rpe),'')+
@@ -2066,6 +2154,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     }).join('');
     g.innerHTML=head+rs;
   }
+  window.__dcRender=render;   /* let syncCollectionLabels re-render on modality switch */
 
   /* baseline + warm-up are permanent rows; add them once if missing (baseline first,
      warm-up second, above the test steps). New steps default to previous step +1 km/h. */
@@ -2118,18 +2207,18 @@ document.getElementById("stage").addEventListener("click",e=>{
     var hasData=existing.some(function(r){return cellVal(r,COL.hr)||cellVal(r,COL.lactate)||cellVal(r,COL.rpe);});
     if(hasData&&!window.confirm('Replace the current '+existing.length+' step(s) with a fresh '+N+'-step protocol? Entered HR / lactate / RPE will be cleared.'))return;
     var inc=(tp-wu)/N;
-    rows().forEach(function(r){if(kindOf(r)==='warm'){setCell(r,COL.speed,String(round2(wu)));setCell(r,COL.pace,wu>0?fmtPace(wu):'');}});
+    rows().forEach(function(r){if(kindOf(r)==='warm'){setCell(r,COL.speed,String(round2(wu)));setCell(r,COL.pace,(HASPACE()&&wu>0)?fmtPace(wu):'');}});
     existing.forEach(function(r){r.remove();});
-    for(var i=1;i<=N;i++){var sp=round2(wu+i*inc);b.insertAdjacentHTML('beforeend',rawRow([String(sp),fmtPace(sp),'4','','','']));}
+    for(var i=1;i<=N;i++){var sp=round2(wu+i*inc);b.insertAdjacentHTML('beforeend',rawRow([String(sp),(HASPACE()?fmtPace(sp):''),'4','','','']));}
     render();
-    status('Built '+N+' steps '+round2(wu+inc)+'–'+round2(tp)+' km/h (increment '+round2(inc)+'). Fill HR / lactate / RPE per step as you go.');
+    status('Built '+N+' steps '+round2(wu+inc)+'–'+round2(tp)+' '+UNIT()+' (increment '+round2(inc)+'). Fill HR / lactate / RPE per step as you go.');
   }
   function addStep(){
     var b=body();if(!b||typeof rawRow!=='function')return;
     var last=lastStepSpeed();var inc=stepIncrement();
     var next=isNaN(last)?NaN:round2(last+inc);
     var spd=isNaN(next)?'':String(next);
-    b.insertAdjacentHTML('beforeend',rawRow([spd,spd?fmtPace(next):'','4','','','']));
+    b.insertAdjacentHTML('beforeend',rawRow([spd,(spd&&HASPACE())?fmtPace(next):'','4','','','']));
     render();
   }
   function status(msg){var s=document.getElementById('dc-status');if(s)s.textContent=msg;}
@@ -2146,7 +2235,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var row=rows()[parseInt(rowEl.getAttribute('data-dc-row'),10)];if(!row)return;
     var kind=el.getAttribute('data-dc'),v=el.value.trim();
     setCell(row,COL[kind],v);
-    if(kind==='speed'){var sp=parseFloat(v);setCell(row,COL.pace,sp>0?fmtPace(sp):'');}
+    if(kind==='speed'){var sp=parseFloat(v);setCell(row,COL.pace,(sp>0&&HASPACE())?fmtPace(sp):'');}
   });
   document.addEventListener('click',function(e){
     var t=e.target;
