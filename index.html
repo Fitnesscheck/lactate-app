@@ -366,9 +366,15 @@
 <script>
 /* Document check — sends the report's prose to the backend AI proofreader and
    lists the issues it finds. Read-only: it never edits the report; the doctor
-   fixes each item by hand. Additive + guarded so document.write restore is safe. */
+   fixes each item by hand. */
 (function(){
-  if(window.__fcCheckWired)return;window.__fcCheckWired=true;
+  /* NO window-level guard here. This IIFE wires DOM listeners (the modal's ×,
+     backdrop and Esc close). Opening a saved draft does document.write, which
+     recreates every element AND clears the document's own listeners — so we must
+     RE-RUN and re-attach on every load. A window guard (window persists across
+     document.write) was the bug that left a restored report's Document-check modal
+     impossible to close. Re-running is safe: everything inside is var/function, and
+     the element listeners bind to the fresh nodes each time. */
   var DEF_BACKEND='https://web-production-bb0d36.up.railway.app';
   function backendUrl(){var el=document.getElementById('be-url');return ((el&&el.value)||localStorage.getItem('fc_backend')||DEF_BACKEND).trim().replace(/\/+$/,'');}
   function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

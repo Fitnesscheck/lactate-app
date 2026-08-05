@@ -1,7 +1,7 @@
 /* FitnessCheck service worker — offline app shell + runtime caching.
    Bump CACHE_VERSION whenever index.html or the asset list changes; old caches
    are cleaned up on activate. */
-const CACHE_VERSION = 'fc-v17';
+const CACHE_VERSION = 'fc-v18';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 
