@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>FitnessCheck — Lactate Threshold Test Report</title>
+<title>FitnessCheck - Lactate Threshold Test Report</title>
 <!-- PWA: installable, offline-capable (see sw.js) -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0D1411">
@@ -43,7 +43,7 @@
   /* ---------- COVER (HTML, editable) ---------- */
   .cover{position:relative;width:210mm;height:297mm;background:var(--dark);color:var(--cream);overflow:hidden;}
   /* top/right/bottom/left rather than the `inset` shorthand: Safari only supports
-     `inset` from 14.1, and an older iPad silently ignores it — which left the
+     `inset` from 14.1, and an older iPad silently ignores it - which left the
      fixed overlays (threshold modal, method view, calibration popup) sized to
      nothing, so they "opened" invisibly. */
   .cover .cov-bg{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;}
@@ -106,7 +106,7 @@
   .ig-foot .tag{color:#8FA096;}
   .ig-foot .url{color:var(--green);}
 
-  /* VO2 summary card — big headline number + fitness-rating pill */
+  /* VO2 summary card - big headline number + fitness-rating pill */
   .vo2-hero{margin:5mm 0 6mm;text-align:center;}
   .vo2-big{font-family:'Playfair Display',Georgia,serif;font-size:62px;line-height:1;color:var(--cream);font-weight:600;}
   .vo2-unit{font-size:12px;color:#8FA096;letter-spacing:0.05em;margin-top:3px;}
@@ -128,6 +128,65 @@
   /* subsection headings in the VO2 analysis page */
   .vo2-sub{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:19px;color:var(--ink);margin:22px 0 8px;}
 
+  /* combined report - quick-reference Instagram card (4:5, same as the other cards) */
+  .ig-keystats{display:flex;align-items:flex-end;justify-content:space-between;gap:6mm;margin:5mm 0 4mm;}
+  .ig-keystats .ks-main{border-left:2px solid var(--green);padding-left:3mm;display:flex;flex-direction:column;}
+  .ig-keystats .ks-main .k{font-size:9.5px;letter-spacing:0.07em;text-transform:uppercase;color:var(--green-light);}
+  .ig-keystats .ks-main .v{font-size:26px;font-weight:500;line-height:1.05;color:var(--cream);}
+  .ig-keystats .ks-main small{font-size:11px;color:#8FA096;}
+  .ig-keystats .ks-side{font-size:11.5px;color:#8FA096;white-space:nowrap;padding-bottom:3px;}
+  .ig-keystats .ks-side b{color:var(--cream);font-weight:600;}
+  .combo-graph-area{position:relative;align-items:stretch;}
+  .combo-graph-area .imgslot{display:none;}
+  .combo-graph-area.use-upload .combo-generated{display:none;}
+  .combo-graph-area.use-upload .imgslot{display:block;}
+  /* stretch the graph holder to the panel height and let the SVG scale to fit
+     (preserveAspectRatio) so it never clips on the shorter 4:5 card */
+  .combo-graph-area .combo-generated{width:100%;min-height:0;display:flex;align-items:center;justify-content:center;}
+  .combo-graph-area .combo-generated svg{width:100%;height:100%;display:block;}
+  .combo-toggle{position:absolute;top:5px;right:5px;z-index:2;background:rgba(13,20,17,0.82);color:#9fdcc6;border:1px solid #2A3A33;border-radius:6px;padding:3px 8px;font-size:10px;font-family:inherit;cursor:pointer;}
+  .ig-graph-empty{width:100%;flex:1;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;border-radius:8px;color:#8a938e;font-size:12px;padding:16px;}
+
+  /* combined report - generated charts, key values, doughnut */
+  .combo-chart{width:100%;background:#fff;border:0.5px solid var(--line);border-radius:10px;padding:8px;box-sizing:border-box;}
+  .combo-svg{width:100%;height:auto;display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .combo-generated{position:relative;}
+  .combo-generated [data-rm-generated]{margin-top:6px;}
+  .combo-alt{margin:8px 0 4px;}
+  .combo-alt summary{cursor:pointer;font-size:12px;color:var(--green);width:fit-content;list-style:none;}
+  .combo-alt summary::-webkit-details-marker{display:none;}
+  .combo-alt summary::before{content:"\002B  ";font-weight:600;}
+  .combo-alt[open] summary::before{content:"\2212  ";}
+  .combo-keys{display:flex;gap:14px;margin:16px 0 4px;flex-wrap:wrap;}
+  .combo-keys .ck{flex:1;min-width:150px;border-left:2px solid var(--green);padding-left:12px;}
+  .combo-keys .ck .lab{font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+  .combo-keys .ck .val{font-size:26px;font-weight:500;color:var(--ink);line-height:1;}
+  .combo-keys .ck .val small{font-size:12px;color:var(--muted);font-weight:400;}
+  .frac-wrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+  .frac-chart{width:220px;flex:none;}
+  .frac-svg{width:100%;height:auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .frac-legend{flex:1;min-width:220px;font-size:13px;color:var(--ink);}
+  .frac-legend .fl{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .frac-legend .fl .sw{width:12px;height:12px;border-radius:3px;flex:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .frac-controls{display:flex;gap:14px;margin-top:6px;}
+  .frac-controls label{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px;}
+  .frac-controls input{width:70px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:13px;font-family:inherit;}
+  /* fractional utilisation - working (editor only, shown in a popup) */
+  .fu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .fu-workbtn{flex:none;display:inline-flex;align-items:center;gap:6px;background:#0F1714;color:#F3F2EC;border:0;border-radius:8px;padding:8px 13px;font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .fu-workbtn:hover{background:#1a2a24;}
+  .fu-pop-back{display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10001;background:rgba(6,10,8,0.72);overflow:auto;padding:24px 16px;}
+  .fu-pop-back.open{display:block;}
+  .fu-pop-card{background:#fff;border-radius:14px;max-width:640px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,0.55);padding:20px 22px 24px;box-sizing:border-box;}
+  .fu-pop-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .fu-pop-close{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:#6B756F;padding:0 4px;}
+  .fu-pop-close:hover{color:#123;}
+  .fu-note{font-size:12.5px;color:#4b554f;margin:10px 0 6px;}
+  .fu-eq{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#123;background:#fff;border:0.5px solid var(--line);border-radius:8px;padding:9px 11px;margin:2px 0 10px;overflow-x:auto;}
+  .fu-chart{width:100%;max-width:560px;background:#fff;border:0.5px solid var(--line);border-radius:8px;padding:6px;box-sizing:border-box;}
+  .fu-svg{width:100%;height:auto;display:block;}
+  .econ-svg{width:100%;height:auto;display:block;}
+
   .oneline{background:#EAF6F1;border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.55;color:var(--green-dark);margin-top:14px;}
 
   /* ---------- image slots ---------- */
@@ -145,8 +204,29 @@
   .img-ctl button{font-size:11px;background:rgba(13,20,17,0.85);color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;}
 
   .curve-slot{height:78mm;margin-bottom:18px;break-inside:avoid;}
+  /* VO₂-in-depth page: compress the two graphs + text so the metabolic (VO₂/HR) and
+     breathing (ventilation) sections both fit on ONE printed page. If more text
+     sections are added it may spill - that's expected. Scoped so other pages keep
+     their spacing. */
+  .vo2-depth .curve-slot{height:49mm;margin-bottom:8px;}
+  .vo2-depth .vo2-sub{margin:9px 0 5px;}
+  .vo2-depth .an-block{margin-bottom:7px;}
+  .vo2-depth .an-block p{margin:3px 0 0;}
+  /* the "How you compare" block carries two reference tables so it may run long -
+     let it break across pages, but keep each table whole. */
+  .vo2-depth .an-block.compare{break-inside:auto;}
+  .vo2-norms-wrap{display:flex;flex-direction:column;gap:9px;margin:9px 0 4px;}
+  .vo2-norms-cap{font-size:12px;font-weight:600;color:var(--green-dark);margin-bottom:3px;}
+  .vo2-norms{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;break-inside:avoid;}
+  .vo2-norms th,.vo2-norms td{border:0.5px solid var(--line);padding:3px 2px;text-align:center;color:#2c332f;}
+  .vo2-norms thead th{background:#EAF6F1;color:var(--green-dark);font-weight:600;font-size:9px;line-height:1.15;}
+  .vo2-norms tbody th{background:#F5F7F5;font-weight:600;width:34px;}
+  .vo2-norms td.hl{background:#1D9E75;color:#fff;font-weight:700;}
+  .vo2-norms-note{font-size:10.5px;color:#6B756F;margin:2px 0 0;}
 
   .an-block{margin-bottom:14px;break-inside:avoid;position:relative;}
+  .add-below{margin-top:6px;background:none;border:none;color:var(--green-dark);font-size:11.5px;cursor:pointer;font-family:inherit;opacity:0.6;padding:2px 0;}
+  .an-block:hover .add-below{opacity:1;}
   .an-block .row{display:flex;align-items:flex-start;gap:8px;}
   .an-block h3{font-size:14px;font-weight:500;color:var(--green-dark);margin:0 0 4px;flex:1;}
   .an-block p{font-size:13.5px;line-height:1.62;color:#2c332f;margin:0;}
@@ -171,6 +251,19 @@
   .ig-link span{border-bottom:1px solid rgba(193,53,132,0.4);}
   .subsec{margin-top:26px;padding-top:20px;border-top:0.5px solid var(--line);break-inside:avoid;}
   .subsec .subtitle{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:21px;color:var(--ink);margin:0 0 10px;}
+
+  /* per-report page wrappers: transparent for layout, toggled off with fc-hidden */
+  .report-section{display:contents;}
+  .report-section.fc-hidden{display:none;}
+  /* "Pages" checklist on the cover */
+  .pages-picker{background:rgba(13,20,17,0.9);border:1px solid #2A3A33;border-radius:9px;padding:5px 11px;font-size:12px;color:#F3F2EC;}
+  .pages-picker summary{cursor:pointer;font-size:10px;color:#8FA096;text-transform:uppercase;letter-spacing:0.06em;list-style:none;}
+  .pages-picker summary::-webkit-details-marker{display:none;}
+  .pages-picker summary::after{content:" \25BE";color:#8FA096;}
+  .pages-picker[open] summary::after{content:" \25B4";}
+  .pages-picker .pg-list{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+  .pages-picker .pg-item{display:flex;align-items:center;gap:7px;font-size:12px;color:#F3F2EC;white-space:nowrap;cursor:pointer;}
+  .pages-picker .pg-item input{accent-color:#1D9E75;}
 
   table.raw{width:100%;border-collapse:collapse;font-size:12px;}
   table.raw th{text-align:right;font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:0 8px 8px;border-bottom:0.5px solid var(--line);}
@@ -247,11 +340,11 @@
 <div class="toolbar">
   <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">build 17 · threshold HR inputs</span></div>
   <div class="t-right">
-    <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload — print before closing.</span>
+    <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
-    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="checkDocument()" title="AI proofread — spelling, grammar, consistency, leftover placeholders (needs internet)">&#128269; Check document</button>
+    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="checkDocument()" title="AI proofread - spelling, grammar, consistency, leftover placeholders (needs internet)">&#128269; Check document</button>
     <button class="btn" onclick="checkAndPrint()">Save as PDF</button>
-    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="draftReportEmail()" title="Opens a Gmail draft with the report email — attach the PDF &amp; card yourself">✉ Draft email</button>
+    <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="draftReportEmail()" title="Opens a Gmail draft with the report email - attach the PDF &amp; card yourself">✉ Draft email</button>
   </div>
 </div>
 <details class="chart-builder no-print" id="collect-panel">
@@ -311,7 +404,7 @@
   <div class="cb-status" id="te-status">Fill the appendix raw data table, then compute. The engine proposes candidates &mdash; you choose which to use.</div>
 </details>
 <details class="chart-builder no-print" id="chart-builder">
-  <summary><span class="cb-arrow">▸</span> Chart builder — reads from the appendix raw data table</summary>
+  <summary><span class="cb-arrow">▸</span> Chart builder - reads from the appendix raw data table</summary>
   <div class="cb-inner">
     <div class="cb-field"><label>Aerobic threshold (km/h)</label><input type="number" id="cb-aet" step="0.1" min="0" style="width:90px;background:#16201B;color:#1D9E75;border:1px solid #1D9E75;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;font-weight:500;"></div>
     <div class="cb-field"><label>Aerobic HR (bpm)</label><input type="number" id="cb-aet-hr" step="1" min="0" style="width:90px;background:#16201B;color:#1D9E75;border:1px solid #1D9E75;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;font-weight:500;"></div>
@@ -388,13 +481,13 @@
 </div>
 <div class="stage" id="stage"></div>
 <script>
-/* Document check — sends the report's prose to the backend AI proofreader and
+/* Document check - sends the report's prose to the backend AI proofreader and
    lists the issues it finds. Read-only: it never edits the report; the doctor
    fixes each item by hand. */
 (function(){
   /* NO window-level guard here. This IIFE wires DOM listeners (the modal's ×,
      backdrop and Esc close). Opening a saved draft does document.write, which
-     recreates every element AND clears the document's own listeners — so we must
+     recreates every element AND clears the document's own listeners - so we must
      RE-RUN and re-attach on every load. A window guard (window persists across
      document.write) was the bug that left a restored report's Document-check modal
      impossible to close. Re-running is safe: everything inside is var/function, and
@@ -406,7 +499,7 @@
   /* Extract the report's readable prose. Clone the sheets, drop the no-print UI,
      the numeric raw-data table AND every image/graphic (they carry no text and,
      on iPad, forcing layout of a multi-MB uploaded graph here can lock the main
-     thread — which read as a "freeze"). Attach off-screen briefly so innerText
+     thread - which read as a "freeze"). Attach off-screen briefly so innerText
      yields proper line breaks, then remove. */
   function reportText(){
     var stage=document.getElementById('stage');if(!stage)return '';
@@ -454,7 +547,7 @@
     fetch(backendUrl()+'/check-report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text}),signal:ctrl?ctrl.signal:undefined})
       .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error('HTTP '+r.status+' '+t);return JSON.parse(t);});})
       .then(function(d){render(d.issues||[]);})
-      .catch(function(e){var b=document.getElementById('chk-body');if(b)b.innerHTML='<div style="color:#f0a0a0;font-size:13px;">Check failed: '+esc(e&&e.name==='AbortError'?'timed out — check your connection and try again':(e&&e.message)||'unknown error')+'</div>';})
+      .catch(function(e){var b=document.getElementById('chk-body');if(b)b.innerHTML='<div style="color:#f0a0a0;font-size:13px;">Check failed: '+esc(e&&e.name==='AbortError'?'timed out - check your connection and try again':(e&&e.message)||'unknown error')+'</div>';})
       .then(function(){clearTimeout(timer);checking=false;});
   };
   /* Close controls attached directly (more reliable on iOS than a delegated
@@ -506,25 +599,25 @@ var GYMS = {
   }
 };
 
-/* Template defaults — a made-up athlete. The numbers below are a realistic sample
+/* Template defaults - a made-up athlete. The numbers below are a realistic sample
    curve with no name attached to them. Never put a real client's name or any other
    identifying detail here: this file is served publicly, so anything in it can be
    read by anyone with the URL. Real reports live in the cloud drafts / report library. */
 var report = {
   client:"Joe Bloggs", date:"01 January 2026",
-  testType:"lt_treadmill",       /* which report to build — see TEST_TYPES near the assembly */
-  gymKey:"KORE",                 /* which gym this report is for — also pickable on the cover */
+  testType:"lt_treadmill",       /* which report to build - see TEST_TYPES near the assembly */
+  gymKey:"Team Rees",            /* which gym this report is for - also pickable on the cover */
   authors:["Dr Simran Baker-Singh","Dr Luke Nixon"],
   website:"fitnesscheck.co.uk", handle:"@fitnesscheckuk",
   booking:"https://fitnesscheck.co.uk/book",
   blog:"https://fitnesscheck.co.uk/blog/lactate-test-watch-zones",
-  aet:{speed:15.5, hr:160}, ant:{speed:17.5, hr:176},
-  /* VO2 max sample (fictional demo curve — no real athlete). Replaced on import
+  aet:{speed:12, hr:160}, ant:{speed:14, hr:176},
+  /* VO2 max sample (fictional demo curve - no real athlete). Replaced on import
      from the VO2 Master files. VO2max is the single highest reading; every value
      is editable. Kept inline (not vo2Demo(), which is defined in a later script
      block) so the report object never depends on load order. vo2Demo() mirrors
      these values and supplies the bike demo when the test type is switched. */
-  vo2:{ age:34, sex:"Male", height:178, weight:76, userPiece:"—", maskSize:"—",
+  vo2:{ age:34, sex:"Male", height:178, weight:76, userPiece:"-", maskSize:"-",
     vo2max:52.4, maxHR:186, topSpeed:15.6, duration:"38:00",
     stages:[
       {step:1,speed:7.7,vo2:26.5,hr:112},{step:2,speed:8.9,vo2:30.2,hr:126},
@@ -547,29 +640,43 @@ var MODALITIES = {
   bike:{ name:"Bike", intLabel:"Power", unit:"W", hasPace:false, verb:"cycling", plural:"rides" }
 };
 var TEST_TYPES = {
-  lt_treadmill:{ label:"Lactate threshold — treadmill", modality:"treadmill", kind:"lt",
+  lt_treadmill:{ label:"Lactate threshold - treadmill", modality:"treadmill", kind:"lt",
     title:"Lactate<br>Threshold Test", subtitle:"Lactate Thresholds and Training Zones",
     sections:[cover, ataGlance, analysis, recommendations, appendix] },
-  lt_bike:{ label:"Lactate threshold — bike", modality:"bike", kind:"lt",
+  lt_bike:{ label:"Lactate threshold - bike", modality:"bike", kind:"lt",
     title:"Lactate<br>Threshold Test", subtitle:"Lactate Thresholds and Training Zones",
     sections:[cover, ataGlance, analysis, recommendations, appendix] },
-  vo2_treadmill:{ label:"VO₂ max — treadmill · 4-min staged", modality:"treadmill", kind:"vo2",
+  vo2_treadmill:{ label:"VO₂ max - treadmill · 4-min staged", modality:"treadmill", kind:"vo2",
     title:"VO₂ Max<br>Test", subtitle:"Maximal Oxygen Uptake & Fitness Rating",
     sections:[cover, vo2Summary, vo2Analysis, vo2Appendix] },
-  vo2_bike:{ label:"VO₂ max — bike · 4-min staged", modality:"bike", kind:"vo2",
+  vo2_bike:{ label:"VO₂ max - bike · 4-min staged", modality:"bike", kind:"vo2",
     title:"VO₂ Max<br>Test", subtitle:"Maximal Oxygen Uptake & Fitness Rating",
-    sections:[cover, vo2Summary, vo2Analysis, vo2Appendix] }
+    sections:[cover, vo2Summary, vo2Analysis, vo2Appendix] },
+  combined_treadmill:{ label:"Combined - treadmill · 4-min staged", modality:"treadmill", kind:"combined",
+    title:"Comprehensive<br>Physiology Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
+    sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] },
+  combined_bike:{ label:"Combined - bike · 4-min staged", modality:"bike", kind:"combined",
+    title:"Comprehensive<br>Physiology Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
+    sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] }
+};
+/* Human labels for the per-report Pages panel (keyed by section-builder name). */
+var SECTION_META = {
+  cover:"Cover", ataGlance:"At a glance", analysis:"Lactate analysis",
+  recommendations:"Recommendations", appendix:"Appendix",
+  vo2Summary:"VO₂ summary", vo2Analysis:"VO₂ in depth + breathing", vo2Appendix:"VO₂ appendix",
+  combinedQuickRef:"Quick reference", economy:"Economy", fractional:"Fractional utilisation",
+  combinedAppendix:"Appendix (raw data)"
 };
 /* sample thresholds + curve per modality (fictional demo data, replaced per test) */
 var DEMO = {
-  treadmill:{ aet:{speed:15.5,hr:160}, ant:{speed:17.5,hr:176},
-    raw:[["9","6:40","4","","1.1",""],["10","6:00","4","","1.2",""],["11","5:27","4","","1.4",""],
-         ["12","5:00","4","","1.8",""],["13","4:37","4","","2.4",""],["14","4:17","4","","3.5",""],
-         ["15","4:00","4","","5.2",""],["16","3:45","4","","8.5",""]] },
+  treadmill:{ aet:{speed:12,hr:160}, ant:{speed:14,hr:176},
+    raw:[["9","6:40","4","132","1.1",""],["10","6:00","4","140","1.2",""],["11","5:27","4","150","1.4",""],
+         ["12","5:00","4","160","1.8",""],["13","4:37","4","168","2.4",""],["14","4:17","4","176","3.5",""],
+         ["15","4:00","4","182","5.2",""],["16","3:45","4","187","8.5",""]] },
   bike:{ aet:{speed:210,hr:150}, ant:{speed:270,hr:172},
-    raw:[["120","","4","","1.0",""],["150","","4","","1.1",""],["180","","4","","1.3",""],
-         ["210","","4","","1.7",""],["240","","4","","2.6",""],["260","","4","","3.8",""],
-         ["280","","4","","5.4",""],["300","","4","","7.6",""]] }
+    raw:[["120","","4","112","1.0",""],["150","","4","122","1.1",""],["180","","4","136","1.3",""],
+         ["210","","4","150","1.7",""],["240","","4","162","2.6",""],["260","","4","170","3.8",""],
+         ["280","","4","178","5.4",""],["300","","4","185","7.6",""]] }
 };
 /* a restored draft bakes its test type on <body>; adopt it so modality is right */
 var _savedType = document.body && document.body.getAttribute("data-fc-test-type");
@@ -589,19 +696,17 @@ function buildDefaults(){ return {
      p:"Your aerobic threshold sits at "+intVal(report.aet.speed)+" at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy "+MOD().verb+". Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
      p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
-    {h:"Between Your Thresholds",
-     p:"The difference between your aerobic and anaerobic thresholds is just "+(report.ant.hr-report.aet.hr)+" beats per minute or "+(Math.round((report.ant.speed-report.aet.speed)*10)/10)+" "+UNIT()+". This can be influenced by a range of physiological and training factors. In your case, it aligns with the other indicators of a well developed aerobic system."},
     {h:"Your Rate of Perceived Exertion (RPE)",
      p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
   recs:[
     "Cap easy "+MOD().plural+" at "+intVal(report.aet.speed)+" or "+(HASPACE()?"slower":"lower")+". If your easy days have been "+(HASPACE()?"faster":"harder")+" than this, that is the first thing to fix.",
-    "Anchor threshold sessions at "+intVal(report.ant.speed)+" rather than going by feel \u2014 for example, 4 \u00D7 6 min at "+intVal(report.ant.speed)+" with 90 seconds easy between.",
+    "Anchor threshold sessions at "+intVal(report.ant.speed)+" rather than going by feel - for example, 4 \u00D7 6 min at "+intVal(report.ant.speed)+" with 90 seconds easy between.",
     "[Pick one for this athlete: more easy volume / a mix of volume and threshold / more threshold work / add VO\u2082 intervals. Edit to match their history and the size of the gap.]"
   ],
   paces:"",
   retest:"People often see benefits after at least an 8 to 12 week period of structured training. The first test is your baseline, the re-test shows whether the work actually moved your thresholds.<br><br>As a thank you for choosing us, you will receive an email with a discount code that is valid for six months and for one use only. It can be used either by you or passed to a friend.<br><br>Re-tests are designed to be more streamlined than an initial test. The questionnaire is abbreviated and the testing protocol is focused around your previous data. If the booking dates are not yet released on our website, simply click to join the waitlist. Those on the waitlist are prioritised and told dates before others.",
-  /* Sample curve, no name attached — replaced by real data on every test. */
+  /* Sample curve, no name attached - replaced by real data on every test. */
   raw: (DEMO[report.modality]||DEMO.treadmill).raw.map(function(r){return r.slice();}),
   defs:[
     {t:"Lactate",
@@ -623,10 +728,10 @@ function buildDefaults(){ return {
 var DEFAULTS = buildDefaults();
 
 function pace(kmh){const t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);return ss===60?(mm+1)+":00":mm+":"+String(ss).padStart(2,"0");}
-function hrTxt(v){return (v==null?"\u2014":v)+" bpm";}
+function hrTxt(v){return (v==null?"-":v)+" bpm";}
 function tick(c){c=c||"#1D9E75";return '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13 L10 18 L19 6" fill="none" stroke="'+c+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function rh(){return '<div class="rh"><div class="mark">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>';}
-function slot(id){return '<div class="imgslot" id="'+id+'"><input type="file" accept="image/*" class="file"><div class="drop no-print">Click to upload graph</div><img class="shot" alt="Lactate graph"><div class="ph">Graph to be added</div><div class="img-ctl no-print"><button data-act="replace">Replace</button><button data-act="remove">Remove</button></div></div>';}
+function slot(id,src){var has=src?' has-img':'';var im=src?(' src="'+src+'"'):'';return '<div class="imgslot'+has+'" id="'+id+'"><input type="file" accept="image/*" class="file"><div class="drop no-print">Click to upload graph</div><img class="shot"'+im+' alt="Lactate graph"><div class="ph">Graph to be added</div><div class="img-ctl no-print"><button data-act="replace">Replace</button><button data-act="remove">Remove</button></div></div>';}
 
 /* ---------- COVER ---------- */
 function cover(){
@@ -640,21 +745,21 @@ function cover(){
     '<circle cx="348" cy="801" r="4" fill="#5DCAA5"/><circle cx="536" cy="696" r="4" fill="#5DCAA5"/></svg>';
   const gymOpts=Object.keys(GYMS).map(function(k){
     var city=GYMS[k].location.split(",").pop().trim();
-    return '<option value="'+k+'"'+(k===report.gymKey?" selected":"")+'>'+GYMS[k].name+" \u2014 "+city+'</option>';
+    return '<option value="'+k+'"'+(k===report.gymKey?" selected":"")+'>'+GYMS[k].name+" - "+city+'</option>';
   }).join("");
   const gymPicker='<div class="gym-picker no-print"><label>Gym partner</label><select onchange="selectGym(this.value)">'+gymOpts+'</select></div>';
   const typeOpts=Object.keys(TEST_TYPES).map(function(k){
     return '<option value="'+k+'"'+(k===report.testType?" selected":"")+'>'+TEST_TYPES[k].label+'</option>';
   }).join("");
   const typePicker='<div class="type-picker no-print"><label>Test type</label><select onchange="selectTestType(this.value)">'+typeOpts+'</select></div>';
-  const picker='<div class="cover-pickers no-print">'+typePicker+gymPicker+'</div>';
+  const picker='<div class="cover-pickers no-print">'+typePicker+gymPicker+pagesPanel()+'</div>';
   return '<div class="cover">'+bg+picker+
     '<div class="layer cov-head"><div class="wm">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>'+
     '<div class="layer cov-title"><div class="cov-eyebrow">Performance Report · '+MODALITIES[report.modality].name+' Test</div><h1 class="cov-h1">'+((TEST_TYPES[report.testType]||{}).title||'Lactate<br>Threshold Test')+'</h1><div class="cov-sub">'+((TEST_TYPES[report.testType]||{}).subtitle||'Lactate Thresholds and Training Zones')+'</div></div>'+
     '<div class="layer cov-meta"><div class="cov-rule"></div><div class="cov-lab">Prepared for</div>'+
       '<div class="cov-name edit" contenteditable="true">'+report.client+'</div>'+
       '<div class="cov-loc edit" contenteditable="true">'+report.location+'</div>'+
-      '<div class="cov-date">Test date — <b class="edit" contenteditable="true">'+report.date+'</b></div></div>'+
+      '<div class="cov-date">Test date - <b class="edit" contenteditable="true">'+report.date+'</b></div></div>'+
     '<div class="layer cov-foot"><div class="auth"><div class="edit" contenteditable="true">'+(report.authors[0]||"")+'</div><div class="edit" contenteditable="true">'+(report.authors[1]||"")+'</div></div><div class="url2">'+report.website+'</div></div>'+
   '</div>';
 }
@@ -663,7 +768,7 @@ function cover(){
 /* one threshold tile on the IG card; shows pace only for treadmill */
 function igTh(lab,t){
   var meta=(HASPACE()?'<span class="pc">'+pace(t.speed)+'</span> /km · ':'')+
-    '<span class="hr edit" contenteditable="true">'+(t.hr==null?"—":t.hr)+'</span> bpm';
+    '<span class="hr edit" contenteditable="true">'+(t.hr==null?"-":t.hr)+'</span> bpm';
   return '<div class="ig-th"><div class="lab edit" contenteditable="true">'+lab+'</div>'+
     '<div class="v"><span class="spd edit" contenteditable="true">'+t.speed+'</span> <small>'+UNIT()+'</small></div>'+
     '<div class="meta">'+meta+'</div></div>';
@@ -686,7 +791,7 @@ function ataGlance(){
 
 /* ---------- ANALYSIS ---------- */
 function anBlock(b){
-  return '<div class="an-block" data-block><div class="row"><h3 class="edit" contenteditable="true">'+b.h+'</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div><p class="edit" contenteditable="true">'+b.p+'</p></div>';
+  return '<div class="an-block" data-block><div class="row"><h3 class="edit" contenteditable="true">'+b.h+'</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div><p class="edit" contenteditable="true">'+b.p+'</p><button class="add-below no-print" data-add-an-below title="Insert a new section below this one">+ Add section below</button></div>';
 }
 function analysis(){
   let blocks=DEFAULTS.analysis.map(anBlock).join("");
@@ -729,8 +834,8 @@ function selectGym(key){
 }
 function eduBlock(){
   return '<div class="subsec edu-block">'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">Aerobic Base Development involves structural changes which accumulate over months and years. This involves increasing the number of mitochondria, improving the capillary network density and improving the force generated by your heart. Building these structures takes much longer than improving how existing structures work.</p>'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 8px;">Threshold work improves how these already existing systems work, essentially making the production line more efficient. You can quickly see adaptations including:</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">Aerobic Base Development involves structural changes which accumulate over <b>months and years</b>. This involves increasing the number of mitochondria, improving the capillary network density and improving the force generated by your heart. Building these structures takes much longer than improving how existing structures work.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 8px;">Threshold work improves how these already existing systems work, essentially making the production line more efficient. You can <b>quickly</b> see adaptations including:</p>'+
     '<ul class="edu-list edit" contenteditable="true"><li>Building resistance to lactate accumulation</li><li>Improving lactate metabolism</li><li>Increasing the efficiency of the anaerobic pathway</li></ul>'+
     '</div>';
 }
@@ -741,9 +846,14 @@ function coachBlock(){
     "Hi,\n\nI recently completed a lactate threshold test with FitnessCheck and I\u2019d like help building a training programme around my results.\n\nLook forward to hearing from you."
   );
   const mailto="mailto:"+g.email+"?subject="+subj+"&body="+body;
+  /* Team Rees treadmill (run) tests name their run coach specifically; every other
+     gym/modality keeps the generic "a coach at <gym>". */
+  const coachIntro=(report.gymKey==='Team Rees'&&HASPACE())
+    ? 'Richard Rees, a qualified UK Athletics run coach'
+    : 'a coach at '+g.name;
   return '<div class="subsec coach-block">'+
     '<h3 class="subtitle edit" contenteditable="true">Want help structuring your training?</h3>'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">Let us put you in touch with a coach at '+g.name+' who can build a programme around your data. The button below gets a message ready to send to them.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">Let us put you in touch with '+coachIntro+' who can build a programme around your data. The button below gets a message ready to send to them.</p>'+
     '<a class="cta" href="'+mailto+'" onclick="return emailCoach(event)">Email '+g.name+' &rarr;</a>'+
     '<div class="mail-opts">Or email <a href="mailto:'+g.email+'">'+g.email+'</a> directly.</div>'+
     (g.offer?('<div class="gym-offer" style="border:1px solid #1D9E75;background:#EAF6F1;border-radius:10px;padding:12px 14px;margin:16px 0 4px;">'+
@@ -836,9 +946,28 @@ function ratingProse(cat){
     "Good":"above average for your age group.",
     "Fair":"around the average for your age group.",
     "Poor":"below the average for your age group.",
-    "Very Poor":"well below the average for your age group — a clear opportunity to build aerobic fitness."
+    "Very Poor":"well below the average for your age group - a clear opportunity to build aerobic fitness."
   };
   return m[cat]||"in context with your age group.";
+}
+/* Reference-range table for one sex, built from the same Cooper Institute norms that
+   drive the rating badge (so table and badge always agree). Optionally highlights the
+   athlete's own age-band x category cell. */
+var VO2_AGE_LABELS={19:"13-19",29:"20-29",39:"30-39",49:"40-49",59:"50-59",200:"60+"};
+function normsTable(sexKey,hlBandMax,hlCatIdx){
+  var cats=["Very poor","Poor","Fair","Good","Excellent","Superior"];
+  var f=function(x){return x.toFixed(1);};
+  var head='<tr><th>Age</th>'+cats.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr>';
+  var body=VO2_NORMS[sexKey].map(function(row){
+    var c=row.c;
+    var vals=['&lt;'+f(c[0]),f(c[0])+'-'+f(c[1]-0.1),f(c[1])+'-'+f(c[2]-0.1),
+              f(c[2])+'-'+f(c[3]-0.1),f(c[3])+'-'+f(c[4]-0.1),f(c[4])+'+'];
+    var tds=vals.map(function(t,ci){
+      return '<td'+((row.max===hlBandMax&&ci===hlCatIdx)?' class="hl"':'')+'>'+t+'</td>';
+    }).join('');
+    return '<tr><th>'+VO2_AGE_LABELS[row.max]+'</th>'+tds+'</tr>';
+  }).join('');
+  return '<table class="vo2-norms"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
 }
 /* recompute the rating pill + norm line live when VO2max / age / sex are edited */
 function recomputeVo2Rating(){
@@ -853,70 +982,97 @@ function recomputeVo2Rating(){
   var pill=document.getElementById('vo2-pill');
   if(pill){pill.textContent=r.name;pill.style.background=r.color;}
   var norm=document.getElementById('vo2-norm');
-  if(norm)norm.textContent='vs '+vo2Sex(sex)+' age '+(isNaN(age)?'—':age);
+  if(norm)norm.textContent='vs '+vo2Sex(sex)+' age '+(isNaN(age)?'-':age);
 }
 
+/* Deterministic per-stage "samples" for the DEMO only - a handful of readings that
+   wiggle around the stage mean so the demo at-a-glance trace looks like a real (jagged)
+   VO2 plot. Real imports carry the actual last-minute samples from the VO2 Master file. */
+function vo2SynthSamples(vo2,hr,seed){
+  var vOff=[-0.4,0.6,-0.2,0.9,-0.5], hOff=[-1,2,-1,1,0], out=[];
+  for(var k=0;k<5;k++){var i=(seed+k)%5;
+    out.push({vo2:Math.round((vo2+vOff[i]+(k-2)*0.1)*10)/10, hr:(hr==null?null:Math.round(hr+hOff[i]))});
+  }
+  return out;
+}
 /* Fictional VO2 demo curve per modality (treadmill = speed km/h, bike = power W).
    Used as the placeholder and when the test type is switched in the picker. */
 function vo2Demo(modality){
-  if(modality==="bike") return { age:34, sex:"Male", height:178, weight:76, userPiece:"—", maskSize:"—",
-    vo2max:50.8, maxHR:184, topSpeed:340, duration:"36:00",
-    stages:[
-      {step:1,speed:120,vo2:25.0,hr:110},{step:2,speed:150,vo2:29.5,hr:124},
-      {step:3,speed:180,vo2:34.0,hr:137},{step:4,speed:210,vo2:38.5,hr:149},
-      {step:5,speed:240,vo2:42.5,hr:160},{step:6,speed:270,vo2:46.2,hr:170},
-      {step:7,speed:300,vo2:49.0,hr:178},{step:8,speed:340,vo2:50.6,hr:183}
-    ] };
-  return { age:34, sex:"Male", height:178, weight:76, userPiece:"—", maskSize:"—",
-    vo2max:52.4, maxHR:186, topSpeed:15.6, duration:"38:00",
-    stages:[
-      {step:1,speed:7.7,vo2:26.5,hr:112},{step:2,speed:8.9,vo2:30.2,hr:126},
-      {step:3,speed:10.1,vo2:34.6,hr:139},{step:4,speed:11.3,vo2:38.9,hr:151},
-      {step:5,speed:12.5,vo2:43.1,hr:162},{step:6,speed:13.7,vo2:47.0,hr:171},
-      {step:7,speed:14.9,vo2:50.3,hr:179},{step:8,speed:16.1,vo2:52.0,hr:185}
-    ] };
+  var base=(modality==="bike")
+    ? { age:34, sex:"Male", height:178, weight:76, userPiece:"-", maskSize:"-",
+        vo2max:50.8, maxHR:184, topSpeed:340, duration:"36:00",
+        stages:[
+          {step:1,speed:120,vo2:25.0,hr:110},{step:2,speed:150,vo2:29.5,hr:124},
+          {step:3,speed:180,vo2:34.0,hr:137},{step:4,speed:210,vo2:38.5,hr:149},
+          {step:5,speed:240,vo2:42.5,hr:160},{step:6,speed:270,vo2:46.2,hr:170},
+          {step:7,speed:300,vo2:49.0,hr:178},{step:8,speed:340,vo2:50.6,hr:183}
+        ] }
+    : { age:34, sex:"Male", height:178, weight:76, userPiece:"-", maskSize:"-",
+        vo2max:52.4, maxHR:186, topSpeed:15.6, duration:"38:00",
+        stages:[
+          {step:1,speed:7.7,vo2:26.5,hr:112},{step:2,speed:8.9,vo2:30.2,hr:126},
+          {step:3,speed:10.1,vo2:34.6,hr:139},{step:4,speed:11.3,vo2:38.9,hr:151},
+          {step:5,speed:12.5,vo2:43.1,hr:162},{step:6,speed:13.7,vo2:47.0,hr:171},
+          {step:7,speed:14.9,vo2:50.3,hr:179},{step:8,speed:16.1,vo2:52.0,hr:185}
+        ] };
+  base.stages.forEach(function(st,i){ st.samples=vo2SynthSamples(st.vo2,st.hr,i); });
+  return base;
 }
 function vo2Tile(lab,val,unit){
   return '<div class="ig-th"><div class="lab edit" contenteditable="true">'+lab+'</div>'+
-    '<div class="v"><span class="edit" contenteditable="true">'+(val==null?'—':val)+'</span> <small>'+unit+'</small></div></div>';
+    '<div class="v"><span class="edit" contenteditable="true">'+(val==null?'-':val)+'</span> <small>'+unit+'</small></div></div>';
 }
-/* Quick-reference graph: VO2 (left axis, green) and HR (right axis, coral) as two
-   lines vs treadmill speed, from the last-minute-of-each-stage values. Inline SVG
-   so it renders into the downloadable card. */
+/* At-a-glance graph: VO2 (left axis, blue) and HR (right axis, coral) as the real,
+   jagged trace over the test - built from every last-minute sample of each stage
+   (falls back to the single stage mean if a stage has no samples). x-axis is test
+   progression, tick-labelled with each stage's speed/power. Inline SVG so it renders
+   into the downloadable card. */
 function vo2StageGraph(stages){
-  var pts=(stages||[]).filter(function(s){return s.speed!=null&&s.speed!==''&&s.vo2!=null&&s.vo2!=='';});
-  if(pts.length<2) return '<div class="vo2-graph-empty">Import the VO₂ Master files to draw the VO₂ &amp; heart-rate curve.</div>';
-  var W=340,H=196,mL=32,mR=30,mT=24,mB=30;
-  var xlab=MOD().intLabel+' ('+UNIT()+')';   /* "Speed (km/h)" or "Power (W)" */
-  var xs=pts.map(function(p){return +p.speed;});
-  var vo2=pts.map(function(p){return +p.vo2;});
-  var hrs=pts.map(function(p){return (p.hr==null||p.hr==='')?null:+p.hr;});
-  var xmin=Math.min.apply(null,xs),xmax=Math.max.apply(null,xs);
+  var stg=(stages||[]).filter(function(s){return s.speed!=null&&s.speed!==''&&s.vo2!=null&&s.vo2!=='';});
+  if(stg.length<2) return '<div class="vo2-graph-empty">Import the VO₂ Master files to draw the VO₂ &amp; heart-rate curve.</div>';
+  /* flatten each stage to its real samples (the jagged trace); fall back to the mean */
+  var seq=[];
+  stg.forEach(function(s,si){
+    var sm=(s.samples&&s.samples.length)?s.samples:[{vo2:s.vo2,hr:s.hr}];
+    sm.forEach(function(p,pi){
+      var v=parseFloat(p.vo2); if(isNaN(v))return;
+      var h=(p.hr==null||p.hr==='')?null:parseFloat(p.hr);
+      seq.push({vo2:v,hr:(isNaN(h)?null:h),speed:s.speed,first:pi===0});
+    });
+  });
+  if(seq.length<2) return '<div class="vo2-graph-empty">Import the VO₂ Master files to draw the VO₂ &amp; heart-rate curve.</div>';
+  var W=340,H=196,mL=32,mR=30,mT=24,mB=30, N=seq.length;
+  var vo2=seq.map(function(p){return p.vo2;});
+  var hv=seq.map(function(p){return p.hr;}).filter(function(h){return h!=null;});
   var vmin=Math.min.apply(null,vo2),vmax=Math.max.apply(null,vo2);
-  var hv=hrs.filter(function(h){return h!=null;});
   var hmin=hv.length?Math.min.apply(null,hv):0,hmax=hv.length?Math.max.apply(null,hv):0;
   var vLo=Math.max(0,Math.floor((vmin-4)/5)*5),vHi=Math.ceil((vmax+3)/5)*5;
   var hLo=Math.max(0,Math.floor((hmin-8)/10)*10),hHi=Math.ceil((hmax+6)/10)*10;
   if(vHi<=vLo)vHi=vLo+5; if(hHi<=hLo)hHi=hLo+10;
-  function X(x){return xmin===xmax?mL+(W-mL-mR)/2:mL+(x-xmin)/(xmax-xmin)*(W-mL-mR);}
+  function X(i){return N<=1?mL+(W-mL-mR)/2:mL+i/(N-1)*(W-mL-mR);}
   function Yv(y){return H-mB-(y-vLo)/(vHi-vLo)*(H-mT-mB);}
   function Yh(y){return H-mB-(y-hLo)/(hHi-hLo)*(H-mT-mB);}
   var VO2C="#2E86D6",CORAL="#E1655A",GRID="#E6EAE7",TXT="#5B6560";  /* VO2 line = blue (matches the VO2 Master), HR = coral */
   var s='<svg viewBox="0 0 '+W+' '+H+'" class="vo2-svg" xmlns="http://www.w3.org/2000/svg">';
   s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="10" fill="#ffffff"/>';
   s+='<line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="'+GRID+'" stroke-width="1"/>';
-  xs.forEach(function(x){var xx=X(x);s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+11)+'" font-size="7" fill="'+TXT+'" text-anchor="middle">'+x+'</text>';});
-  s+='<text x="'+((mL+W-mR)/2).toFixed(1)+'" y="'+(H-3)+'" font-size="8" fill="'+TXT+'" text-anchor="middle">'+xlab+'</text>';
+  /* x ticks at each stage's first sample, labelled with the stage speed/power */
+  seq.forEach(function(p,i){if(p.first){var xx=X(i);s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+11)+'" font-size="7" fill="'+TXT+'" text-anchor="middle">'+p.speed+'</text>';}});
+  s+='<text x="'+((mL+W-mR)/2).toFixed(1)+'" y="'+(H-3)+'" font-size="8" fill="'+TXT+'" text-anchor="middle">'+MOD().intLabel+' ('+UNIT()+') through the test</text>';
   [vLo,(vLo+vHi)/2,vHi].forEach(function(t){s+='<text x="'+(mL-4)+'" y="'+(Yv(t)+3).toFixed(1)+'" font-size="7" fill="'+VO2C+'" text-anchor="end">'+Math.round(t)+'</text>';});
   [hLo,(hLo+hHi)/2,hHi].forEach(function(t){s+='<text x="'+(W-mR+4)+'" y="'+(Yh(t)+3).toFixed(1)+'" font-size="7" fill="'+CORAL+'" text-anchor="start">'+Math.round(t)+'</text>';});
-  var vd=xs.map(function(x,i){return (i?'L':'M')+X(x).toFixed(1)+' '+Yv(vo2[i]).toFixed(1);}).join(' ');
-  s+='<path d="'+vd+'" fill="none" stroke="'+VO2C+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-  xs.forEach(function(x,i){s+='<circle cx="'+X(x).toFixed(1)+'" cy="'+Yv(vo2[i]).toFixed(1)+'" r="2.3" fill="'+VO2C+'"/>';});
-  var hp=xs.map(function(x,i){return {x:x,y:hrs[i]};}).filter(function(o){return o.y!=null;});
-  if(hp.length>1){
-    var hd=hp.map(function(o,i){return (i?'L':'M')+X(o.x).toFixed(1)+' '+Yh(o.y).toFixed(1);}).join(' ');
-    s+='<path d="'+hd+'" fill="none" stroke="'+CORAL+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-    hp.forEach(function(o){s+='<circle cx="'+X(o.x).toFixed(1)+'" cy="'+Yh(o.y).toFixed(1)+'" r="2.3" fill="'+CORAL+'"/>';});
+  /* real jagged VO2 trace */
+  var vd=seq.map(function(p,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Yv(p.vo2).toFixed(1);}).join(' ');
+  s+='<path d="'+vd+'" fill="none" stroke="'+VO2C+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>';
+  /* HR as a single STRAIGHT (least-squares) line - VO2 is the jagged trace, HR reads
+     clean. HR rises near-linearly with intensity, so a straight line represents it well. */
+  var hpts=[];seq.forEach(function(p,i){if(p.hr!=null)hpts.push([i,p.hr]);});
+  if(hpts.length>1){
+    var n=hpts.length,sx=0,sy=0,sxy=0,sxx=0;
+    hpts.forEach(function(q){sx+=q[0];sy+=q[1];sxy+=q[0]*q[1];sxx+=q[0]*q[0];});
+    var den=n*sxx-sx*sx, m=den?(n*sxy-sx*sy)/den:0, b=(sy-m*sx)/n;
+    var i0=hpts[0][0],i1=hpts[hpts.length-1][0];
+    s+='<path d="M'+X(i0).toFixed(1)+' '+Yh(m*i0+b).toFixed(1)+' L'+X(i1).toFixed(1)+' '+Yh(m*i1+b).toFixed(1)+'" fill="none" stroke="'+CORAL+'" stroke-width="1.6" stroke-linecap="round"/>';
   }
   s+='<g font-size="8">'+
     '<circle cx="'+(mL+2)+'" cy="12" r="3" fill="'+VO2C+'"/><text x="'+(mL+8)+'" y="15" fill="'+TXT+'">VO₂ (ml/kg/min)</text>'+
@@ -937,7 +1093,7 @@ function vo2Summary(){
       '<div class="vo2-norm" id="vo2-norm">vs '+vo2Sex(v.sex)+' age '+v.age+'</div>'+
     '</div>'+
     '<div class="vo2-card-graph">'+vo2StageGraph(v.stages)+'</div>'+
-    '<div class="vo2-maxhr"><span class="lab">Max heart rate</span><span class="v edit" contenteditable="true">'+(v.maxHR==null?'—':v.maxHR)+'</span><small>bpm</small></div>'+
+    '<div class="vo2-maxhr"><span class="lab">Max heart rate</span><span class="v edit" contenteditable="true">'+(v.maxHR==null?'-':v.maxHR)+'</span><small>bpm</small></div>'+
     '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
   '</div>';
   var dl='<button class="add no-print" id="dl-ig" style="display:block;width:155mm;margin:0 auto;">⬇ Download Instagram card (1080×1350 PNG)</button>';
@@ -945,39 +1101,56 @@ function vo2Summary(){
 }
 function vo2Analysis(){
   var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex);
-  /* "VO₂ in depth" — highlight VO2max + max HR, reference ranges, how to improve.
+  /* "VO₂ in depth" - highlight VO2max + max HR, reference ranges, how to improve.
      The VO₂/HR graph (uploaded from the VO₂ Master export) sits above these. */
-  var depth=[
-    {h:"Your VO₂ Max",
-     p:"Your VO₂ max is "+v.vo2max+" ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'—':v.maxHR)+" bpm. VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise — it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."},
-    {h:"How You Compare",
-     p:"For a "+vo2Sex(v.sex).toLowerCase()+" aged "+v.age+", this rates as "+r.name+" — "+ratingProse(r.name)+" Reference ranges are population values grouped by age and sex; they give useful context, while your own change over time is the most meaningful measure."},
-    {h:"How To Improve It",
-     p:"VO₂ max responds to training. A large base of easy aerobic volume raises the ceiling over months and years, while VO₂ intervals worked near your top test "+(HASPACE()?"speed":"power")+" sharpen how much of that ceiling you can actually use. [Personalise: the single biggest lever for this athlete.]"}
-  ].map(anBlock).join("");
-  /* "Breathing analysis" — why we look, whether it's a problem (usually not), and
+  /* highlight the athlete's own cell (age band x category) in their sex's table */
+  var sex=vo2Sex(v.sex);
+  var aNum=parseInt(v.age,10); if(isNaN(aNum))aNum=30;
+  var normRows=VO2_NORMS[sex], bandMax=normRows[normRows.length-1].max;
+  for(var bi=0;bi<normRows.length;bi++){ if(aNum<=normRows[bi].max){bandMax=normRows[bi].max;break;} }
+  var catIdx=0; for(var ci=0;ci<VO2_CATS.length;ci++){ if(VO2_CATS[ci].name===r.name)catIdx=ci; }
+  var compareBlock='<div class="an-block compare" data-block>'+
+    '<div class="row"><h3 class="edit" contenteditable="true">How You Compare</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div>'+
+    '<p class="edit" contenteditable="true">For a '+sex.toLowerCase()+' aged '+v.age+', a VO₂ max of '+v.vo2max+' ml/kg/min rates as '+r.name+' - '+ratingProse(r.name)+'</p>'+
+    '<p class="edit" contenteditable="true">VO₂ max naturally falls with age, mainly because your maximum heart rate drops: as the heart beats fewer times each minute, it delivers less oxygen to the muscles per minute. Most people can expect a decline of around 1% per year, though consistent exercise can cut that roughly in half - and, depending on your starting point, VO₂ max can even be increased.</p>'+
+    '<div class="vo2-norms-wrap">'+
+      '<div><div class="vo2-norms-cap">Men</div>'+normsTable('Male', sex==='Male'?bandMax:null, sex==='Male'?catIdx:null)+'</div>'+
+      '<div><div class="vo2-norms-cap">Women</div>'+normsTable('Female', sex==='Female'?bandMax:null, sex==='Female'?catIdx:null)+'</div>'+
+    '</div>'+
+    '<div class="vo2-norms-note">Reference values in ml/kg/min (Cooper Institute norms); your result is highlighted.</div>'+
+    '<p class="edit" contenteditable="true">Reference ranges give useful context, but your own change over time is the most meaningful measure.</p>'+
+    '<button class="add-below no-print" data-add-an-below title="Insert a new section below this one">+ Add section below</button>'+
+  '</div>';
+  var depth=
+    anBlock({h:"Your VO₂ Max",
+     p:"Your VO₂ max is "+v.vo2max+" ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise - it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
+    compareBlock+
+    anBlock({h:"How To Improve It",
+     p:"In the short term, high-intensity training raises VO₂ max quickly - but it plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what builds larger heart chambers and improves the blood supply to your muscles, lifting a ceiling that hard intervals alone cannot."});
+  /* "Breathing analysis" - why we look, whether it's a problem (usually not), and
      if not, that there's no work to do here (lungs aren't the O₂-delivery limiter). */
   var breath=anBlock({h:"What Your Breathing Shows",
-    p:"We look at your breathing to screen for disordered or dysfunctional breathing during exercise. [For this athlete: this was NOT a problem — or describe the finding.] Most of the time it is not an issue. Where breathing is not a limiter there is no further work to do in this area: your lungs are not the limiting factor in delivering oxygen to your muscles."});
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂ max, analysed</h2>'+
+    p:"We look at your breathing to screen for disordered or dysfunctional breathing during exercise. [For this athlete: this was NOT a problem - or describe the finding.] Most of the time it is not an issue. Where breathing is not a limiter there is no further work to do in this area: your lungs are not the limiting factor in delivering oxygen to your muscles."});
+  var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
+  return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂ max, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
-    '<div class="curve-slot">'+slot("slot-vo2-metabolic")+'</div>'+
+    '<div class="curve-slot">'+slot("slot-vo2-metabolic", g.metabolic)+'</div>'+
     '<div id="an-list">'+depth+'</div>'+
     '<button class="add no-print" data-add="an">+ Add section</button>'+
     '<h3 class="edit vo2-sub" contenteditable="true">Breathing analysis</h3>'+
-    '<div class="curve-slot">'+slot("slot-vo2-ventilation")+'</div>'+
+    '<div class="curve-slot">'+slot("slot-vo2-ventilation", g.ventilation)+'</div>'+
     '<div id="vo2-breath">'+breath+'</div>'+
     '</div>';
 }
 function vo2Recommendations(){
   var recs=[
-    "Build the aerobic base with consistent easy-intensity volume — this is the primary long-term driver of a higher VO₂ max.",
+    "Build the aerobic base with consistent easy-intensity volume - this is the primary long-term driver of a higher VO₂ max.",
     "Once a base is established, add VO₂ intervals: for example 4–6 × 3 min hard with equal easy recovery, working near your top test speed.",
     "[Personalise: note the athlete’s training history, weekly volume, and the single biggest lever for them.]"
   ];
   var items=recs.map(recItem).join("");
   return '<div class="sheet">'+rh()+'<div class="eyebrow">03 · What to do next</div><h2 class="title">Recommendations</h2>'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 14px;">VO₂ max responds to training. Improving it means both raising your ceiling with harder aerobic work and expanding the base that lets you use more of it. The points below are a starting framework — tailor them to this athlete.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 14px;">VO₂ max responds to training. Improving it means both raising your ceiling with harder aerobic work and expanding the base that lets you use more of it. The points below are a starting framework - tailor them to this athlete.</p>'+
     '<ol class="recs" id="rec-list">'+items+'</ol>'+
     '<button class="add no-print" data-add="rec">+ Add recommendation</button>'+
     '<div id="coach-wrap">'+coachBlock()+'</div>'+
@@ -990,9 +1163,9 @@ function vo2Appendix(){
   var v=report.vo2;
   var rows=v.stages.map(vo2StageRow).join("");
   var info='<table class="rec-table" style="margin-bottom:20px;"><tbody>'+
-    '<tr><td class="goal">Age</td><td contenteditable="true" data-vo2-age>'+(v.age==null?'—':v.age)+'</td><td class="goal">Sex</td><td contenteditable="true" data-vo2-sex>'+(v.sex||'—')+'</td></tr>'+
-    '<tr><td class="goal">Height</td><td contenteditable="true">'+(v.height==null?'—':v.height+' cm')+'</td><td class="goal">Weight</td><td contenteditable="true">'+(v.weight==null?'—':v.weight+' kg')+'</td></tr>'+
-    '<tr><td class="goal">Analyser user piece</td><td contenteditable="true">'+(v.userPiece||'—')+'</td><td class="goal">Mask size</td><td contenteditable="true">'+(v.maskSize||'—')+'</td></tr>'+
+    '<tr><td class="goal">Age</td><td contenteditable="true" data-vo2-age>'+(v.age==null?'-':v.age)+'</td><td class="goal">Sex</td><td contenteditable="true" data-vo2-sex>'+(v.sex||'-')+'</td></tr>'+
+    '<tr><td class="goal">Height</td><td contenteditable="true">'+(v.height==null?'-':v.height+' cm')+'</td><td class="goal">Weight</td><td contenteditable="true">'+(v.weight==null?'-':v.weight+' kg')+'</td></tr>'+
+    '<tr><td class="goal">Analyser user piece</td><td contenteditable="true">'+(v.userPiece||'-')+'</td><td class="goal">Mask size</td><td contenteditable="true">'+(v.maskSize||'-')+'</td></tr>'+
     '</tbody></table>';
   var defs=[
     {t:"VO₂ Max",d:"The maximum rate at which your body can take in, transport and use oxygen during intense exercise, expressed in millilitres of oxygen per kilogram of body weight per minute (ml/kg/min). It sets the upper limit for endurance performance."},
@@ -1016,12 +1189,388 @@ function fmtDMY(s){
   return parseInt(m[1],10)+' '+mo+' '+m[3];
 }
 
-/* Report composition — TEST_TYPES / MODALITIES / helpers are defined up near the
+/* ================= COMBINED REPORT (treadmill) =================
+   Reuses cover / analysis (lactate) / vo2Analysis / recommendations, and adds the
+   quick-reference multi-axis chart, an Economy placeholder page, a Fractional
+   Utilisation doughnut, and a combined appendix. All values editable. */
+
+/* Catmull-Rom smoothing (same idea as the cover curve) for a list of [x,y]. */
+function fcSmooth(pts){
+  if(pts.length<3) return pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+  var d='M'+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
+  for(var i=0;i<pts.length-1;i++){var p0=pts[i-1]||pts[0],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||pts[pts.length-1];
+    var c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+    d+=' C'+c1x.toFixed(1)+' '+c1y.toFixed(1)+' '+c2x.toFixed(1)+' '+c2y.toFixed(1)+' '+p2[0].toFixed(1)+' '+p2[1].toFixed(1);}
+  return d;
+}
+
+/* (The combined quick-ref card graph now reuses the chart builder's lactate chart
+   via window.fcLactateChart with a VO2 overlay - see combinedQuickRef below.) */
+function combinedQuickRef(){
+  var v=report.vo2;
+  /* Generate the SAME lactate graph the threshold engine / chart builder produces,
+     then superimpose the imported VO2 line on top. Falls back to an empty state if
+     the chart builder isn't ready yet. */
+  var graph=(typeof window.fcLactateChart==='function')
+    ? window.fcLactateChart({rows:comboRawRows(), aet:report.aet.speed, ant:report.ant.speed, vo2stages:v.stages, vo2max:v.vo2max, showHR:false})
+    : '';
+  if(!graph)graph='<div class="ig-graph-empty">Enter the lactate data and import the VO₂ files to draw the curve.</div>';
+  var card='<div class="ig-card">'+
+    '<div class="ig-top"><div class="wm">'+tick()+' Fitness<b>Check</b></div><div class="handle">'+report.handle+'</div></div>'+
+    '<div class="ig-title edit" contenteditable="true">Lactate Threshold + VO₂ Max</div>'+
+    '<div class="ig-client edit" contenteditable="true">'+report.client+' · '+report.location+'</div>'+
+    '<div class="ig-keystats">'+
+      '<div class="ks ks-main"><span class="k">VO₂ max</span><span class="v edit" contenteditable="true">'+v.vo2max+'</span> <small>ml/kg/min</small></div>'+
+      '<div class="ks-side">Max HR <b class="edit" contenteditable="true">'+(v.maxHR==null?'-':v.maxHR)+'</b> bpm</div>'+
+    '</div>'+
+    '<div class="ig-ths">'+igTh("Aerobic Threshold",report.aet)+igTh("Anaerobic Threshold",report.ant)+'</div>'+
+    '<div class="ig-graph combo-graph-area">'+
+      '<div class="combo-generated">'+graph+'</div>'+
+      slot("slot-combo")+
+      '<button class="no-print combo-toggle" data-combo-toggle title="Switch between the generated chart and your own uploaded image">⇄ use uploaded</button>'+
+    '</div>'+
+    '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
+  '</div>';
+  var dl='<button class="add no-print" id="dl-ig" style="display:block;width:155mm;margin:0 auto;">⬇ Download Instagram card (1080×1350 PNG)</button>';
+  return '<div class="sheet">'+rh()+'<div class="eyebrow">01 · Summary</div><h2 class="title">Quick reference</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
+}
+/* Lactate rows for the combined quick-ref chart: the LIVE appendix table if it
+   exists (so the card matches the analysis-page chart), else the demo curve.
+   (#raw-body doesn't exist yet while combinedQuickRef first builds its string, so
+   the initial render uses the demo; refreshComboQuickRef() re-reads the table.) */
+function comboRawRows(){
+  var rows=[];
+  document.querySelectorAll('#raw-body tr').forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<5)return;
+    rows.push([c[0].textContent,(c[1]||{}).textContent||'',(c[2]||{}).textContent||'',(c[3]||{}).textContent||'',(c[4]||{}).textContent||'',(c[5]||{}).textContent||'']);});
+  return rows.length?rows:DEFAULTS.raw;
+}
+/* Regenerate the combined quick-ref card graph in place from the CURRENT thresholds
+   + live lactate table (the baked SVG would otherwise go stale after thresholds are
+   recomputed). No-op unless a combined report is on screen. */
+function refreshComboQuickRef(){
+  var host=document.querySelector('.report-section[data-section="combinedQuickRef"] .combo-generated');
+  if(!host||typeof window.fcLactateChart!=='function')return;
+  var v=report.vo2||{};
+  var svg=window.fcLactateChart({rows:comboRawRows(),aet:report.aet.speed,ant:report.ant.speed,vo2stages:v.stages,vo2max:v.vo2max,showHR:false});
+  if(svg)host.innerHTML=svg;
+}
+
+/* ---- Economy: VO2(weight-adjusted) x60 / (speed or power) per stage ----
+   Running -> ml/kg/km, plotted against coloured reference bands (image 2).
+   Cycling -> ml/kg/W, plain scatter (no validated bands). Lower is better.
+   Trend line = moving average, period 2. Uses the imported per-stage VO2. */
+var RE_BANDS=[  /* running-economy reference bands (ml/kg/km) - edit as needed */
+  {to:180,label:"Very good",color:"#8AE0B4"},
+  {to:205,label:"Good",color:"#CDE985"},
+  {to:245,label:"Average",color:"#FBCB7C"},
+  {to:270,label:"Below average",color:"#F6A15A"},
+  {to:300,label:"Poor",color:"#F0685C"}
+];
+var RE_MIN=160;
+function econStages(){
+  var rows=[];
+  document.querySelectorAll('#vo2-body tr').forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<3)return;
+    var x=parseFloat(c[1].textContent),vo=parseFloat(c[2].textContent);if(!isNaN(x)&&x>0&&!isNaN(vo))rows.push([x,vo]);});
+  if(!rows.length)rows=((report.vo2&&report.vo2.stages)||[]).map(function(s){return [parseFloat(s.speed),parseFloat(s.vo2)];}).filter(function(p){return !isNaN(p[0])&&p[0]>0&&!isNaN(p[1]);});
+  return rows.map(function(p){return [p[0], p[1]*60/p[0]];});   // [workRate, economy]
+}
+function movingAvg2(pts){var o=[];for(var i=1;i<pts.length;i++)o.push([pts[i][0],(pts[i-1][1]+pts[i][1])/2]);return o;}
+function econChart(pts){
+  var run=HASPACE();
+  var W=600,H=300,mL=50,mR=22,mT=16,mB=44,i;
+  var xs=pts.map(function(p){return p[0];});
+  var xlo=xs.length?Math.min.apply(null,xs):0, xhi=xs.length?Math.max.apply(null,xs):1;
+  var pad=(xhi-xlo)*0.06||1; xlo=Math.max(0,xlo-pad); xhi+=pad;
+  var es=pts.map(function(p){return p[1];});
+  var ylo,yhi;
+  if(run){ ylo=RE_MIN; yhi=RE_BANDS[RE_BANDS.length-1].to;
+    es.forEach(function(e){if(e<ylo)ylo=Math.floor(e/20)*20; if(e>yhi)yhi=Math.ceil(e/20)*20;}); }
+  else { var mn=es.length?Math.min.apply(null,es):0, mx=es.length?Math.max.apply(null,es):10; var yp=(mx-mn)*0.3||1; ylo=Math.max(0,mn-yp); yhi=mx+yp; }
+  function X(x){return mL+(x-xlo)/(xhi-xlo)*(W-mL-mR);}
+  function Y(y){return H-mB-(y-ylo)/(yhi-ylo)*(H-mT-mB);}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="econ-svg" xmlns="http://www.w3.org/2000/svg"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';
+  if(run){ var prev=ylo;
+    RE_BANDS.forEach(function(b){ if(b.to<=ylo)return; var top=Math.min(b.to,yhi); var y1=Y(top),y2=Y(prev);
+      s+='<rect x="'+mL+'" y="'+y1.toFixed(1)+'" width="'+(W-mL-mR)+'" height="'+(y2-y1).toFixed(1)+'" fill="'+b.color+'" opacity="0.82"/>';
+      s+='<text x="'+(mL+(W-mL-mR)/2)+'" y="'+((y1+y2)/2+3).toFixed(1)+'" font-size="10" font-weight="700" fill="#16324a" text-anchor="middle" opacity="0.75">'+b.label.toUpperCase()+'</text>';
+      prev=top; });
+  }
+  s+='<line x1="'+mL+'" y1="'+mT+'" x2="'+mL+'" y2="'+(H-mB)+'" stroke="#333"/><line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="#333"/>';
+  var yStep=run?20:((yhi-ylo)>6?2:1);
+  for(var v=Math.ceil(ylo/yStep)*yStep;v<=yhi+0.01;v+=yStep){var yy=Y(v);
+    s+='<text x="'+(mL-6)+'" y="'+(yy+3).toFixed(1)+'" font-size="9" fill="#555" text-anchor="end">'+(Math.round(v*10)/10)+'</text>';
+    if(!run)s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/>';}
+  s+='<text transform="rotate(-90 12 '+(H/2)+')" x="12" y="'+(H/2)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?'Running economy (ml/kg/km)':'Cycling economy (ml/kg/W)')+'</text>';
+  var nx=5; for(i=0;i<=nx;i++){var xv=xlo+(xhi-xlo)*i/nx,xx=X(xv);
+    s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+13)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?pace(xv):Math.round(xv))+'</text>';}
+  s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-3)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?'Pace (min/km)':'Power (W)')+'</text>';
+  var ma=movingAvg2(pts);
+  if(ma.length>1)s+='<path d="'+ma.map(function(p,i){return (i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#123f5a" stroke-width="2" stroke-dasharray="2 3"/>';
+  pts.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="3.6" fill="#1f6b8f"/>';});
+  return s+'</svg>';
+}
+/* The auto "Overall, your economy averages..." line. Built from the LIVE VO2 table
+   so it must be refreshed by computeEconomy() after a test-type switch (the table is
+   stale while assembleReport() first builds the string) - otherwise a bike report can
+   show the treadmill number. */
+function econGeneralHtml(){
+  var run=HASPACE(), pts=econStages();
+  if(!pts.length) return 'Import the VO2 stages to calculate economy.';
+  var avg=pts.reduce(function(s,p){return s+p[1];},0)/pts.length;
+  var unit=run?'ml/kg/km':'ml/kg/W', band=null;
+  if(run){for(var i=0;i<RE_BANDS.length;i++){if(avg<=RE_BANDS[i].to){band=RE_BANDS[i].label;break;}}if(!band)band=RE_BANDS[RE_BANDS.length-1].label;}
+  return 'Overall, your '+(run?'running':'cycling')+' economy averages about <b>'+Math.round(avg)+' '+unit+'</b>'+(run&&band?', which sits in the <b>'+band+'</b> range':'')+'.';
+}
+function economy(){
+  var run=HASPACE(), pts=econStages();
+  /* Plain-language intro (before the graph): what economy is, what affects it, how we
+     measure it here, and that lower = better. */
+  var intro=run
+    ? "Running economy is how much oxygen you use to hold a given pace - in effect, how efficiently you run. It is shaped by your running form and technique, muscle and tendon stiffness, strength, neuromuscular coordination and footwear. Using your VO2 reading at each stage of the test, we can assess how economical you are across a range of paces. The lower the value, the better: a lower reading means you burn less oxygen to run at the same pace."
+    : "Cycling economy is how much oxygen you use to produce a given power output - in effect, how efficiently you ride. It is shaped by your pedalling technique, muscular efficiency, strength and position on the bike. Using your VO2 reading at each stage of the test, we can assess how economical you are across a range of power outputs. The lower the value, the better: a lower reading means you burn less oxygen for the same power.";
+  /* After the graph: a general (auto) line + an editable specific observation. */
+  var general=econGeneralHtml();
+  var specific=run
+    ? "[Generally, you are an economical runner - however in this test you can see that at around [pace] your economy dips. Note the paces where you are most and least economical.]"
+    : "[Note the power range where you are most economical, and any point where economy rises.]";
+  var improveGen=run
+    ? "In general, running economy improves with <b>strength work</b>, better <b>running form and technique</b>, <b>neuromuscular (plyometric) work</b> and well-fitted, <b>appropriate footwear</b> - together these lower the oxygen cost of every stride."
+    : "In general, cycling economy improves with <b>strength work</b>, refined <b>pedalling technique</b>, <b>neuromuscular work</b> and an efficient, well-fitted <b>bike position</b>.";
+  var improveSpec=run
+    ? "[Specific to you: tie this to your goals. For example, with a Hyrox event coming up, focus on... Your threshold paces are usually the least economical, and economy naturally drops above threshold - but practising those particular paces will improve it.]"
+    : "[Specific to you: note the power ranges most relevant to your goals and events, and practise the paces you will race at.]";
+  var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
+  return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Economy</div><h2 class="title">'+(run?'Running economy':'Cycling economy')+'</h2>'+
+    '<p '+psty+'margin:0 0 12px;">'+intro+'</p>'+
+    '<div class="combo-chart" id="econ-chart">'+econChart(pts)+'</div>'+
+    '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">What your economy shows</h3>'+
+      '<p '+psty+'margin:8px 0 7px;" id="econ-general">'+general+'</p>'+
+      '<p '+psty+'margin:0 0 10px;">'+specific+'</p></div>'+
+    '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">How to improve</h3>'+
+      '<p '+psty+'margin:0 0 7px;">'+improveGen+'</p>'+
+      '<p '+psty+'margin:0 0 10px;">'+improveSpec+'</p></div>'+
+    '</div>';
+}
+/* redraw the economy chart + refresh the auto summary line when a VO2 stage / work
+   rate is edited, or after a test-type switch (fixes a bike report showing the stale
+   treadmill average). */
+function computeEconomy(){
+  var host=document.getElementById('econ-chart');if(host)host.innerHTML=econChart(econStages());
+  var gen=document.getElementById('econ-general');if(gen)gen.innerHTML=econGeneralHtml();
+}
+
+/* Fractional utilisation doughnut. Whole ring = VO2max (100%). Segments come from
+   EDITABLE % fields: aerobic utilisation, then transition, then unsustainable. */
+function fcArc(cx,cy,r,a0,a1){
+  function pol(a){var rad=(a-90)*Math.PI/180;return [cx+r*Math.cos(rad),cy+r*Math.sin(rad)];}
+  var p0=pol(a0),p1=pol(a1),large=(a1-a0)>180?1:0;
+  return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+' A '+r+' '+r+' 0 '+large+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
+}
+/* Inner ring = VO2max (a full blue circle, = 100%). Outer ring stacks the three
+   zones of that capacity: aerobic (0->aer%), sustainable anaerobic (aer%->an%),
+   unsustainable anaerobic (an%->100%). */
+function doughnut(aer,an){
+  aer=Math.max(0,Math.min(100,parseFloat(aer)||0));
+  an=Math.max(aer,Math.min(100,parseFloat(an)||0));
+  var S=240,cx=120,cy=120,sw=16,rOut=84,rIn=56;
+  var GREEN="#1D9E75",AMBER="#D99A2B",RED="#E1655A",BLUE="#2E86D6";
+  function seg(a,b,color){ if(b-a<=0.05)return ''; return '<path d="'+fcArc(cx,cy,rOut,a/100*360,b/100*360)+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'" stroke-linecap="butt"/>'; }
+  /* % label just outside the ring at a given position (0-100) around the circle */
+  function lab(pct,text){
+    var a=(pct/100*360-90)*Math.PI/180, lr=rOut+sw/2+9, x=cx+lr*Math.cos(a), y=cy+lr*Math.sin(a);
+    var anc=Math.cos(a)>0.3?'start':(Math.cos(a)<-0.3?'end':'middle');
+    return '<text x="'+x.toFixed(1)+'" y="'+(y+3).toFixed(1)+'" font-size="11" font-weight="700" fill="#3a3f3c" text-anchor="'+anc+'">'+text+'</text>';
+  }
+  var s='<svg viewBox="0 0 '+S+' '+S+'" class="frac-svg" xmlns="http://www.w3.org/2000/svg">';
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rOut+'" fill="none" stroke="#ECECE6" stroke-width="'+sw+'"/>';
+  s+=seg(0,aer,GREEN)+seg(aer,an,AMBER)+seg(an,100,RED);
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rIn+'" fill="none" stroke="'+BLUE+'" stroke-width="'+sw+'"/>';
+  if(aer>3)s+=lab(aer/2,Math.round(aer)+'%');
+  if(an-aer>4)s+=lab((aer+an)/2,Math.round(an)+'%');
+  if(100-an>3)s+=lab((an+100)/2,Math.round(100-an)+'%');
+  s+='<text x="'+cx+'" y="'+(cy-3)+'" font-size="11" fill="#2c332f" text-anchor="middle" font-weight="600">VO₂ max</text>';
+  s+='<text x="'+cx+'" y="'+(cy+12)+'" font-size="10" fill="#8a938e" text-anchor="middle">100%</text>';
+  return s+'</svg>';
+}
+/* ---- Fractional utilisation: computed from the VO2 stage data ----
+   Fit VO2 = c2·x² + c1·x + c0 (x = speed/power), read the fitted VO2 at each lactate
+   threshold, divide by VO2max => FU%. The working (chart + equation + table) shows
+   in the editor only; the donut is the printed output. */
+function quadFit(pts){
+  var d=3,A=[[0,0,0],[0,0,0],[0,0,0]],b=[0,0,0],i,r,c;
+  pts.forEach(function(p){var x=p[0],y=p[1];for(r=0;r<d;r++){b[r]+=Math.pow(x,r)*y;for(c=0;c<d;c++)A[r][c]+=Math.pow(x,r+c);}});
+  var M=A.map(function(row,k){return row.concat([b[k]]);});
+  for(var col=0;col<d;col++){var mx=col;for(r=col+1;r<d;r++)if(Math.abs(M[r][col])>Math.abs(M[mx][col]))mx=r;
+    var t=M[col];M[col]=M[mx];M[mx]=t;
+    for(r=col+1;r<d;r++){var f=M[r][col]/M[col][col];for(c=col;c<=d;c++)M[r][c]-=f*M[col][c];}}
+  var x=[0,0,0];
+  for(i=d-1;i>=0;i--){x[i]=M[i][d]/M[i][i];for(var j=i+1;j<d;j++)x[i]-=M[i][j]*x[j]/M[i][i];}
+  return x;   /* [c0, c1, c2]  => VO2 = c0 + c1·x + c2·x² */
+}
+function evalQuad(c,x){return c[0]+c[1]*x+c[2]*x*x;}
+/* stage [speed/power, VO2] pairs - live VO2 table if present, else report.vo2.stages */
+function fuStages(){
+  var rows=[];
+  document.querySelectorAll('#vo2-body tr').forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<3)return;
+    var sp=parseFloat(c[1].textContent),vo=parseFloat(c[2].textContent);if(!isNaN(sp)&&!isNaN(vo))rows.push([sp,vo]);});
+  if(rows.length>=3)return rows;
+  return ((report.vo2&&report.vo2.stages)||[]).map(function(s){return [parseFloat(s.speed),parseFloat(s.vo2)];})
+    .filter(function(p){return !isNaN(p[0])&&!isNaN(p[1]);});
+}
+function fuCompute(){
+  var pts=fuStages(); if(pts.length<3)return null;
+  var c=quadFit(pts);
+  var mean=pts.reduce(function(s,p){return s+p[1];},0)/pts.length;
+  var ss=pts.reduce(function(s,p){return s+Math.pow(p[1]-mean,2);},0);
+  var sr=pts.reduce(function(s,p){return s+Math.pow(p[1]-evalQuad(c,p[0]),2);},0);
+  var vmaxEl=document.querySelector('[data-vo2max]');
+  var vmax=vmaxEl?parseFloat(vmaxEl.textContent):parseFloat(report.vo2.vo2max);
+  var aet=parseFloat(report.aet.speed),ant=parseFloat(report.ant.speed);
+  var vAeT=evalQuad(c,aet),vAnT=evalQuad(c,ant);
+  return {pts:pts,c:c,r2:(ss?1-sr/ss:0),aet:aet,ant:ant,vmax:vmax,vAeT:vAeT,vAnT:vAnT,
+    aerFU:(vmax?vAeT/vmax*100:0),anFU:(vmax?vAnT/vmax*100:0)};
+}
+function fuEqHtml(res){
+  var X=HASPACE()?'speed':'power';
+  function t(v,suf){return (v<0?' − ':' + ')+Math.abs(v).toPrecision(3)+suf;}
+  return 'VO₂ = '+(res.c[2]<0?'−':'')+Math.abs(res.c[2]).toPrecision(3)+'·'+X+'²'+t(res.c[1],'·'+X)+t(res.c[0],'')+
+    ' <span style="color:#8a938e;font-weight:400;">(R² = '+res.r2.toFixed(3)+', '+X+' in '+UNIT()+')</span>';
+}
+function fuChart(res){
+  var W=560,H=290,mL=42,mR=18,mT=18,mB=40,i;
+  var xs=res.pts.map(function(p){return p[0];});
+  var xlo=Math.min.apply(null,xs),xhi=Math.max.apply(null,xs);
+  [res.aet,res.ant].forEach(function(v){if(!isNaN(v)){xlo=Math.min(xlo,v);xhi=Math.max(xhi,v);}});
+  var pad=(xhi-xlo)*0.05||1;xlo-=pad;xhi+=pad;
+  var yhi=Math.max.apply(null,res.pts.map(function(p){return p[1];}).concat([res.vAeT||0,res.vAnT||0]))*1.08||60;
+  function X(x){return mL+(x-xlo)/(xhi-xlo)*(W-mL-mR);}
+  function Y(y){return H-mB-(y-0)/(yhi-0)*(H-mT-mB);}
+  var BLUE="#2E86D6",GREY="#8a938e";
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="fu-svg" xmlns="http://www.w3.org/2000/svg"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';
+  s+='<line x1="'+mL+'" y1="'+mT+'" x2="'+mL+'" y2="'+(H-mB)+'" stroke="#333"/><line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="#333"/>';
+  var yStep=yhi>60?20:10;
+  for(var v=0;v<=yhi;v+=yStep){var yy=Y(v);s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/><text x="'+(mL-6)+'" y="'+(yy+3).toFixed(1)+'" font-size="9" fill="'+GREY+'" text-anchor="end">'+v+'</text>';}
+  s+='<text transform="rotate(-90 12 '+(H/2)+')" x="12" y="'+(H/2)+'" font-size="9" fill="'+GREY+'" text-anchor="middle">VO₂ (ml/kg/min)</text>';
+  for(var xv=Math.ceil(xlo);xv<=Math.floor(xhi);xv++){s+='<text x="'+X(xv).toFixed(1)+'" y="'+(H-mB+13)+'" font-size="9" fill="'+GREY+'" text-anchor="middle">'+xv+'</text>';}
+  s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-3)+'" font-size="9" fill="'+GREY+'" text-anchor="middle">'+(HASPACE()?'Speed':'Power')+' ('+UNIT()+')</text>';
+  var d='',N=120;for(i=0;i<=N;i++){var x=xlo+(xhi-xlo)*i/N;d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(Math.max(0,evalQuad(res.c,x))).toFixed(1);}
+  s+='<path d="'+d+'" fill="none" stroke="'+BLUE+'" stroke-width="2"/>';
+  res.pts.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="3" fill="#0F6E56"/>';});
+  function mk(x,y,label,col){if(isNaN(x))return '';var xx=X(x);
+    return '<line x1="'+xx.toFixed(1)+'" y1="'+mT+'" x2="'+xx.toFixed(1)+'" y2="'+(H-mB)+'" stroke="'+col+'" stroke-dasharray="5 3"/>'+
+      '<circle cx="'+xx.toFixed(1)+'" cy="'+Y(y).toFixed(1)+'" r="3.5" fill="'+col+'"/>'+
+      '<text x="'+xx.toFixed(1)+'" y="'+(mT-3)+'" font-size="8.5" font-weight="600" fill="'+col+'" text-anchor="middle">'+label+'</text>';}
+  s+=mk(res.aet,res.vAeT,'AeT',"#1D9E75")+mk(res.ant,res.vAnT,'AnT',"#e53935");
+  return s+'</svg>';
+}
+function fuTableHtml(res){
+  function r1(v){return isFinite(v)?v.toFixed(1):'-';}
+  function pc(v){return isFinite(v)?Math.round(v)+'%':'-';}
+  return '<table class="rec-table"><thead><tr><th>Threshold</th><th>'+(HASPACE()?'Speed':'Power')+' ('+UNIT()+')</th><th>VO₂ (from fit)</th><th>Fractional utilisation</th></tr></thead><tbody>'+
+    '<tr><td class="goal">Aerobic (LT1)</td><td>'+(isNaN(res.aet)?'-':res.aet)+'</td><td>'+r1(res.vAeT)+'</td><td>'+pc(res.aerFU)+'</td></tr>'+
+    '<tr><td class="goal">Anaerobic (LT2)</td><td>'+(isNaN(res.ant)?'-':res.ant)+'</td><td>'+r1(res.vAnT)+'</td><td>'+pc(res.anFU)+'</td></tr>'+
+    '<tr><td class="goal">VO₂ max</td><td>-</td><td>'+r1(res.vmax)+'</td><td>100%</td></tr></tbody></table>';
+}
+/* recompute + update the working and donut in place (on threshold/stage/VO2max edits) */
+function computeFractional(){
+  var res=fuCompute();
+  var chart=document.getElementById('fu-chart'),eq=document.getElementById('fu-eq'),tw=document.getElementById('fu-table-wrap'),host=document.getElementById('frac-chart');
+  if(!res){ if(eq)eq.textContent='Enter at least 3 VO₂ stages (in the appendix) to fit the curve.'; if(chart)chart.innerHTML=''; if(tw)tw.innerHTML=''; return; }
+  if(eq)eq.innerHTML=fuEqHtml(res); if(chart)chart.innerHTML=fuChart(res); if(tw)tw.innerHTML=fuTableHtml(res);
+  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU);
+  var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(res.aerFU)+'%';
+  var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU)+'%';
+  var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU))+'%';
+}
+function fractional(){
+  var res=fuCompute();
+  var aerL=res?Math.round(res.aerFU):'-',anL=res?Math.round(res.anFU):'-',gapL=res?Math.max(0,100-Math.round(res.anFU)):'-';
+  var wk=HASPACE()?'speed':'power';
+  return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
+    '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
+      '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
+    /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
+    '<div class="frac-wrap" style="margin-top:18px;">'+
+      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0)+'</div>'+
+      '<div class="frac-legend">'+
+        '<div class="fl"><span class="sw" style="background:#2E86D6"></span>VO₂ max (inner ring) - 100% of your aerobic capacity</div>'+
+        '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b id="frac-aer-lab">'+aerL+'%</b> of VO₂ max</div>'+
+        '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable anaerobic - up to <b id="frac-an-lab">'+anL+'%</b></div>'+
+        '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable anaerobic - <b id="frac-gap-lab">'+gapL+'%</b></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="defs" style="margin-top:20px;">'+
+      defItem({t:"VO₂ max",d:"100% of the aerobic capacity you can call on - the blue inner ring."})+
+      defItem({t:"Aerobic",d:"The VO₂ at your aerobic threshold as a share of VO₂ max - how much of your ceiling the oxidative system is using there."})+
+      defItem({t:"Sustainable anaerobic",d:"From your aerobic threshold up to your anaerobic threshold - the extra capacity your lactate system contributes and can still sustain."})+
+      defItem({t:"Unsustainable anaerobic",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that cannot be sustained."})+
+    '</div>'+
+    /* Working popup - editor only (never printed). The #fu-eq / #fu-chart /
+       #fu-table-wrap ids live in here now; computeFractional() still finds them. */
+    '<div class="fu-pop-back no-print" data-fu-back>'+
+      '<div class="fu-pop-card">'+
+        '<div class="fu-pop-top"><h3 class="vo2-sub" style="margin:0;">How this is calculated</h3>'+
+          '<button class="fu-pop-close" data-fu-close type="button" aria-label="Close">&times;</button></div>'+
+        '<div class="fu-note" style="margin-top:0;">Shown in the editor only - the PDF prints just the donut.</div>'+
+        '<div class="fu-note">1-2 · VO₂ at each stage vs '+wk+', fitted with a 2nd-order polynomial:</div>'+
+        '<div class="fu-eq" id="fu-eq">'+(res?fuEqHtml(res):'Enter at least 3 VO₂ stages (in the appendix) to fit the curve.')+'</div>'+
+        '<div class="fu-chart" id="fu-chart">'+(res?fuChart(res):'')+'</div>'+
+        '<div class="fu-note">3-7 · '+wk+' at each lactate threshold → VO₂ from the fit → ÷ VO₂ max:</div>'+
+        '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '</div>';
+}
+function combinedAppendix(){
+  var rows=DEFAULTS.raw.map(rawRow).join("");
+  var vrows=report.vo2.stages.map(vo2StageRow).join("");
+  var defs=DEFAULTS.defs.map(defItem).join("");
+  var intHead=HASPACE()?"Speed (km/h)":"Power (W)";
+  return '<div class="sheet">'+rh()+'<div class="eyebrow">07 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
+    '<h3 class="subtitle" style="font-size:18px;margin:0 0 8px;">Lactate stages</h3>'+
+    '<table class="raw"><thead><tr><th>'+intHead+'</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
+    '<button class="add no-print" data-add="row">+ Add row</button>'+
+    '<h3 class="subtitle" style="font-size:18px;margin:20px 0 8px;">VO₂ stages</h3>'+
+    '<table class="raw vo2-raw"><thead><tr><th>Step</th><th>'+intHead+'</th><th>VO₂ (ml/kg/min)</th><th>HR (bpm)</th><th class="rmcell no-print"></th></tr></thead><tbody id="vo2-body">'+vrows+'</tbody></table>'+
+    '<button class="add no-print" data-add="vo2row">+ Add stage</button>'+
+    '<div class="defs" style="margin-top:22px;" id="def-list">'+defs+'</div>'+
+    '<button class="add no-print" data-add="def">+ Add definition</button></div>';
+}
+
+/* Report composition - TEST_TYPES / MODALITIES / helpers are defined up near the
    report object (before DEFAULTS). assembleReport() joins the chosen type's
    section builders; renderStage() rebuilds everything for a test-type switch. */
+/* Each section is wrapped in a display:contents holder tagged with the builder's
+   name, so pages can be toggled on/off by flipping one class (no re-render, which
+   keeps a restored draft's edited values intact). The cover can't be toggled off. */
 function assembleReport(){
   var t = TEST_TYPES[report.testType] || TEST_TYPES.lt_treadmill;
-  return t.sections.map(function(fn){return fn();}).join("");
+  var ex = report.excluded || {};
+  return t.sections.map(function(fn){
+    var hidden = (fn.name!=='cover' && ex[fn.name]) ? ' fc-hidden' : '';
+    return '<div class="report-section'+hidden+'" data-section="'+fn.name+'">'+fn()+'</div>';
+  }).join("");
+}
+/* Include/exclude a page for this report (checkboxes in the cover's Pages panel).
+   Toggles the wrapper class directly so restored-draft content isn't rebuilt. */
+function togglePage(name,on){
+  report.excluded = report.excluded || {};
+  if(on) delete report.excluded[name]; else report.excluded[name]=true;
+  var el=document.querySelector('.report-section[data-section="'+name+'"]');
+  if(el) el.classList.toggle('fc-hidden', !on);
+}
+/* Collapsible "Pages" checklist for the cover - include/exclude each page of this
+   report. Cover is omitted (always kept). */
+function pagesPanel(){
+  var t=TEST_TYPES[report.testType]||TEST_TYPES.lt_treadmill;
+  var ex=report.excluded||{};
+  var items=t.sections.filter(function(fn){return fn.name!=='cover';}).map(function(fn){
+    var lab=SECTION_META[fn.name]||fn.name;
+    return '<label class="pg-item"><input type="checkbox"'+(ex[fn.name]?'':' checked')+
+      ' onchange="togglePage(\''+fn.name+'\',this.checked)"> '+lab+'</label>';
+  }).join('');
+  if(!items) return '';
+  return '<details class="pages-picker no-print"><summary>Pages</summary><div class="pg-list">'+items+'</div></details>';
 }
 function renderStage(){
   DEFAULTS = buildDefaults();
@@ -1029,6 +1578,12 @@ function renderStage(){
   if(typeof drawCoverCurve==='function')drawCoverCurve();
   /* image slots are rebuilt with #stage, so re-wire the new ones (upload/replace) */
   if(typeof wireSlot==='function')document.querySelectorAll(".imgslot").forEach(wireSlot);
+  /* Combined derived visuals (FU equation/chart/table, economy chart) are baked
+     during assembleReport() from the LIVE #vo2-body - but on a test-type switch
+     that table is still the previous modality's until this innerHTML lands. Recompute
+     now that the fresh table is in the DOM so they never show stale data. */
+  if(typeof computeFractional==='function')computeFractional();
+  if(typeof computeEconomy==='function')computeEconomy();
 }
 /* Switch the whole report to another test type (picked on the cover). Resets to
    that type's demo data + units and re-renders; panels outside #stage keep their
@@ -1043,7 +1598,7 @@ function selectTestType(key,keepData){
   report.ant={speed:d.ant.speed,hr:d.ant.hr};
   /* Switching to a VO2 type from the picker loads that modality's demo curve.
      keepData is passed by the importer so a real import isn't overwritten. */
-  if(TEST_TYPES[key].kind==='vo2' && !keepData) report.vo2=vo2Demo(report.modality);
+  if((TEST_TYPES[key].kind==='vo2'||TEST_TYPES[key].kind==='combined') && !keepData) report.vo2=vo2Demo(report.modality);
   renderStage();
   var a=document.getElementById('cb-aet'),n2=document.getElementById('cb-ant');
   if(a)a.value=report.aet.speed; if(n2)n2.value=report.ant.speed;
@@ -1099,7 +1654,7 @@ document.querySelectorAll(".imgslot").forEach(wireSlot);
 
 /* Live edits inside the report. Delegated on #stage so it keeps working after a
    test-type switch rebuilds the page (and never assumes a table that a given type
-   doesn't have — e.g. a VO2 report has no #raw-body). */
+   doesn't have - e.g. a VO2 report has no #raw-body). */
 document.getElementById('stage').addEventListener('input',e=>{
   /* appendix (LT) table: auto-calculate pace when a speed is typed */
   const td=e.target.closest('#raw-body td.first');
@@ -1126,6 +1681,11 @@ document.getElementById('stage').addEventListener('input',e=>{
   if(e.target.closest('[data-vo2max],[data-vo2-age],[data-vo2-sex]')){
     if(typeof recomputeVo2Rating==='function')recomputeVo2Rating();
   }
+  /* Combined: recompute fractional utilisation + economy when a VO2 stage or VO2max changes */
+  if(e.target.closest('#vo2-body td, [data-vo2max]')){
+    if(typeof computeFractional==='function')computeFractional();
+    if(typeof computeEconomy==='function')computeEconomy();
+  }
 });
 
 /* Email-the-coach helper: native mail app on iOS, clipboard draft elsewhere */
@@ -1135,7 +1695,7 @@ function emailCoach(ev){
   copyText(draft);
   const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
   if(isIOS){
-    showToast("Opening your email \u2014 just add a note and send to "+g.email+".");
+    showToast("Opening your email - just add a note and send to "+g.email+".");
     return true; /* iOS reliably opens the native mail app */
   }
   /* Android/desktop: mailto handoff is unreliable, so copy the message instead */
@@ -1194,7 +1754,7 @@ function fcSyncCoverToCard(){
 
 /* Open a Gmail compose window pre-filled with the client's report email. Gmail
    (and mailto) cannot carry attachments, and "Save as PDF" hands the file to the
-   OS rather than to this page, so the PDF + Instagram card are attached by hand —
+   OS rather than to this page, so the PDF + Instagram card are attached by hand -
    the toast reminds you. This drafts, never sends. */
 function draftReportEmail(){
   var name=fcClientName();
@@ -1208,7 +1768,7 @@ function draftReportEmail(){
     'Best wishes,\n\nSim and Luke';
   var url='https://mail.google.com/mail/?view=cm&fs=1&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   window.open(url,'_blank','noopener');
-  showToast('Gmail draft opened — now attach the PDF and the Instagram card from your Downloads.');
+  showToast('Gmail draft opened - now attach the PDF and the Instagram card from your Downloads.');
 }
 
 /* Save a portable draft HTML file with all current edits baked in */
@@ -1233,15 +1793,15 @@ function saveAsDraft(){
   document.body.appendChild(a);a.click();a.remove();
 }
 
-/* IG card PNG export — called via #stage click delegation (below) so it keeps
+/* IG card PNG export - called via #stage click delegation (below) so it keeps
    working after a test-type switch rebuilds the download button. */
 async function exportIgCard(){
-  if(typeof html2canvas==="undefined"){alert("Couldn't load the image library — you need an internet connection to export the PNG.");return;}
+  if(typeof html2canvas==="undefined"){alert("Couldn't load the image library - you need an internet connection to export the PNG.");return;}
   const card=document.querySelector(".ig-card");
   if(!card){alert("No Instagram card found.");return;}
   fcSyncCoverToCard();   // make sure the card shows the current cover name before export
 
-  /* 1. Pre-render SVG images to high-res PNG — html2canvas can't render SVG */
+  /* 1. Pre-render SVG images to high-res PNG - html2canvas can't render SVG */
   const imgs=[...card.querySelectorAll("img")];
   const origSrcs=imgs.map(i=>i.src);
   await Promise.all(imgs.map(img=>new Promise(resolve=>{
@@ -1278,13 +1838,18 @@ async function exportIgCard(){
     .catch(()=>{
       imgs.forEach((img,i)=>{img.src=origSrcs[i];});
       uiEls.forEach(el=>{el.style.visibility="";});
-      alert("Export failed — generate the chart first.");
+      alert("Export failed - generate the chart first.");
     });
 }
 
 /* add / remove / download */
 document.getElementById("stage").addEventListener("click",e=>{
   if(e.target.closest("#dl-ig")){exportIgCard();return;}
+  if(e.target.closest("[data-rm-generated]")){const g=e.target.closest(".combo-generated");if(g)g.style.display="none";return;}
+  if(e.target.closest("[data-combo-toggle]")){const a=e.target.closest(".combo-graph-area");if(a)a.classList.toggle("use-upload");return;}
+  if(e.target.closest("[data-add-an-below]")){const blk=e.target.closest(".an-block");if(blk)blk.insertAdjacentHTML("afterend",anBlock({h:"New section",p:"Write here."}));return;}
+  if(e.target.closest("[data-fu-open]")){const sh=e.target.closest(".sheet"),bk=sh&&sh.querySelector("[data-fu-back]");if(bk)bk.classList.add("open");return;}
+  if(e.target.closest("[data-fu-close]")||e.target.matches("[data-fu-back]")){const bk=e.target.closest("[data-fu-back]");if(bk)bk.classList.remove("open");return;}
   const rm=e.target.closest("[data-rm]");
   if(rm){const blk=rm.closest("[data-block]");
     if(blk&&blk.parentElement&&blk.parentElement.id==="race-wrap"){
@@ -1349,12 +1914,20 @@ document.getElementById("stage").addEventListener("click",e=>{
   function svgURL(svg){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}
   function insertSlot(id,url){const sl=document.getElementById(id);if(!sl)return;const img=sl.querySelector('.shot');img.src=url;sl.classList.add('has-img');}
 
-  function buildSVG(showHR,aetSpd,antSpd){
+  function buildSVG(showHR,aetSpd,antSpd,opts){
     const validHRs=_hrs.filter(h=>h!==null&&!isNaN(h));
     const hasHR=showHR&&validHRs.length>=2;
     const W=620,H=430,ml=58,mr=hasHR?66:34,mt=34,mb=90;
     const plotW=W-ml-mr,plotH=H-mt-mb;
-    const xmin=Math.min(..._xs)-0.5,xmax=Math.max(..._xs)+0.5;
+    /* Axis spans the lactate data, extended to include the thresholds and (for the
+       combined report) the VO2 stage speeds, so no marker/line falls off the edge.
+       The lactate curve itself is only drawn over its own data domain (below) so it
+       is never extrapolated into that extra range. */
+    const _cLo=Math.min(..._xs),_cHi=Math.max(..._xs);
+    let _axLo=_cLo,_axHi=_cHi;
+    if(opts&&opts.vo2)opts.vo2.forEach(v=>{const sp=+v.speed;if(!isNaN(sp)){_axLo=Math.min(_axLo,sp);_axHi=Math.max(_axHi,sp);}});
+    [aetSpd,antSpd].forEach(t=>{if(!isNaN(+t)){_axLo=Math.min(_axLo,+t);_axHi=Math.max(_axHi,+t);}});
+    const xmin=_axLo-0.5,xmax=_axHi+0.5;
     const ymax=Math.ceil(Math.max(..._ys))+1;
     const px=v=>ml+(v-xmin)/(xmax-xmin)*plotW;
     const py=v=>H-mb-(v/ymax)*plotH;
@@ -1372,9 +1945,15 @@ document.getElementById("stage").addEventListener("click",e=>{
       s+=`<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="${axc}" stroke-width="0.8"/>`;
       s+=`<text x="${ml-8}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="10.5" fill="${tc}" font-family="sans-serif">${v}</text>`;
     }
-    for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++){const x=px(v);
-      s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="${axc}" stroke-width="0.8"/>`;
-    }
+    /* x tick positions: integers for speed (km/h), ~6 rounded steps for power (W)
+       so a bike axis doesn't produce 180 ticks + nonsense pace labels. */
+    const hpX=HASPACE();
+    const xTicks=[];
+    if(hpX){ for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++)xTicks.push(v); }
+    else { const span=xmax-xmin, raw=span/6, mag=Math.pow(10,Math.floor(Math.log10(raw||1))); let step=Math.max(1,Math.ceil((raw||1)/mag)*mag);
+      for(let v=Math.ceil(xmin/step)*step; v<=xmax+0.001; v+=step)xTicks.push(v); }
+    xTicks.forEach(function(v){const x=px(v);
+      s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="${axc}" stroke-width="0.8"/>`;});
     s+=`<line x1="${ml}" y1="${mt}" x2="${ml}" y2="${H-mb}" stroke="${tc}" stroke-width="1.2"/>`;
     s+=`<line x1="${ml}" y1="${H-mb}" x2="${W-mr}" y2="${H-mb}" stroke="${tc}" stroke-width="1.2"/>`;
     s+=`<text transform="rotate(-90 16 ${H/2})" x="16" y="${H/2+4}" text-anchor="middle" font-size="11" fill="${tc}" font-family="sans-serif">Lactate (mmol/L)</text>`;
@@ -1386,7 +1965,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     s+=`<text x="${antX.toFixed(1)}" y="${mt-18}" text-anchor="middle" font-size="10" font-weight="600" fill="#e53935" font-family="sans-serif">Anaerobic</text>`;
     s+=`<text x="${antX.toFixed(1)}" y="${mt-6}" text-anchor="middle" font-size="10" fill="#e53935" font-family="sans-serif">Threshold</text>`;
     let pts='';const N=300;
-    for(let i=0;i<=N;i++){const xv=xmin+i*(xmax-xmin)/N;pts+=(i?'L':'M')+px(xv).toFixed(1)+' '+py(Math.max(0,evalP(_coeffs,xv))).toFixed(1);}
+    for(let i=0;i<=N;i++){const xv=_cLo+i*(_cHi-_cLo)/N;pts+=(i?'L':'M')+px(xv).toFixed(1)+' '+py(Math.max(0,evalP(_coeffs,xv))).toFixed(1);}
     s+=`<path d="${pts}" fill="none" stroke="#1D9E75" stroke-width="2.5" clip-path="url(#pc)"/>`;
     _xs.forEach((xv,i)=>{s+=`<circle cx="${px(xv).toFixed(1)}" cy="${py(_ys[i]).toFixed(1)}" r="3.5" fill="#0F6E56" stroke="#fff" stroke-width="1.5" clip-path="url(#pc)"/>`;});
     if(hasHR){
@@ -1410,12 +1989,11 @@ document.getElementById("stage").addEventListener("click",e=>{
         hrRaw.forEach(p=>{s+=`<circle cx="${px(p.x).toFixed(1)}" cy="${hrY(p.y).toFixed(1)}" r="3" fill="#E07B1A" stroke="#fff" stroke-width="1.2" clip-path="url(#pc)"/>`;});
       }
     }
-    for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++){const x=px(v);
+    xTicks.forEach(function(v){const x=px(v);
       s+=`<text x="${x.toFixed(1)}" y="${H-mb+14}" text-anchor="middle" font-size="10.5" fill="${tc}" font-family="sans-serif">${v}</text>`;
-      s+=`<text x="${x.toFixed(1)}" y="${H-mb+27}" text-anchor="middle" font-size="9" fill="${tc}" font-family="sans-serif">${fmtPace(v)}</text>`;
-    }
+      if(hpX)s+=`<text x="${x.toFixed(1)}" y="${H-mb+27}" text-anchor="middle" font-size="9" fill="${tc}" font-family="sans-serif">${fmtPace(v)}</text>`;});
     s+=`<text x="${(ml+(W-mr))/2}" y="${H-mb+41}" text-anchor="middle" font-size="9.5" fill="${tc}" font-family="sans-serif">${HASPACE()?'Speed (km/h) \u00B7 Pace (min/km)':'Power (W)'}</text>`;
-    /* Watch zone bar — blended gradient, labels above */
+    /* Watch zone bar - blended gradient, labels above */
     const barY=H-mb+52,barH=16;
     const mid12=xmin+(aetSpd-xmin)*0.4,mid34=(aetSpd+antSpd)/2;
     const c1=(xmin+mid12)/2,c2=(mid12+aetSpd)/2,c3=(aetSpd+mid34)/2,c4=(mid34+antSpd)/2,c5=(antSpd+xmax)/2;
@@ -1434,8 +2012,37 @@ document.getElementById("stage").addEventListener("click",e=>{
     [{l:'Z1',cx:c1},{l:'Z2',cx:c2},{l:'Z3',cx:c3},{l:'Z4',cx:c4},{l:'Z5',cx:c5}].forEach(z=>{
       s+=`<text x="${px(z.cx).toFixed(1)}" y="${(barY-3).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="${tc}" font-family="sans-serif">${z.l}</text>`;
     });
+    /* Combined report: superimpose the imported VO2 line on top of the lactate
+       graph (no VO2 axis - just mark VO2max), sharing the same speed x-axis. */
+    if(opts&&opts.vo2&&opts.vo2.length){
+      const vpts=opts.vo2.filter(v=>v.speed!=null&&v.speed!==''&&v.vo2!=null&&v.vo2!=='');
+      if(vpts.length>1){
+        const vmx=Math.max(...vpts.map(v=>+v.vo2))*1.12;
+        const vY=v=>H-mb-(v/vmx)*plotH;
+        const vd=vpts.map((p,i)=>(i?'L':'M')+px(+p.speed).toFixed(1)+' '+vY(+p.vo2).toFixed(1)).join(' ');   /* jagged trace (per-stage last-minute values), not a smoothed curve */
+        s+=`<path d="${vd}" fill="none" stroke="#2E86D6" stroke-width="2.6" clip-path="url(#pc)"/>`;
+        const first=vpts[0];
+        s+=`<text x="${(px(+first.speed)+4).toFixed(1)}" y="${(vY(+first.vo2)-4).toFixed(1)}" font-size="10" fill="#2E86D6" font-family="sans-serif">VO₂</text>`;
+        const mx=vpts.reduce((a,b)=>+b.vo2>+a.vo2?b:a),mvx=px(+mx.speed),mvy=vY(+mx.vo2);
+        s+=`<circle cx="${mvx.toFixed(1)}" cy="${mvy.toFixed(1)}" r="4" fill="#2E86D6"/>`;
+        s+=`<text x="${(mvx-8).toFixed(1)}" y="${(mvy-7).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="600" fill="#2E86D6" font-family="sans-serif">VO₂max ${opts.vo2max!=null&&opts.vo2max!==''?opts.vo2max:mx.vo2}</text>`;
+      }
+    }
     s+='</svg>';return s;
   }
+  /* Reusable: build the lactate chart (optionally with a VO2 overlay) from a data
+     object rather than the appendix table - used by the combined quick-ref card. */
+  window.fcLactateChart=function(data){
+    const xs=[],ys=[],hrs=[];
+    (data.rows||[]).forEach(r=>{const s=parseFloat(r[0]),l=parseFloat(r[4]),h=parseFloat(r[3]);
+      if(!isNaN(s)&&!isNaN(l)&&s>0&&l>=0){xs.push(s);ys.push(l);hrs.push(isNaN(h)?null:h);}});
+    if(xs.length<4)return '';
+    const sx=_xs,sy=_ys,sh=_hrs,sc=_coeffs;               // preserve builder state
+    _xs=xs;_ys=ys;_hrs=hrs;_coeffs=polyFit(xs,ys);
+    const svg=buildSVG(!!data.showHR,data.aet,data.ant,{vo2:data.vo2stages,vo2max:data.vo2max});
+    _xs=sx;_ys=sy;_hrs=sh;_coeffs=sc;                      // restore
+    return svg;
+  };
 
   (function(){
     const a=document.getElementById('cb-aet'),n=document.getElementById('cb-ant');
@@ -1444,13 +2051,14 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   document.getElementById('cb-insert').addEventListener('click',()=>{
     const{xs,ys,hrs}=readTableData();
-    if(xs.length<4){setStatus('Need at least 4 valid rows in the appendix table — fill in Speed and Lactate.','err');return;}
+    if(xs.length<4){setStatus('Need at least 4 valid rows in the appendix table - fill in Speed and Lactate.','err');return;}
     const{aet:aetSpd,ant:antSpd}=getThresholds();
     _xs=xs;_ys=ys;_hrs=hrs;
     _coeffs=polyFit(_xs,_ys);
     _igSVG=buildSVG(false,aetSpd,antSpd);
     insertSlot('slot-ig',svgURL(_igSVG));
     insertSlot('slot-curve',svgURL(buildSVG(true,aetSpd,antSpd)));
+    if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();  /* combined card graph too */
     const fit=r2fn(_xs,_ys,_coeffs);
     setStatus('\u2713 '+xs.length+' rows read. Aerobic '+aetSpd+' '+UNIT()+' \u00B7 Anaerobic '+antSpd+' '+UNIT()+' \u00B7 R\u00B2\u2248'+fit.toFixed(3),'ok');
   });
@@ -1483,7 +2091,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   const urlInput=document.getElementById('be-url');
   urlInput.value=localStorage.getItem('fc_backend')||DEFAULT_BACKEND;
   urlInput.addEventListener('change',()=>localStorage.setItem('fc_backend',urlInput.value.trim()));
-  /* Access token: kept in localStorage on this device only — never in the page
+  /* Access token: kept in localStorage on this device only - never in the page
      source (this app is public static HTML) and never in a draft snapshot. */
   const tokenInput=document.getElementById('be-token');
   if(tokenInput){
@@ -1653,7 +2261,7 @@ document.getElementById("stage").addEventListener("click",e=>{
          collection screen to put them back and re-render. */
       document.dispatchEvent(new Event('fc-raw-updated'));
       const blanks=(d.stages||[]).reduce((n,s)=>n+[s.speed,s.hr,s.lactate,s.rpe].filter(v=>v==null).length,0);
-      setStatus('✓ Read '+(d.stages||[]).length+' row(s)'+(blanks?(' — '+blanks+' blank cell(s) left empty for you to fill'):'')+'. Verify every value before use.','ok');
+      setStatus('✓ Read '+(d.stages||[]).length+' row(s)'+(blanks?(' - '+blanks+' blank cell(s) left empty for you to fill'):'')+'. Verify every value before use.','ok');
     }catch(e){setStatus('Extract failed: '+e.message,'err');}
     busy(false);
   });
@@ -1715,7 +2323,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   var btn=document.getElementById('be-vo2'), inp=document.getElementById('be-vo2-files');
   if(!btn||!inp)return;
   /* Files accumulate across picks, so the doctor can add them ONE AT A TIME (some
-     file pickers won't multi-select). Keyed by filename — the VO2 Master uses fixed
+     file pickers won't multi-select). Keyed by filename - the VO2 Master uses fixed
      names, so re-picking a file replaces it. Auto-imports once the three data files
      are present; adding the PDF (before or after) pulls the two graphs in. */
   var staged={};          // name -> File
@@ -1734,7 +2342,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var pdfs=all.filter(isPdf), nonPdf=all.filter(function(f){return !isPdf(f);});
     var names=all.map(function(f){return f.name;}).join(', ');
     if(nonPdf.length<3){
-      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+' ('+names+'). Add the rest — Details.txt and the two .xlsx'+(pdfs.length?'':', plus the PDF for the graphs')+'. You can add them one at a time.');
+      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+' ('+names+'). Add the rest - Details.txt and the two .xlsx'+(pdfs.length?'':', plus the PDF for the graphs')+'. You can add them one at a time.');
       return;
     }
     btn.disabled=true; setStatus('Reading '+all.length+' VO₂ Master file'+(all.length===1?'':'s')+'…');
@@ -1747,8 +2355,8 @@ document.getElementById("stage").addEventListener("click",e=>{
       applyVo2(d); vo2Done=true;
       var n=(d.stages||[]).length;
       var g=d.graphs?' Two VO₂ Master graphs added to the analysis page.':' (Add the PDF to pull the two graphs in automatically, or upload them by hand.)';
-      setStatus('✓ Imported '+n+' stage(s). VO₂ max '+d.vo2max+' ml/kg/min, max HR '+(d.max_hr||'—')+'.'+g+' Verify every value before use.','ok');
-    }catch(e){setStatus('VO₂ import failed: '+e.message+' — add the missing file and it retries automatically.','err');}
+      setStatus('✓ Imported '+n+' stage(s). VO₂ max '+d.vo2max+' ml/kg/min, max HR '+(d.max_hr||'-')+'.'+g+' Verify every value before use.','ok');
+    }catch(e){setStatus('VO₂ import failed: '+e.message+' - add the missing file and it retries automatically.','err');}
     btn.disabled=false;
   });
   /* map the backend payload onto report.vo2 and switch to the VO2 report */
@@ -1757,13 +2365,20 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(a.name&&String(a.name).trim())report.client=String(a.name).trim();  /* athlete name -> cover + quick-ref card */
     report.vo2={
       age:a.age, sex:a.sex||'', height:a.height_cm, weight:a.weight_kg,
-      userPiece:a.user_piece||'—', maskSize:a.mask_size||'—',
+      userPiece:a.user_piece||'-', maskSize:a.mask_size||'-',
       vo2max:d.vo2max, maxHR:d.max_hr, topSpeed:d.top_speed,
       duration:d.duration||a.duration||'',
-      stages:(d.stages||[]).map(function(s){return {step:s.step,speed:s.speed,vo2:s.vo2,hr:s.hr};})
+      stages:(d.stages||[]).map(function(s){return {step:s.step,speed:s.speed,vo2:s.vo2,hr:s.hr,samples:s.samples||null};}),
+      /* keep the cropped PDF graphs on report.vo2 so they persist across re-renders,
+         test-type switches and saved drafts (the DOM slots alone don't survive). */
+      graphs:(d.graphs&&(d.graphs.metabolic||d.graphs.ventilation))?{metabolic:d.graphs.metabolic||'',ventilation:d.graphs.ventilation||''}:null
     };
-    /* the backend reports modality from the protocol's value column (km/h vs W) */
-    var vt=(d.modality==='bike')?'vo2_bike':'vo2_treadmill';
+    /* Stay on the current report if it already shows the VO2 pages (a VO2 or a
+       combined report) - importing shouldn't switch a combined report back to the
+       plain VO2 one. Otherwise switch to the matching VO2 report. */
+    var curKind=(TEST_TYPES[report.testType]||{}).kind;
+    var vt=(curKind==='vo2'||curKind==='combined') ? report.testType
+         : ((d.modality==='bike')?'vo2_bike':'vo2_treadmill');
     selectTestType(vt,true);   /* keepData: don't overwrite the import with the demo */
     var picker=document.querySelector('.type-picker select'); if(picker)picker.value=vt;
     if(a.test_date){
@@ -1771,10 +2386,11 @@ document.getElementById("stage").addEventListener("click",e=>{
       report.date=dt;
       document.querySelectorAll('.cov-date b').forEach(function(e){e.textContent=dt;});
     }
-    /* graphs cropped from the VO2 Master PDF -> drop straight into the analysis slots */
-    if(d.graphs){
-      fcSetSlotImage('slot-vo2-metabolic', d.graphs.metabolic);
-      fcSetSlotImage('slot-vo2-ventilation', d.graphs.ventilation);
+    /* vo2Analysis pre-fills the slots from report.vo2.graphs on render; set them
+       directly too as belt-and-braces. */
+    if(report.vo2.graphs){
+      fcSetSlotImage('slot-vo2-metabolic', report.vo2.graphs.metabolic);
+      fcSetSlotImage('slot-vo2-ventilation', report.vo2.graphs.ventilation);
     }
   };
 })();
@@ -1797,6 +2413,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     const s=n((box.querySelector('.spd')||{}).textContent),h=n((box.querySelector('.hr')||{}).textContent);
     if(s!=null)report[k].speed=s;if(h!=null)report[k].hr=h;
   });})();
+  /* a restored combined draft may have a baked QR graph with stale threshold lines;
+     regenerate it from the now-canonical thresholds */
+  if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+  if(typeof computeFractional==='function')computeFractional();
 
   function replaceEverywhere(oldStr,newStr){
     if(oldStr===newStr)return;
@@ -1814,7 +2434,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       const spd=box.querySelector('.spd'),pc=box.querySelector('.pc'),hr=box.querySelector('.hr');
       if(spd&&spd!==skip)spd.textContent=report[k].speed;
       if(pc&&HASPACE())pc.textContent=pace(report[k].speed);
-      if(hr&&hr!==skip)hr.textContent=(report[k].hr==null?'—':report[k].hr);
+      if(hr&&hr!==skip)hr.textContent=(report[k].hr==null?'-':report[k].hr);
     });
     const a=document.getElementById('cb-aet'),an=document.getElementById('cb-ant');
     if(a&&a!==skip)a.value=report.aet.speed;
@@ -1847,6 +2467,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* keep the charts' threshold lines in sync, but only once charts exist */
     const curve=document.getElementById('slot-curve');
     if(curve&&curve.classList.contains('has-img')){const ins=document.getElementById('cb-insert');if(ins)ins.click();}
+    /* combined quick-ref card graph regenerates from the new thresholds too, even
+       when the analysis charts haven't been generated yet */
+    if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+    if(typeof computeFractional==='function')computeFractional();  /* FU uses the thresholds */
   }
 
   const a=document.getElementById('cb-aet'),an=document.getElementById('cb-ant');
@@ -1867,7 +2491,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   });
 
   /* Keep the Instagram card's client line in sync with the cover's name +
-     location. Listen to BOTH input (live typing) AND focusout — input is skipped
+     location. Listen to BOTH input (live typing) AND focusout - input is skipped
      by dictation, autocorrect acceptance and spellcheck "correct to", which was
      why the card sometimes kept the old name; focusout fires when you leave the
      field however the edit was made. */
@@ -1902,7 +2526,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   window.checkAndPrint=function(){
     const probs=issues();
     if(probs.length){
-      const msg='Before saving, please double-check these numbers — they do not match your current thresholds:\n\n• '+probs.join('\n• ')+
+      const msg='Before saving, please double-check these numbers - they do not match your current thresholds:\n\n• '+probs.join('\n• ')+
         '\n\nYour thresholds:\n  Aerobic   '+intVal(report.aet.speed)+' · '+report.aet.hr+' bpm\n  Anaerobic '+intVal(report.ant.speed)+' · '+report.ant.hr+' bpm\n\nSave as PDF anyway?';
       if(!window.confirm(msg))return;
     }
@@ -1995,7 +2619,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       LS.setItem(key(draftId),snapshot());
       ix=loadIndex();ix[draftId]={title:curTitle(),client_name:name,updatedAt:Date.now()};saveIndex(ix);
       renderList();setNote('Autosaved "'+curTitle()+'" at '+new Date().toLocaleTimeString());
-    }catch(e){setNote('Could not autosave — browser storage is full. Delete an old report below.','err');}
+    }catch(e){setNote('Could not autosave - browser storage is full. Delete an old report below.','err');}
   }
   var t=null;function scheduleSave(){clearTimeout(t);t=setTimeout(doSave,1500);}
 
@@ -2208,7 +2832,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     return pts;
   }
   function readPoints(){return readAllPoints().filter(function(p){return !excluded[p.intensity];});}
-  function pace(kmh){if(!kmh)return '—';var t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);if(ss===60){mm++;ss=0;}return mm+':'+(ss<10?'0':'')+ss;}
+  function pace(kmh){if(!kmh)return '-';var t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);if(ss===60){mm++;ss=0;}return mm+':'+(ss<10?'0':'')+ss;}
 
   function buildChart(data){
     var curve=data.curve;if(!curve||!curve.length)return '';
@@ -2243,10 +2867,10 @@ document.getElementById("stage").addEventListener("click",e=>{
       var hrAttr=(m.hr==null?'':m.hr);
       return '<tr>'+
         '<td style="padding:4px 8px;color:'+color+';white-space:nowrap;">'+(it.def?'★ ':'')+it.label+'</td>'+
-        '<td style="padding:4px 8px;text-align:right;">'+(m.intensity!=null?m.intensity.toFixed(2):'—')+'</td>'+
+        '<td style="padding:4px 8px;text-align:right;">'+(m.intensity!=null?m.intensity.toFixed(2):'-')+'</td>'+
         (HASPACE()?('<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+pace(m.intensity)+'</td>'):'')+
-        '<td style="padding:4px 8px;text-align:right;">'+(m.hr!=null?m.hr:'—')+'</td>'+
-        '<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+(m.lactate!=null?m.lactate:'—')+'</td>'+
+        '<td style="padding:4px 8px;text-align:right;">'+(m.hr!=null?m.hr:'-')+'</td>'+
+        '<td style="padding:4px 8px;text-align:right;color:#8FA096;">'+(m.lactate!=null?m.lactate:'-')+'</td>'+
         '<td style="padding:4px 8px;text-align:right;white-space:nowrap;">'+
           (m.intensity!=null?'<button data-te-view="'+it.key+'" title="see how this threshold was derived" style="cursor:pointer;background:transparent;color:#9fdcc6;border:1px solid #2A3A33;border-radius:6px;padding:1px 8px;font-size:11px;font-family:inherit;margin-right:4px;">View</button>':'')+
           (m.intensity!=null?'<button data-te-use="'+field+'" data-te-spd="'+m.intensity+'" data-te-hr="'+hrAttr+'" data-te-method="'+it.label+'" title="set the '+(field==='aet'?'aerobic':'anaerobic')+' threshold to this value" style="cursor:pointer;background:transparent;color:'+color+';border:1px solid '+color+';border-radius:6px;padding:1px 9px;font-size:11px;font-family:inherit;">Use</button>':'')+
@@ -2260,10 +2884,10 @@ document.getElementById("stage").addEventListener("click",e=>{
   }
   var METHOD_LABEL={Loglog:'Log-log',LogPolyModDmax:'Log-Poly-ModDmax',ModDmax:'ModDmax',LTratio:'LT ratio',LTP1:'LTP1',LTP2:'LTP2'};
   var METHOD_INFO={
-    Loglog:'The speed where the log-log plot of lactate vs speed bends — the first lactate turnpoint / aerobic threshold (Beaver et al.). Adjustable via the log-log portion.',
+    Loglog:'The speed where the log-log plot of lactate vs speed bends - the first lactate turnpoint / aerobic threshold (Beaver et al.). Adjustable via the log-log portion.',
     LogPolyModDmax:'The speed of greatest perpendicular distance from the straight line joining the log-log break-point to the last data point, measured to the fitted curve (Jamnick et al., 2018).',
     ModDmax:'The speed of greatest perpendicular distance from the straight line joining the first point above baseline (first >0.4 mmol/L rise) to the last data point, measured to the fitted curve (Bishop et al.).',
-    LTratio:'The speed where fitted lactate ÷ speed is at its minimum — the lactate-equivalent minimum — on a B-spline fit (Dickhuth et al.).',
+    LTratio:'The speed where fitted lactate ÷ speed is at its minimum - the lactate-equivalent minimum - on a B-spline fit (Dickhuth et al.).',
     LTP1:'The first break-point of a two-break-point segmented regression of lactate vs speed (Pokan / Hofmann).',
     LTP2:'The second break-point of a two-break-point segmented regression of lactate vs speed (Pokan / Hofmann).'
   };
@@ -2313,7 +2937,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var incl=readAllPoints().filter(function(p){return !excluded[p.intensity];}).map(function(p){return {x:p.intensity,y:p.lactate};});
     var m=lastResult.methods[key];
     var extra=(key==='LogPolyModDmax'&&m.source==='raw')?' (ExPhysLab raw)':'';
-    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' — '+m.intensity+' '+UNIT();
+    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' - '+m.intensity+' '+UNIT();
     document.getElementById('te-view-body').innerHTML=buildMethodSVG(lastResult,key,incl);
     document.getElementById('te-view-desc').textContent=METHOD_INFO[key]||'';
   }
@@ -2335,7 +2959,7 @@ document.getElementById("stage").addEventListener("click",e=>{
         var ex=!!excluded[p.intensity];
         return '<span data-te-toggle="'+p.intensity+'" title="click to '+(ex?'include':'exclude')+'" style="cursor:pointer;user-select:none;display:inline-block;margin:2px;padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+(ex?'#5a3a3a':'#2A3A33')+';background:'+(ex?'#2a1414':'#16201B')+';color:'+(ex?'#e08a8a':'var(--cream)')+';text-decoration:'+(ex?'line-through':'none')+';">'+p.intensity+(ex?' ✕':'')+'</span>';
       }).join('');
-      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points ('+UNIT()+') — click to include / exclude from the fit</div>'+chips+'</div>';
+      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points ('+UNIT()+') - click to include / exclude from the fit</div>'+chips+'</div>';
     }
     if(data.suggested_exclusions&&data.suggested_exclusions.length){
       html+='<div style="background:#2a1f12;border:1px solid #b8860b;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#f0c674;">'+
@@ -2361,7 +2985,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   var lastResult=null;
   function portion(){var s=document.getElementById('te-loglog');return s?parseFloat(s.value):0.75;}
   function parseRes(res){return res.text().then(function(t){if(!res.ok)throw new Error('HTTP '+res.status+' '+t);return JSON.parse(t);});}
-  /* The resting baseline is no longer a manual box — it comes straight from the
+  /* The resting baseline is no longer a manual box - it comes straight from the
      data collection input: the baseline row (0 km/h) with a resting lactate is read
      by readAllPoints() as the intensity-0 point. The engine includes it in the curve
      fit and lets log-log / LT ratio / LTP skip the intensity-0 value (x0_pos logic in
@@ -2380,7 +3004,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       else{lastResult=data;}
       render(lastResult);
       var lp=lastResult.methods.LogPolyModDmax;
-      teStatus(only?('Log-log '+val.toFixed(2)+' · LogPoly '+(lp?lp.intensity+' '+UNIT():'—'))
+      teStatus(only?('Log-log '+val.toFixed(2)+' · LogPoly '+(lp?lp.intensity+' '+UNIT():'-'))
                    :('Computed '+Object.keys(lastResult.methods).length+' candidates from '+pts.length+' points (fit: '+lastResult.fit_used+').'),'ok');
       if(typeof after==='function')after();
     })
@@ -2409,7 +3033,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var main=document.getElementById('te-loglog');if(main){main.value=p;var mlb=document.getElementById('te-loglog-val');if(mlb)mlb.textContent=p.toFixed(2);}
     clearTimeout(vTimer);vTimer=setTimeout(function(){doCompute(true,drawMethodView);},120);
   });
-  /* Step 6 — write a chosen candidate into the report's threshold fields and
+  /* Step 6 - write a chosen candidate into the report's threshold fields and
      record an engine audit (source + method + settings). Writing cb-aet/cb-ant
      (+ their HR inputs) and firing 'change' flows through the editor's existing
      threshold sync (IG card, prose tokens, charts). */
@@ -2459,7 +3083,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   /* ---- Warm-up target HR ----
      Target = max HR / 2. If max HR is unknown we estimate it from age with the
      Nes et al. formula (211 - 0.64*age), then halve. Enter age (or max HR) in the
-     boxes above and the target fills in — and any warm-up row's HR stays synced
+     boxes above and the target fills in - and any warm-up row's HR stays synced
      to it until you type over it. */
   var lastTarget=null;
   function estMaxHR(){
@@ -2470,7 +3094,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   function targetHR(){var mh=estMaxHR();return isNaN(mh)?NaN:Math.round(mh/2);}
   function refreshTarget(reRender){
     var t=targetHR(),el=document.getElementById('dc-target');
-    if(el)el.textContent=isNaN(t)?'—':t;
+    if(el)el.textContent=isNaN(t)?'-':t;
     if(!isNaN(t)){
       rows().forEach(function(row){
         if(kindOf(row)==='warm'){
@@ -2494,13 +3118,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var out=document.getElementById('dc-cal-actual');if(!out)return NaN;
     var belt=num('dc-cal-belt'),revs=num('dc-cal-revs'),t=num('dc-cal-time');
     if(belt>0&&revs>0&&t>0){var v=belt*revs/t*3.6;out.textContent=v.toFixed(2);return v;}
-    out.textContent='—';return NaN;
+    out.textContent='-';return NaN;
   }
   function openCal(i){
     var r=rows()[i];if(!r)return;calRow=r;
     var k=kindOf(r),name;
     if(k==='warm')name='Warm-up';else{var s=0;rows().forEach(function(row){if(!kindOf(row)){s++;if(row===r)name='Step '+s;}});}
-    var sub=document.getElementById('dc-cal-sub');if(sub)sub.textContent=(name||'Step')+' — belt length × revolutions ÷ time × 3.6';
+    var sub=document.getElementById('dc-cal-sub');if(sub)sub.textContent=(name||'Step')+' - belt length × revolutions ÷ time × 3.6';
     var cb=document.getElementById('dc-cal-belt');if(cb)cb.value=(document.getElementById('dc-belt')||{}).value||'';
     var cr=document.getElementById('dc-cal-revs');if(cr)cr.value='';
     var ct=document.getElementById('dc-cal-time');if(ct)ct.value='';
@@ -2596,7 +3220,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   function updateInc(){
     var el=document.getElementById('dc-inc');if(!el)return;
     var wu=num('dc-warmup'),tp=num('dc-top');
-    el.textContent=(!isNaN(wu)&&!isNaN(tp)&&tp>wu)?String(round2((tp-wu)/numSteps())):'—';
+    el.textContent=(!isNaN(wu)&&!isNaN(tp)&&tp>wu)?String(round2((tp-wu)/numSteps())):'-';
   }
   function buildSteps(){
     var b=body();if(!b||typeof rawRow!=='function')return;
@@ -2663,7 +3287,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 </script>
 <script>
 /* =========================================================
-   BACKEND AUTH — attach the access token to backend calls.
+   BACKEND AUTH - attach the access token to backend calls.
 
    Wrapping fetch once, rather than editing each call site, is deliberate: the
    backend is called from three separate IIFEs (extract / draft / complete /
@@ -2677,7 +3301,7 @@ document.getElementById("stage").addEventListener("click",e=>{
    ========================================================= */
 (function(){
   if(window.__fcAuthWrapped)return;window.__fcAuthWrapped=true;
-  var NEEDS_TOKEN='Access token missing or invalid — open "Backend & AI" and paste this device’s access token.';
+  var NEEDS_TOKEN='Access token missing or invalid - open "Backend & AI" and paste this device’s access token.';
   var origFetch=window.fetch;
   window.fetch=function(input,init){
     var isBackend=false;
@@ -2699,7 +3323,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* Turn the backend's terse 401 into something actionable. Handled here, once,
        because the five features fail through different paths: some show the body
        ("HTTP 401 {detail:Unauthorized}"), the cloud list/open show only the status,
-       and cloud delete never checks it at all — so the toast is what guarantees the
+       and cloud delete never checks it at all - so the toast is what guarantees the
        instruction is seen no matter which one failed. Body is also rewritten so the
        panels' own inline "...failed: HTTP 401 <body>" lines read as instructions. */
     return p.then(function(res){
