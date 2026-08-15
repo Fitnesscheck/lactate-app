@@ -2996,10 +2996,16 @@ document.getElementById("stage").addEventListener("click",e=>{
     var val=portion();
     var only=fromSlider&&!!lastResult;   // fast path once a full result exists
     if(!only)teStatus('Computing…','');
+    /* Abort after 45s so a slow/stuck engine surfaces an error instead of leaving the
+       panel spinning on "Computing…" forever. */
+    var _ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+    var _to=setTimeout(function(){if(_ctrl)_ctrl.abort();},45000);
     fetch(backend()+'/compute-thresholds',{method:'POST',headers:{'Content-Type':'application/json'},
+      signal:_ctrl?_ctrl.signal:undefined,
       body:JSON.stringify({points:pts,fit:fitChoice(),log_log_portion:val,loglog_only:only,loglog_source:sourceChoice()})})
     .then(parseRes)
     .then(function(data){
+      clearTimeout(_to);
       if(only){if(data.methods){if(data.methods.LogPolyModDmax)lastResult.methods.LogPolyModDmax=data.methods.LogPolyModDmax;if(data.methods.Loglog)lastResult.methods.Loglog=data.methods.Loglog;}}
       else{lastResult=data;}
       render(lastResult);
@@ -3008,7 +3014,7 @@ document.getElementById("stage").addEventListener("click",e=>{
                    :('Computed '+Object.keys(lastResult.methods).length+' candidates from '+pts.length+' points (fit: '+lastResult.fit_used+').'),'ok');
       if(typeof after==='function')after();
     })
-    .catch(function(e){teStatus((only?'Slider ':'Compute ')+'failed: '+e.message,'err');});
+    .catch(function(e){clearTimeout(_to);teStatus((only?'Slider ':'Compute ')+'failed: '+(e&&e.name==='AbortError'?'timed out - the engine took too long to respond.':(e&&e.message||e)),'err');});
   }
 
   function openModal(){var m=document.getElementById('te-modal');if(m){m.style.display='block';document.body.style.overflow='hidden';}}
