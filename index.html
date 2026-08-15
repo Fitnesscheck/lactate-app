@@ -1637,6 +1637,10 @@ function drawCoverCurve(){
 }
 drawCoverCurve();
 syncCollectionLabels();
+/* Wake the backend early - Railway sleeps the container when idle, so the FIRST
+   threshold compute or VO2 import otherwise waits several seconds for a cold start.
+   This fire-and-forget ping gets it warming while the doctor sets the report up. */
+(function(){ try{ fetch(backendUrl()+'/',{cache:'no-store'}).catch(function(){}); }catch(e){} })();
 
 /* image slots */
 function wireSlot(slotEl){
@@ -2349,14 +2353,20 @@ document.getElementById("stage").addEventListener("click",e=>{
     try{
       var fd=new FormData();
       all.forEach(function(f){ fd.append('files', f, f.name); });
-      var res=await fetch(backend()+'/extract-vo2',{method:'POST',body:fd});
+      /* 60s abort so a cold/stuck backend surfaces an error instead of hanging on
+         "Reading…" forever (PDF graph cropping is the slowest part). */
+      var _ac=(typeof AbortController!=='undefined')?new AbortController():null;
+      var _ato=setTimeout(function(){if(_ac)_ac.abort();},60000);
+      var res;
+      try{ res=await fetch(backend()+'/extract-vo2',{method:'POST',body:fd,signal:_ac?_ac.signal:undefined}); }
+      finally{ clearTimeout(_ato); }
       if(!res.ok)throw new Error('HTTP '+res.status+' '+(await res.text()));
       var d=await res.json();
       applyVo2(d); vo2Done=true;
       var n=(d.stages||[]).length;
       var g=d.graphs?' Two VO₂ Master graphs added to the analysis page.':' (Add the PDF to pull the two graphs in automatically, or upload them by hand.)';
       setStatus('✓ Imported '+n+' stage(s). VO₂ max '+d.vo2max+' ml/kg/min, max HR '+(d.max_hr||'-')+'.'+g+' Verify every value before use.','ok');
-    }catch(e){setStatus('VO₂ import failed: '+e.message+' - add the missing file and it retries automatically.','err');}
+    }catch(e){var msg=(e&&e.name==='AbortError')?'timed out - the server was slow to respond, please try again.':((e&&e.message||e)+' - add the missing file and it retries automatically.');setStatus('VO₂ import failed: '+msg,'err');}
     btn.disabled=false;
   });
   /* map the backend payload onto report.vo2 and switch to the VO2 report */
