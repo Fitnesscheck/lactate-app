@@ -338,7 +338,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v36</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v37</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3087,8 +3087,22 @@ document.getElementById("stage").addEventListener("click",e=>{
       teStatus(only?('Log-log '+val.toFixed(2)+' · LogPoly '+(lp?lp.intensity+' '+UNIT():'-'))
                    :('Computed '+Object.keys(lastResult.methods).length+' candidates from '+pts.length+' points (fit: '+lastResult.fit_used+').'),'ok');
       if(typeof after==='function')after();
+      /* Full compute with no sweep (R mode): fetch the slider sweep in the background
+         so it never blocks the compute. The slider works via the network until it lands,
+         then becomes instant. */
+      if(!only && lastResult && !(lastResult.loglog_sweep&&lastResult.loglog_sweep.length)) fetchSweep(pts);
     })
     .catch(function(e){clearTimeout(_to);clearTimeout(_warn);teStatus((only?'Slider ':'Compute ')+'failed: '+(e&&e.name==='AbortError'?'timed out - the server was slow to wake, please try again in a moment.':(e&&e.message||e)),'err');});
+  }
+  /* Background: fetch the (slow, R-mode) slider sweep off the critical path. On success
+     the slider switches from network calls to instant client-side lookups. */
+  function fetchSweep(pts){
+    if(!pts||!pts.length)return;
+    fetch(backend()+'/compute-thresholds',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({points:pts,fit:fitChoice(),log_log_portion:portion(),loglog_source:sourceChoice(),sweep_only:true})})
+    .then(function(res){return res.ok?res.json():null;})
+    .then(function(d){ if(d&&d.loglog_sweep&&d.loglog_sweep.length&&lastResult){ lastResult.loglog_sweep=d.loglog_sweep; } })
+    .catch(function(){});
   }
 
   function openModal(){var m=document.getElementById('te-modal');if(m){m.style.display='block';document.body.style.overflow='hidden';}}
