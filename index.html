@@ -338,7 +338,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v35</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v36</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3067,9 +3067,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* Abort after 45s so a slow/stuck engine surfaces an error instead of leaving the
        panel spinning on "Computing…" forever. */
     var _ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
-    /* slider (loglog-only) calls are tiny - fail them fast (15s) so a stuck one doesn't
-       block the single-flight queue; full computes get the long cold-start budget. */
-    var _to=setTimeout(function(){if(_ctrl)_ctrl.abort();},fromSlider?15000:90000);
+    /* Only a genuine fast-path (loglog-only, needs an existing result) gets the short
+       timeout; a full compute - including one a slider triggers before any result
+       exists - gets the long cold-start budget. */
+    var _to=setTimeout(function(){if(_ctrl)_ctrl.abort();},only?30000:90000);
     /* the backend sleeps when idle; the first compute after a break waits for it to
        wake, so tell the user rather than looking stuck. */
     var _warn=setTimeout(function(){if(!only)teStatus('Waking the server (first run after a break can take up to a minute)…','');},4000);
@@ -3129,7 +3130,9 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(sld)sld.addEventListener('input',function(){
     var lab=document.getElementById('te-loglog-val');if(lab)lab.textContent=portion().toFixed(2);
     if(llLocalReady()){ llLocalSchedule(); }
-    else { clearTimeout(slideTimer);slideTimer=setTimeout(function(){llFire();},120); }
+    /* No sweep yet: only hit the network if a full result already exists (e.g. R engine).
+       If the first compute is still running/failed, ignore - it will populate the sweep. */
+    else if(lastResult){ clearTimeout(slideTimer);slideTimer=setTimeout(function(){llFire();},120); }
   });
   var fitSel=document.getElementById('te-fit');if(fitSel)fitSel.addEventListener('change',function(){doCompute(false);});
   var srcSel=document.getElementById('te-source');if(srcSel)srcSel.addEventListener('change',function(){doCompute(false);});
@@ -3141,7 +3144,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var lb=document.getElementById('te-view-loglog-val');if(lb)lb.textContent=p.toFixed(2);
     var main=document.getElementById('te-loglog');if(main){main.value=p;var mlb=document.getElementById('te-loglog-val');if(mlb)mlb.textContent=p.toFixed(2);}
     if(llLocalReady()){ llLocalSchedule(drawMethodView); }
-    else { clearTimeout(vTimer);vTimer=setTimeout(function(){llFire(drawMethodView);},120); }
+    else if(lastResult){ clearTimeout(vTimer);vTimer=setTimeout(function(){llFire(drawMethodView);},120); }
   });
   /* Step 6 - write a chosen candidate into the report's threshold fields and
      record an engine audit (source + method + settings). Writing cb-aet/cb-ant
