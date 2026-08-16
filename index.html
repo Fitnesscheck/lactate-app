@@ -338,7 +338,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v34</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v35</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -969,6 +969,35 @@ function normsTable(sexKey,hlBandMax,hlCatIdx){
   }).join('');
   return '<table class="vo2-norms"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
 }
+/* The two reference tables (Men/Women) with the athlete's own cell highlighted -
+   rebuilt from report.vo2 so a VO2 max / age / sex edit can refresh the highlight. */
+function compareTablesHtml(){
+  var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex), sex=vo2Sex(v.sex);
+  var aNum=parseInt(v.age,10); if(isNaN(aNum))aNum=30;
+  var rows=VO2_NORMS[sex], bandMax=rows[rows.length-1].max;
+  for(var i=0;i<rows.length;i++){ if(aNum<=rows[i].max){bandMax=rows[i].max;break;} }
+  var catIdx=0; for(var ci=0;ci<VO2_CATS.length;ci++){ if(VO2_CATS[ci].name===r.name)catIdx=ci; }
+  return '<div><div class="vo2-norms-cap">Men</div>'+normsTable('Male', sex==='Male'?bandMax:null, sex==='Male'?catIdx:null)+'</div>'+
+         '<div><div class="vo2-norms-cap">Women</div>'+normsTable('Female', sex==='Female'?bandMax:null, sex==='Female'?catIdx:null)+'</div>';
+}
+function refreshCompareTables(){ var w=document.getElementById('vo2-norms-wrap'); if(w)w.innerHTML=compareTablesHtml(); }
+/* Single source of truth for VO2 max (report.vo2.vo2max). Editing it anywhere - the
+   quick-ref card or the VO2 summary card - propagates to every other numeric display,
+   the "Your VO2 max is X" prose, the quick-ref graph label, the fitness rating, the
+   comparison-table highlight, and the fractional/economy maths. */
+function syncVo2Max(srcEl){
+  var val=parseFloat(srcEl?srcEl.textContent:report.vo2.vo2max);
+  if(isNaN(val))return;
+  report.vo2.vo2max=val;
+  var t=String(val);
+  document.querySelectorAll('[data-vo2max]').forEach(function(el){ if(el!==srcEl&&el.textContent!==t)el.textContent=t; });
+  document.querySelectorAll('[data-vo2max-echo]').forEach(function(el){ if(el.textContent!==t)el.textContent=t; });
+  if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+  if(typeof recomputeVo2Rating==='function')recomputeVo2Rating();
+  if(typeof refreshCompareTables==='function')refreshCompareTables();
+  if(typeof computeFractional==='function')computeFractional();
+  if(typeof computeEconomy==='function')computeEconomy();
+}
 /* recompute the rating pill + norm line live when VO2max / age / sex are edited */
 function recomputeVo2Rating(){
   var mxEl=document.querySelector('[data-vo2max]');
@@ -1113,17 +1142,14 @@ function vo2Analysis(){
     '<div class="row"><h3 class="edit" contenteditable="true">How You Compare</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div>'+
     '<p class="edit" contenteditable="true">For a '+sex.toLowerCase()+' aged '+v.age+', a VO₂ max of '+v.vo2max+' ml/kg/min rates as '+r.name+' - '+ratingProse(r.name)+'</p>'+
     '<p class="edit" contenteditable="true">VO₂ max naturally falls with age, mainly because your maximum heart rate drops: as the heart beats fewer times each minute, it delivers less oxygen to the muscles per minute. Most people can expect a decline of around 1% per year, though consistent exercise can cut that roughly in half - and, depending on your starting point, VO₂ max can even be increased.</p>'+
-    '<div class="vo2-norms-wrap">'+
-      '<div><div class="vo2-norms-cap">Men</div>'+normsTable('Male', sex==='Male'?bandMax:null, sex==='Male'?catIdx:null)+'</div>'+
-      '<div><div class="vo2-norms-cap">Women</div>'+normsTable('Female', sex==='Female'?bandMax:null, sex==='Female'?catIdx:null)+'</div>'+
-    '</div>'+
+    '<div class="vo2-norms-wrap" id="vo2-norms-wrap">'+compareTablesHtml()+'</div>'+
     '<div class="vo2-norms-note">Reference values in ml/kg/min (Cooper Institute norms); your result is highlighted.</div>'+
     '<p class="edit" contenteditable="true">Reference ranges give useful context, but your own change over time is the most meaningful measure.</p>'+
     '<button class="add-below no-print" data-add-an-below title="Insert a new section below this one">+ Add section below</button>'+
   '</div>';
   var depth=
     anBlock({h:"Your VO₂ Max",
-     p:"Your VO₂ max is "+v.vo2max+" ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise - it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
+     p:"Your VO₂ max is <span data-vo2max-echo>"+v.vo2max+"</span> ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise - it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
     compareBlock+
     anBlock({h:"How To Improve It",
      p:"In the short term, high-intensity training raises VO₂ max quickly - but it plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what builds larger heart chambers and improves the blood supply to your muscles, lifting a ceiling that hard intervals alone cannot."});
@@ -1220,7 +1246,7 @@ function combinedQuickRef(){
     '<div class="ig-title edit" contenteditable="true">Lactate Threshold + VO₂ Max</div>'+
     '<div class="ig-client edit" contenteditable="true">'+report.client+' · '+report.location+'</div>'+
     '<div class="ig-keystats">'+
-      '<div class="ks ks-main"><span class="k">VO₂ max</span><span class="v edit" contenteditable="true">'+v.vo2max+'</span> <small>ml/kg/min</small></div>'+
+      '<div class="ks ks-main"><span class="k">VO₂ max</span><span class="v edit" contenteditable="true" data-vo2max>'+v.vo2max+'</span> <small>ml/kg/min</small></div>'+
       '<div class="ks-side">Max HR <b class="edit" contenteditable="true">'+(v.maxHR==null?'-':v.maxHR)+'</b> bpm</div>'+
     '</div>'+
     '<div class="ig-ths">'+igTh("Aerobic Threshold",report.aet)+igTh("Anaerobic Threshold",report.ant)+'</div>'+
@@ -1321,6 +1347,18 @@ function econGeneralHtml(){
   if(run){for(var i=0;i<RE_BANDS.length;i++){if(avg<=RE_BANDS[i].to){band=RE_BANDS[i].label;break;}}if(!band)band=RE_BANDS[RE_BANDS.length-1].label;}
   return 'Overall, your '+(run?'running':'cycling')+' economy averages about <b>'+Math.round(avg)+' '+unit+'</b>'+(run&&band?', which sits in the <b>'+band+'</b> range':'')+'.';
 }
+/* Per-stage economy working (shown in the "Show working" popup): work rate, VO2, and
+   the resulting economy = VO2 x 60 / work rate. Reads the live VO2 table, else the
+   imported stages. */
+function econWorkTableHtml(){
+  var run=HASPACE(), unit=run?'ml/kg/km':'ml/kg/W', wlab=run?'Speed (km/h)':'Power (W)', rows=[];
+  function push(w,vo2){ if(!isNaN(w)&&!isNaN(vo2)&&w>0)rows.push('<tr><td>'+w+'</td><td>'+vo2+'</td><td>'+(Math.round(vo2*60/w*10)/10)+'</td></tr>'); }
+  var body=document.querySelectorAll('#vo2-body tr');
+  if(body.length){ body.forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<3)return;push(parseFloat(c[1].textContent),parseFloat(c[2].textContent));}); }
+  if(!rows.length){ (report.vo2.stages||[]).forEach(function(s){push(parseFloat(s.speed),parseFloat(s.vo2));}); }
+  if(!rows.length)return '<div class="fu-note">Import the VO₂ stages to show the calculation.</div>';
+  return '<table class="vo2-norms"><thead><tr><th>'+wlab+'</th><th>VO₂ (ml/kg/min)</th><th>Economy ('+unit+')</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+}
 function economy(){
   var run=HASPACE(), pts=econStages();
   /* Plain-language intro (before the graph): what economy is, what affects it, how we
@@ -1340,8 +1378,10 @@ function economy(){
     ? "[Specific to you: tie this to your goals. For example, with a Hyrox event coming up, focus on... Your threshold paces are usually the least economical, and economy naturally drops above threshold - but practising those particular paces will improve it.]"
     : "[Specific to you: note the power ranges most relevant to your goals and events, and practise the paces you will race at.]";
   var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Economy</div><h2 class="title">'+(run?'Running economy':'Cycling economy')+'</h2>'+
-    '<p '+psty+'margin:0 0 12px;">'+intro+'</p>'+
+  return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Economy</div>'+
+    '<div class="fu-head"><h2 class="title" style="margin:0;">'+(run?'Running economy':'Cycling economy')+'</h2>'+
+      '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
+    '<p '+psty+'margin:12px 0 12px;">'+intro+'</p>'+
     '<div class="combo-chart" id="econ-chart">'+econChart(pts)+'</div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">What your economy shows</h3>'+
       '<p '+psty+'margin:8px 0 7px;" id="econ-general">'+general+'</p>'+
@@ -1349,6 +1389,18 @@ function economy(){
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">How to improve</h3>'+
       '<p '+psty+'margin:0 0 7px;">'+improveGen+'</p>'+
       '<p '+psty+'margin:0 0 10px;">'+improveSpec+'</p></div>'+
+    /* Working popup - editor only (never printed), same pattern as fractional. */
+    '<div class="fu-pop-back no-print" data-fu-back>'+
+      '<div class="fu-pop-card">'+
+        '<div class="fu-pop-top"><h3 class="vo2-sub" style="margin:0;">How economy is calculated</h3>'+
+          '<button class="fu-pop-close" data-fu-close type="button" aria-label="Close">&times;</button></div>'+
+        '<div class="fu-note" style="margin-top:0;">Shown in the editor only - not printed.</div>'+
+        '<div class="fu-eq">economy = VO₂ (ml/kg/min) × 60 ÷ '+(run?'speed (km/h)':'power (W)')+'</div>'+
+        '<div class="fu-note">The ×60 converts the oxygen cost from per-second to per-minute, so economy is millilitres of O₂ per kilogram '+(run?'per kilometre (ml/kg/km)':'per watt (ml/kg/W)')+'. Lower is better - less oxygen for the same '+(run?'distance':'power')+'.</div>'+
+        '<div id="econ-work">'+econWorkTableHtml()+'</div>'+
+        '<div class="fu-note">The dotted line on the chart is a moving average (period 2) of these points.</div>'+
+      '</div>'+
+    '</div>'+
     '</div>';
 }
 /* redraw the economy chart + refresh the auto summary line when a VO2 stage / work
@@ -1357,6 +1409,7 @@ function economy(){
 function computeEconomy(){
   var host=document.getElementById('econ-chart');if(host)host.innerHTML=econChart(econStages());
   var gen=document.getElementById('econ-general');if(gen)gen.innerHTML=econGeneralHtml();
+  var wk=document.getElementById('econ-work');if(wk)wk.innerHTML=econWorkTableHtml();
 }
 
 /* Fractional utilisation doughnut. Whole ring = VO2max (100%). Segments come from
@@ -1681,12 +1734,17 @@ document.getElementById('stage').addEventListener('input',e=>{
     if(pc){const v=parseFloat(spd.textContent);if(!isNaN(v)&&v>0)pc.textContent=pace(v);}
     return;
   }
-  /* VO2 report: recompute the fitness rating when VO2max / age / sex is edited */
-  if(e.target.closest('[data-vo2max],[data-vo2-age],[data-vo2-sex]')){
+  /* VO2 max edited anywhere -> propagate to every display, the graph, rating,
+     comparison tables and the fractional/economy maths (single source of truth). */
+  var _vmEl=e.target.closest('[data-vo2max]');
+  if(_vmEl){ if(typeof syncVo2Max==='function')syncVo2Max(_vmEl); return; }
+  /* age / sex change the rating + which comparison cell is highlighted */
+  if(e.target.closest('[data-vo2-age],[data-vo2-sex]')){
     if(typeof recomputeVo2Rating==='function')recomputeVo2Rating();
+    if(typeof refreshCompareTables==='function')refreshCompareTables();
   }
-  /* Combined: recompute fractional utilisation + economy when a VO2 stage or VO2max changes */
-  if(e.target.closest('#vo2-body td, [data-vo2max]')){
+  /* a VO2 stage edit feeds fractional utilisation + economy */
+  if(e.target.closest('#vo2-body td')){
     if(typeof computeFractional==='function')computeFractional();
     if(typeof computeEconomy==='function')computeEconomy();
   }
@@ -3045,10 +3103,33 @@ document.getElementById("stage").addEventListener("click",e=>{
   function llFire(after){ _llWant={after:after||null}; if(!_llBusy)llPump(); }
   function llPump(){ if(!_llWant)return; var a=_llWant.after; _llWant=null; _llBusy=true;
     Promise.resolve(doCompute(true,a)).then(function(){_llBusy=false;llPump();}); }
+  /* INSTANT slider: the full compute returns a `loglog_sweep` (LogPoly + Loglog for
+     every 0.05 step), so dragging is a client-side lookup - no network, identical to
+     the server. Falls back to the single-flight network path only if the sweep is
+     absent (an older cached result, or a source the sweep wasn't built for). */
+  function llLocalReady(){ return !!(lastResult&&lastResult.loglog_sweep&&lastResult.loglog_sweep.length); }
+  function llLocalApply(after){
+    if(!llLocalReady())return false;
+    var key=portion().toFixed(2), sw=lastResult.loglog_sweep, e=null, i;
+    for(i=0;i<sw.length;i++){ if(Number(sw[i].portion).toFixed(2)===key){e=sw[i];break;} }
+    if(!e)return false;
+    if(e.LogPolyModDmax){ lastResult.methods.LogPolyModDmax=e.LogPolyModDmax; if(e.Loglog)lastResult.methods.Loglog=e.Loglog; else delete lastResult.methods.Loglog; }
+    else { delete lastResult.methods.LogPolyModDmax; delete lastResult.methods.Loglog; }
+    render(lastResult);
+    var lp=lastResult.methods.LogPolyModDmax;
+    teStatus('Log-log '+key+' · LogPoly '+(lp?lp.intensity+' '+UNIT():'-'),'ok');
+    if(typeof after==='function')after();
+    return true;
+  }
+  /* Apply directly - the lookup + render is a few ms, and range 'input' events are
+     already ~frame-rate throttled by the browser, so no rAF (which pauses on a hidden
+     tab) is needed. */
+  function llLocalSchedule(after){ llLocalApply(after); }
   var sld=document.getElementById('te-loglog'),slideTimer=null;
   if(sld)sld.addEventListener('input',function(){
     var lab=document.getElementById('te-loglog-val');if(lab)lab.textContent=portion().toFixed(2);
-    clearTimeout(slideTimer);slideTimer=setTimeout(function(){llFire();},120);
+    if(llLocalReady()){ llLocalSchedule(); }
+    else { clearTimeout(slideTimer);slideTimer=setTimeout(function(){llFire();},120); }
   });
   var fitSel=document.getElementById('te-fit');if(fitSel)fitSel.addEventListener('change',function(){doCompute(false);});
   var srcSel=document.getElementById('te-source');if(srcSel)srcSel.addEventListener('change',function(){doCompute(false);});
@@ -3059,7 +3140,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     var p=parseFloat(vSld.value);
     var lb=document.getElementById('te-view-loglog-val');if(lb)lb.textContent=p.toFixed(2);
     var main=document.getElementById('te-loglog');if(main){main.value=p;var mlb=document.getElementById('te-loglog-val');if(mlb)mlb.textContent=p.toFixed(2);}
-    clearTimeout(vTimer);vTimer=setTimeout(function(){llFire(drawMethodView);},120);
+    if(llLocalReady()){ llLocalSchedule(drawMethodView); }
+    else { clearTimeout(vTimer);vTimer=setTimeout(function(){llFire(drawMethodView);},120); }
   });
   /* Step 6 - write a chosen candidate into the report's threshold fields and
      record an engine audit (source + method + settings). Writing cb-aet/cb-ant
