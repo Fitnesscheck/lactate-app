@@ -338,7 +338,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v33</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v34</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3009,11 +3009,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* Abort after 45s so a slow/stuck engine surfaces an error instead of leaving the
        panel spinning on "Computing…" forever. */
     var _ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
-    var _to=setTimeout(function(){if(_ctrl)_ctrl.abort();},90000);
+    /* slider (loglog-only) calls are tiny - fail them fast (15s) so a stuck one doesn't
+       block the single-flight queue; full computes get the long cold-start budget. */
+    var _to=setTimeout(function(){if(_ctrl)_ctrl.abort();},fromSlider?15000:90000);
     /* the backend sleeps when idle; the first compute after a break waits for it to
        wake, so tell the user rather than looking stuck. */
     var _warn=setTimeout(function(){if(!only)teStatus('Waking the server (first run after a break can take up to a minute)…','');},4000);
-    fetch(backend()+'/compute-thresholds',{method:'POST',headers:{'Content-Type':'application/json'},
+    return fetch(backend()+'/compute-thresholds',{method:'POST',headers:{'Content-Type':'application/json'},
       signal:_ctrl?_ctrl.signal:undefined,
       body:JSON.stringify({points:pts,fit:fitChoice(),log_log_portion:val,loglog_only:only,loglog_source:sourceChoice()})})
     .then(parseRes)
@@ -3036,10 +3038,17 @@ document.getElementById("stage").addEventListener("click",e=>{
   var teClose=document.getElementById('te-close');if(teClose)teClose.addEventListener('click',closeModal);
   var teModal=document.getElementById('te-modal');if(teModal)teModal.addEventListener('click',function(e){if(e.target===teModal)closeModal();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'||e.keyCode===27){var v=document.getElementById('te-view');if(v&&v.style.display==='block'){v.style.display='none';}else{closeModal();}}});
+  /* Single-flight for the log-log slider: never more than one loglog compute in
+     flight, and always converge to the LATEST slider value once it returns. Stops
+     requests piling up (and timing out) while the backend is slow after waking. */
+  var _llBusy=false,_llWant=null;
+  function llFire(after){ _llWant={after:after||null}; if(!_llBusy)llPump(); }
+  function llPump(){ if(!_llWant)return; var a=_llWant.after; _llWant=null; _llBusy=true;
+    Promise.resolve(doCompute(true,a)).then(function(){_llBusy=false;llPump();}); }
   var sld=document.getElementById('te-loglog'),slideTimer=null;
   if(sld)sld.addEventListener('input',function(){
     var lab=document.getElementById('te-loglog-val');if(lab)lab.textContent=portion().toFixed(2);
-    clearTimeout(slideTimer);slideTimer=setTimeout(function(){doCompute(true);},120);
+    clearTimeout(slideTimer);slideTimer=setTimeout(function(){llFire();},120);
   });
   var fitSel=document.getElementById('te-fit');if(fitSel)fitSel.addEventListener('change',function(){doCompute(false);});
   var srcSel=document.getElementById('te-source');if(srcSel)srcSel.addEventListener('change',function(){doCompute(false);});
@@ -3050,7 +3059,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var p=parseFloat(vSld.value);
     var lb=document.getElementById('te-view-loglog-val');if(lb)lb.textContent=p.toFixed(2);
     var main=document.getElementById('te-loglog');if(main){main.value=p;var mlb=document.getElementById('te-loglog-val');if(mlb)mlb.textContent=p.toFixed(2);}
-    clearTimeout(vTimer);vTimer=setTimeout(function(){doCompute(true,drawMethodView);},120);
+    clearTimeout(vTimer);vTimer=setTimeout(function(){llFire(drawMethodView);},120);
   });
   /* Step 6 - write a chosen candidate into the report's threshold fields and
      record an engine audit (source + method + settings). Writing cb-aet/cb-ant
