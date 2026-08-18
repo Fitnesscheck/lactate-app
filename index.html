@@ -338,7 +338,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v37</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v38</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1637,6 +1637,9 @@ function renderStage(){
      now that the fresh table is in the DOM so they never show stale data. */
   if(typeof computeFractional==='function')computeFractional();
   if(typeof computeEconomy==='function')computeEconomy();
+  /* Redraw the combined quick-ref card from the now-live lactate table + thresholds
+     (its first build during assembleReport used the stale fallback data). */
+  if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
 }
 /* Switch the whole report to another test type (picked on the cover). Resets to
    that type's demo data + units and re-renders; panels outside #stage keep their
@@ -1987,7 +1990,8 @@ document.getElementById("stage").addEventListener("click",e=>{
        is never extrapolated into that extra range. */
     const _cLo=Math.min(..._xs),_cHi=Math.max(..._xs);
     let _axLo=_cLo,_axHi=_cHi;
-    if(opts&&opts.vo2)opts.vo2.forEach(v=>{const sp=+v.speed;if(!isNaN(sp)){_axLo=Math.min(_axLo,sp);_axHi=Math.max(_axHi,sp);}});
+    /* NB: the VO2 overlay is spread across the lactate data's own x-range (below), so
+       its raw stage x-values (which may be in different units) must NOT stretch the axis. */
     [aetSpd,antSpd].forEach(t=>{if(!isNaN(+t)){_axLo=Math.min(_axLo,+t);_axHi=Math.max(_axHi,+t);}});
     const xmin=_axLo-0.5,xmax=_axHi+0.5;
     const ymax=Math.ceil(Math.max(..._ys))+1;
@@ -2074,20 +2078,24 @@ document.getElementById("stage").addEventListener("click",e=>{
     [{l:'Z1',cx:c1},{l:'Z2',cx:c2},{l:'Z3',cx:c3},{l:'Z4',cx:c4},{l:'Z5',cx:c5}].forEach(z=>{
       s+=`<text x="${px(z.cx).toFixed(1)}" y="${(barY-3).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="${tc}" font-family="sans-serif">${z.l}</text>`;
     });
-    /* Combined report: superimpose the imported VO2 line on top of the lactate
-       graph (no VO2 axis - just mark VO2max), sharing the same speed x-axis. */
+    /* Combined report: superimpose the VO2 line on the lactate graph (no VO2 y-axis -
+       just mark VO2max). The VO2 stages are spread evenly across the lactate data's
+       x-range in test order, so the line always rises across the power/speed axis as
+       intensity increases - regardless of the VO2 stages' own x-units. */
     if(opts&&opts.vo2&&opts.vo2.length){
-      const vpts=opts.vo2.filter(v=>v.speed!=null&&v.speed!==''&&v.vo2!=null&&v.vo2!=='');
+      const vpts=opts.vo2.filter(v=>v.vo2!=null&&v.vo2!=='');
       if(vpts.length>1){
+        const N=vpts.length;
+        const vX=i=>px(_cLo+(N<=1?0.5:i/(N-1))*(_cHi-_cLo));   /* spread across the lactate x-range */
         const vmx=Math.max(...vpts.map(v=>+v.vo2))*1.12;
         const vY=v=>H-mb-(v/vmx)*plotH;
-        const vd=vpts.map((p,i)=>(i?'L':'M')+px(+p.speed).toFixed(1)+' '+vY(+p.vo2).toFixed(1)).join(' ');   /* jagged trace (per-stage last-minute values), not a smoothed curve */
+        const vd=vpts.map((p,i)=>(i?'L':'M')+vX(i).toFixed(1)+' '+vY(+p.vo2).toFixed(1)).join(' ');
         s+=`<path d="${vd}" fill="none" stroke="#2E86D6" stroke-width="2.6" clip-path="url(#pc)"/>`;
-        const first=vpts[0];
-        s+=`<text x="${(px(+first.speed)+4).toFixed(1)}" y="${(vY(+first.vo2)-4).toFixed(1)}" font-size="10" fill="#2E86D6" font-family="sans-serif">VO₂</text>`;
-        const mx=vpts.reduce((a,b)=>+b.vo2>+a.vo2?b:a),mvx=px(+mx.speed),mvy=vY(+mx.vo2);
+        s+=`<text x="${(vX(0)+4).toFixed(1)}" y="${(vY(+vpts[0].vo2)-4).toFixed(1)}" font-size="10" fill="#2E86D6" font-family="sans-serif">VO₂</text>`;
+        let mi=0; for(let i=1;i<N;i++){ if(+vpts[i].vo2>+vpts[mi].vo2) mi=i; }
+        const mvx=vX(mi),mvy=vY(+vpts[mi].vo2);
         s+=`<circle cx="${mvx.toFixed(1)}" cy="${mvy.toFixed(1)}" r="4" fill="#2E86D6"/>`;
-        s+=`<text x="${(mvx-8).toFixed(1)}" y="${(mvy-7).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="600" fill="#2E86D6" font-family="sans-serif">VO₂max ${opts.vo2max!=null&&opts.vo2max!==''?opts.vo2max:mx.vo2}</text>`;
+        s+=`<text x="${(mvx-8).toFixed(1)}" y="${(mvy-7).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="600" fill="#2E86D6" font-family="sans-serif">VO₂max ${opts.vo2max!=null&&opts.vo2max!==''?opts.vo2max:vpts[mi].vo2}</text>`;
       }
     }
     s+='</svg>';return s;
