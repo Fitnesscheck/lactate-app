@@ -209,6 +209,10 @@
      sections are added it may spill - that's expected. Scoped so other pages keep
      their spacing. */
   .vo2-depth .curve-slot{height:49mm;margin-bottom:8px;}
+  .vo2-depth .curve-slot.curve-slot-big{height:82mm;}   /* the VO2/HR graph, enlarged */
+  .vo2-sex-toggle{display:flex;gap:6px;margin:2px 0 6px;}
+  .vo2-sex-toggle button{font-family:inherit;font-size:11px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#fff;color:#6B756F;cursor:pointer;}
+  .vo2-sex-toggle button.on{background:var(--green);border-color:var(--green);color:#fff;font-weight:600;}
   .vo2-depth .vo2-sub{margin:9px 0 5px;}
   .vo2-depth .an-block{margin-bottom:7px;}
   .vo2-depth .an-block p{margin:3px 0 0;}
@@ -338,7 +342,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v40</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v41</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -663,10 +667,10 @@ var TEST_TYPES = {
     title:"VO₂ Max<br>Test", subtitle:"Maximal Oxygen Uptake & Fitness Rating",
     sections:[cover, vo2Summary, vo2Analysis, vo2Appendix] },
   combined_treadmill:{ label:"Combined - treadmill · 4-min staged", modality:"treadmill", kind:"combined",
-    title:"Comprehensive<br>Physiology Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
+    title:"Combined Performance<br>Testing Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
     sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] },
   combined_bike:{ label:"Combined - bike · 4-min staged", modality:"bike", kind:"combined",
-    title:"Comprehensive<br>Physiology Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
+    title:"Combined Performance<br>Testing Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
     sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] }
 };
 /* Human labels for the per-report Pages panel (keyed by section-builder name). */
@@ -698,14 +702,23 @@ function UNIT(){ return MOD().unit; }
 function HASPACE(){ return MOD().hasPace; }
 /* full intensity display: "15.5 km/h (4:37/km)" for run, "250 W" for bike */
 function intVal(v){ if(v==null||v==='')return ''; return HASPACE() ? (v+" "+UNIT()+" ("+pace(v)+"/km)") : (v+" "+UNIT()); }
+/* Display helper: cycling shows whole watts; running keeps the value as entered. */
+function powFmt(v){ return (!HASPACE()&&v!=null&&v!==''&&!isNaN(+v)) ? Math.round(+v) : v; }
 
 function buildDefaults(){ return {
   oneline:"Train easy below "+intVal(report.aet.speed)+", hold threshold work at "+intVal(report.ant.speed)+". Everything else builds off those two numbers.",
-  analysis:[
+  analysis: HASPACE() ? [
     {h:"Aerobic Threshold, Your Easy Ceiling",
      p:"Your aerobic threshold sits at "+intVal(report.aet.speed)+" at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy "+MOD().verb+". Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
      p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
+    {h:"Your Rate of Perceived Exertion (RPE)",
+     p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
+  ] : [
+    {h:"Aerobic Threshold",
+     p:"Your aerobic threshold sits at "+powFmt(report.aet.speed)+" "+UNIT()+" at a heart rate of "+report.aet.hr+" bpm. Targeting an average power below this on your long, easy rides is a good aim - it lets you build aerobic fitness and endurance while staying fresh enough to keep training consistently."},
+    {h:"Anaerobic Threshold",
+     p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions - it is the highest power you can hold at a steady state before lactate builds up faster than your body can clear it."},
     {h:"Your Rate of Perceived Exertion (RPE)",
      p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
@@ -780,7 +793,7 @@ function igTh(lab,t){
   var meta=(HASPACE()?'<span class="pc">'+pace(t.speed)+'</span> /km · ':'')+
     '<span class="hr edit" contenteditable="true">'+(t.hr==null?"-":t.hr)+'</span> bpm';
   return '<div class="ig-th"><div class="lab edit" contenteditable="true">'+lab+'</div>'+
-    '<div class="v"><span class="spd edit" contenteditable="true">'+t.speed+'</span> <small>'+UNIT()+'</small></div>'+
+    '<div class="v"><span class="spd edit" contenteditable="true">'+powFmt(t.speed)+'</span> <small>'+UNIT()+'</small></div>'+
     '<div class="meta">'+meta+'</div></div>';
 }
 function ataGlance(){
@@ -989,8 +1002,16 @@ function compareTablesHtml(){
   var rows=VO2_NORMS[sex], bandMax=rows[rows.length-1].max;
   for(var i=0;i<rows.length;i++){ if(aNum<=rows[i].max){bandMax=rows[i].max;break;} }
   var catIdx=0; for(var ci=0;ci<VO2_CATS.length;ci++){ if(VO2_CATS[ci].name===r.name)catIdx=ci; }
-  return '<div><div class="vo2-norms-cap">Men</div>'+normsTable('Male', sex==='Male'?bandMax:null, sex==='Male'?catIdx:null)+'</div>'+
-         '<div><div class="vo2-norms-cap">Women</div>'+normsTable('Female', sex==='Female'?bandMax:null, sex==='Female'?catIdx:null)+'</div>';
+  /* Show ONE table (default the athlete's sex) with a Men/Women toggle; only highlight
+     the athlete's own cell when their own table is shown. */
+  var sel=report.vo2._compareSex||sex, own=(sel===sex);
+  var srows=VO2_NORMS[sel], sBand=srows[srows.length-1].max;
+  for(var j=0;j<srows.length;j++){ if(aNum<=srows[j].max){sBand=srows[j].max;break;} }
+  var toggle='<div class="vo2-sex-toggle no-print">'+['Male','Female'].map(function(sx){
+    return '<button type="button" data-compare-sex="'+sx+'"'+(sx===sel?' class="on"':'')+'>'+(sx==='Male'?'Men':'Women')+'</button>';
+  }).join('')+'</div>';
+  return toggle+'<div><div class="vo2-norms-cap">'+(sel==='Male'?'Men':'Women')+'</div>'+
+    normsTable(sel, own?sBand:null, own?catIdx:null)+'</div>';
 }
 function refreshCompareTables(){ var w=document.getElementById('vo2-norms-wrap'); if(w)w.innerHTML=compareTablesHtml(); }
 /* Single source of truth for VO2 max (report.vo2.vo2max). Editing it anywhere - the
@@ -1161,18 +1182,21 @@ function vo2Analysis(){
   '</div>';
   var depth=
     anBlock({h:"Your VO₂ Max",
-     p:"Your VO₂ max is <span data-vo2max-echo>"+v.vo2max+"</span> ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise - it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
+     p:"Your VO₂ max is <span data-vo2max-echo>"+v.vo2max+"</span> ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm."})+
+    anBlock({h:"What is VO₂ Max",
+     p:"VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise - it sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
     compareBlock+
     anBlock({h:"How To Improve It",
-     p:"In the short term, high-intensity training raises VO₂ max quickly - but it plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what builds larger heart chambers and improves the blood supply to your muscles, lifting a ceiling that hard intervals alone cannot."});
+     p:"In the short term, high-intensity training raises VO₂ max quickly - but it plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what improves heart function and the blood supply to your muscles, lifting a ceiling that hard intervals alone cannot."});
   /* "Breathing analysis" - why we look, whether it's a problem (usually not), and
      if not, that there's no work to do here (lungs aren't the O₂-delivery limiter). */
   var breath=anBlock({h:"What Your Breathing Shows",
     p:"We look at your breathing to screen for disordered or dysfunctional breathing during exercise. [For this athlete: this was NOT a problem - or describe the finding.] Most of the time it is not an issue. Where breathing is not a limiter there is no further work to do in this area: your lungs are not the limiting factor in delivering oxygen to your muscles."});
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
-  return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂ max, analysed</h2>'+
+  return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
-    '<div class="curve-slot">'+slot("slot-vo2-metabolic", g.metabolic)+'</div>'+
+    '<div class="curve-slot curve-slot-big">'+slot("slot-vo2-metabolic", g.metabolic)+'</div>'+
+    '<p class="edit" contenteditable="true" style="font-size:13px;line-height:1.6;color:#4b554f;margin:2px 0 12px;">Throughout the test your VO₂ rose consistently in step with your heart rate, as expected - your cardiovascular system kept delivering more oxygen as the effort increased.</p>'+
     '<div id="an-list">'+depth+'</div>'+
     '<button class="add no-print" data-add="an">+ Add section</button>'+
     '<h3 class="edit vo2-sub" contenteditable="true">Breathing analysis</h3>'+
@@ -1250,7 +1274,7 @@ function combinedQuickRef(){
      then superimpose the imported VO2 line on top. Falls back to an empty state if
      the chart builder isn't ready yet. */
   var graph=(typeof window.fcLactateChart==='function')
-    ? window.fcLactateChart({rows:comboRawRows(), aet:report.aet.speed, ant:report.ant.speed, vo2stages:v.stages, vo2max:v.vo2max, showHR:false})
+    ? window.fcLactateChart({rows:comboRawRows(), aet:report.aet.speed, ant:report.ant.speed, showHR:false})   /* VO2 line removed - the VO2 max number is shown above */
     : '';
   if(!graph)graph='<div class="ig-graph-empty">Enter the lactate data and import the VO₂ files to draw the curve.</div>';
   var card='<div class="ig-card">'+
@@ -1289,7 +1313,7 @@ function refreshComboQuickRef(){
   var host=document.querySelector('.report-section[data-section="combinedQuickRef"] .combo-generated');
   if(!host||typeof window.fcLactateChart!=='function')return;
   var v=report.vo2||{};
-  var svg=window.fcLactateChart({rows:comboRawRows(),aet:report.aet.speed,ant:report.ant.speed,vo2stages:v.stages,vo2max:v.vo2max,showHR:false});
+  var svg=window.fcLactateChart({rows:comboRawRows(),aet:report.aet.speed,ant:report.ant.speed,showHR:false});
   if(svg)host.innerHTML=svg;
 }
 
@@ -1344,7 +1368,9 @@ function econChart(pts){
   s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-3)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?'Pace (min/km)':'Power (W)')+'</text>';
   var ma=movingAvg2(pts);
   if(ma.length>1)s+='<path d="'+ma.map(function(p,i){return (i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#123f5a" stroke-width="2" stroke-dasharray="2 3"/>';
-  pts.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="3.6" fill="#1f6b8f"/>';});
+  /* Last two points red: at the very top of the test VO2 has plateaued, so that
+     portion isn't sustainable and its economy values aren't meaningful. */
+  pts.forEach(function(p,i){var end=i>=pts.length-2;s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="'+(end?4.2:3.6)+'" fill="'+(end?'#e53935':'#1f6b8f')+'"/>';});
   return s+'</svg>';
 }
 /* The auto "Overall, your economy averages..." line. Built from the LIVE VO2 table
@@ -1378,14 +1404,17 @@ function economy(){
   var intro=run
     ? "Running economy is how much oxygen you use to hold a given pace - in effect, how efficiently you run. It is shaped by your running form and technique, muscle and tendon stiffness, strength, neuromuscular coordination and footwear. Using your VO2 reading at each stage of the test, we can assess how economical you are across a range of paces. The lower the value, the better: a lower reading means you burn less oxygen to run at the same pace."
     : "Cycling economy is how much oxygen you use to produce a given power output - in effect, how efficiently you ride. It is shaped by your pedalling technique, muscular efficiency, strength and position on the bike. Using your VO2 reading at each stage of the test, we can assess how economical you are across a range of power outputs. The lower the value, the better: a lower reading means you burn less oxygen for the same power.";
-  /* After the graph: a general (auto) line + an editable specific observation. */
-  var general=econGeneralHtml();
+  /* After the graph: editable observations (no auto "averages about X" line). */
+  var lowPower=run
+    ? "Notice that at your easier paces you are actually less economical. That is expected - and it is one reason we don't do most training there: going too easy is inefficient."
+    : "Notice that at lower power you are less economical. That is expected - and it is one reason we don't train there: going too easy is inefficient.";
+  var endNote="The last two points (shown in red) sit at the very top of the test, where VO₂ has plateaued. That portion isn't sustainable, so its economy values there aren't meaningful.";
   var specific=run
-    ? "[Generally, you are an economical runner - however in this test you can see that at around [pace] your economy dips. Note the paces where you are most and least economical.]"
-    : "[Note the power range where you are most economical, and any point where economy rises.]";
+    ? "[Note the paces where this athlete is most and least economical.]"
+    : "[Note the power ranges where this athlete is most and least economical.]";
   var improveGen=run
-    ? "In general, running economy improves with <b>strength work</b>, better <b>running form and technique</b>, <b>neuromuscular (plyometric) work</b> and well-fitted, <b>appropriate footwear</b> - together these lower the oxygen cost of every stride."
-    : "In general, cycling economy improves with <b>strength work</b>, refined <b>pedalling technique</b>, <b>neuromuscular work</b> and an efficient, well-fitted <b>bike position</b>.";
+    ? "In general, running economy improves with better <b>running form and technique</b>, <b>neuromuscular (plyometric) work</b> and well-fitted, <b>appropriate footwear</b> - together these lower the oxygen cost of every stride."
+    : "In general, cycling economy improves with refined <b>pedalling technique</b>, <b>neuromuscular work</b> and an efficient, well-fitted <b>bike position</b>.";
   var improveSpec=run
     ? "[Specific to you: tie this to your goals. For example, with a Hyrox event coming up, focus on... Your threshold paces are usually the least economical, and economy naturally drops above threshold - but practising those particular paces will improve it.]"
     : "[Specific to you: note the power ranges most relevant to your goals and events, and practise the paces you will race at.]";
@@ -1396,7 +1425,8 @@ function economy(){
     '<p '+psty+'margin:12px 0 12px;">'+intro+'</p>'+
     '<div class="combo-chart" id="econ-chart">'+econChart(pts)+'</div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">What your economy shows</h3>'+
-      '<p '+psty+'margin:8px 0 7px;" id="econ-general">'+general+'</p>'+
+      '<p '+psty+'margin:8px 0 7px;">'+lowPower+'</p>'+
+      '<p '+psty+'margin:0 0 7px;">'+endNote+'</p>'+
       '<p '+psty+'margin:0 0 10px;">'+specific+'</p></div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">How to improve</h3>'+
       '<p '+psty+'margin:0 0 7px;">'+improveGen+'</p>'+
@@ -1420,7 +1450,6 @@ function economy(){
    treadmill average). */
 function computeEconomy(){
   var host=document.getElementById('econ-chart');if(host)host.innerHTML=econChart(econStages());
-  var gen=document.getElementById('econ-general');if(gen)gen.innerHTML=econGeneralHtml();
   var wk=document.getElementById('econ-work');if(wk)wk.innerHTML=econWorkTableHtml();
 }
 
@@ -1434,7 +1463,7 @@ function fcArc(cx,cy,r,a0,a1){
 /* Inner ring = VO2max (a full blue circle, = 100%). Outer ring stacks the three
    zones of that capacity: aerobic (0->aer%), sustainable anaerobic (aer%->an%),
    unsustainable anaerobic (an%->100%). */
-function doughnut(aer,an){
+function doughnut(aer,an,mark){
   aer=Math.max(0,Math.min(100,parseFloat(aer)||0));
   an=Math.max(aer,Math.min(100,parseFloat(an)||0));
   var S=240,cx=120,cy=120,sw=16,rOut=84,rIn=56;
@@ -1446,7 +1475,9 @@ function doughnut(aer,an){
     var anc=Math.cos(a)>0.3?'start':(Math.cos(a)<-0.3?'end':'middle');
     return '<text x="'+x.toFixed(1)+'" y="'+(y+3).toFixed(1)+'" font-size="11" font-weight="700" fill="#3a3f3c" text-anchor="'+anc+'">'+text+'</text>';
   }
-  var s='<svg viewBox="0 0 '+S+' '+S+'" class="frac-svg" xmlns="http://www.w3.org/2000/svg">';
+  /* the FU boundary label needs horizontal room, so widen the viewBox when marked */
+  var vb=mark?('-46 0 332 '+S):('0 0 '+S+' '+S);
+  var s='<svg viewBox="'+vb+'" class="frac-svg" xmlns="http://www.w3.org/2000/svg">';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rOut+'" fill="none" stroke="#ECECE6" stroke-width="'+sw+'"/>';
   s+=seg(0,aer,GREEN)+seg(aer,an,AMBER)+seg(an,100,RED);
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rIn+'" fill="none" stroke="'+BLUE+'" stroke-width="'+sw+'"/>';
@@ -1455,6 +1486,16 @@ function doughnut(aer,an){
   if(100-an>3)s+=lab((an+100)/2,Math.round(100-an)+'%');
   s+='<text x="'+cx+'" y="'+(cy-3)+'" font-size="11" fill="#2c332f" text-anchor="middle" font-weight="600">VO₂ max</text>';
   s+='<text x="'+cx+'" y="'+(cy+12)+'" font-size="10" fill="#8a938e" text-anchor="middle">100%</text>';
+  /* mark the amber/red boundary as the fractional-utilisation point */
+  if(mark && an>1 && an<99){
+    var ma=(an/100*360-90)*Math.PI/180, mc=Math.cos(ma), ms=Math.sin(ma);
+    var r0=rOut-sw/2-2, r1=rOut+sw/2+7;
+    s+='<line x1="'+(cx+r0*mc).toFixed(1)+'" y1="'+(cy+r0*ms).toFixed(1)+'" x2="'+(cx+r1*mc).toFixed(1)+'" y2="'+(cy+r1*ms).toFixed(1)+'" stroke="#2c332f" stroke-width="1.6"/>';
+    var lr=rOut+sw/2+11, lx=cx+lr*mc, ly=cy+lr*ms;
+    var anc=mc>0.25?'start':(mc<-0.25?'end':'middle');
+    s+='<text x="'+lx.toFixed(1)+'" y="'+(ly-1).toFixed(1)+'" font-size="9.5" font-weight="700" fill="#2c332f" text-anchor="'+anc+'">Fractional</text>';
+    s+='<text x="'+lx.toFixed(1)+'" y="'+(ly+8.5).toFixed(1)+'" font-size="9.5" font-weight="700" fill="#2c332f" text-anchor="'+anc+'">utilisation</text>';
+  }
   return s+'</svg>';
 }
 /* ---- Fractional utilisation: computed from the VO2 stage data ----
@@ -1532,17 +1573,17 @@ function fuTableHtml(res){
   function r1(v){return isFinite(v)?v.toFixed(1):'-';}
   function pc(v){return isFinite(v)?Math.round(v)+'%':'-';}
   return '<table class="rec-table"><thead><tr><th>Threshold</th><th>'+(HASPACE()?'Speed':'Power')+' ('+UNIT()+')</th><th>VO₂ (from fit)</th><th>Fractional utilisation</th></tr></thead><tbody>'+
-    '<tr><td class="goal">Aerobic (LT1)</td><td>'+(isNaN(res.aet)?'-':res.aet)+'</td><td>'+r1(res.vAeT)+'</td><td>'+pc(res.aerFU)+'</td></tr>'+
-    '<tr><td class="goal">Anaerobic (LT2)</td><td>'+(isNaN(res.ant)?'-':res.ant)+'</td><td>'+r1(res.vAnT)+'</td><td>'+pc(res.anFU)+'</td></tr>'+
+    '<tr><td class="goal">Aerobic</td><td>'+(isNaN(res.aet)?'-':powFmt(res.aet))+'</td><td>'+r1(res.vAeT)+'</td><td>'+pc(res.aerFU)+'</td></tr>'+
+    '<tr><td class="goal">Anaerobic</td><td>'+(isNaN(res.ant)?'-':powFmt(res.ant))+'</td><td>'+r1(res.vAnT)+'</td><td>'+pc(res.anFU)+'</td></tr>'+
     '<tr><td class="goal">VO₂ max</td><td>-</td><td>'+r1(res.vmax)+'</td><td>100%</td></tr></tbody></table>';
 }
 /* recompute + update the working and donut in place (on threshold/stage/VO2max edits) */
 function computeFractional(){
   var res=fuCompute();
   var chart=document.getElementById('fu-chart'),eq=document.getElementById('fu-eq'),tw=document.getElementById('fu-table-wrap'),host=document.getElementById('frac-chart');
-  if(!res){ if(eq)eq.textContent='Enter at least 3 VO₂ stages (in the appendix) to fit the curve.'; if(chart)chart.innerHTML=''; if(tw)tw.innerHTML=''; return; }
+  if(!res){ if(eq)eq.textContent='Enter at least 3 VO₂ stages (in the appendix) to fit the curve.'; if(chart)chart.innerHTML=''; if(tw)tw.innerHTML='<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>'; return; }
   if(eq)eq.innerHTML=fuEqHtml(res); if(chart)chart.innerHTML=fuChart(res); if(tw)tw.innerHTML=fuTableHtml(res);
-  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU);
+  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU,true);
   var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(res.aerFU)+'%';
   var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU)+'%';
   var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU))+'%';
@@ -1551,37 +1592,52 @@ function fractional(){
   var res=fuCompute();
   var aerL=res?Math.round(res.aerFU):'-',anL=res?Math.round(res.anFU):'-',gapL=res?Math.max(0,100-Math.round(res.anFU)):'-';
   var wk=HASPACE()?'speed':'power';
+  /* two illustrative profiles (representative numbers, not this athlete's) */
+  function egDonut(aer,an,title,note){
+    return '<div style="flex:1 1 0;min-width:0;text-align:center;">'+
+      '<div style="max-width:150px;margin:0 auto;">'+doughnut(aer,an)+'</div>'+
+      '<div style="font-weight:700;margin-top:6px;font-size:12px;">'+title+'</div>'+
+      '<div style="font-size:11px;color:#6b746f;line-height:1.35;margin-top:2px;">'+note+'</div></div>';
+  }
   return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
+    /* Plain explanation: what FU is and why it matters. */
+    '<p class="edit" contenteditable="true" style="margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold - how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice - the part you cannot sustain - as small as possible.</p>'+
     /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
     '<div class="frac-wrap" style="margin-top:18px;">'+
-      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0)+'</div>'+
+      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0,true)+'</div>'+
       '<div class="frac-legend">'+
         '<div class="fl"><span class="sw" style="background:#2E86D6"></span>VO₂ max (inner ring) - 100% of your aerobic capacity</div>'+
         '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b id="frac-aer-lab">'+aerL+'%</b> of VO₂ max</div>'+
         '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable anaerobic - up to <b id="frac-an-lab">'+anL+'%</b></div>'+
-        '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable anaerobic - <b id="frac-gap-lab">'+gapL+'%</b></div>'+
+        '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable - <b id="frac-gap-lab">'+gapL+'%</b></div>'+
       '</div>'+
     '</div>'+
     '<div class="defs" style="margin-top:20px;">'+
       defItem({t:"VO₂ max",d:"100% of the aerobic capacity you can call on - the blue inner ring."})+
       defItem({t:"Aerobic",d:"The VO₂ at your aerobic threshold as a share of VO₂ max - how much of your ceiling the oxidative system is using there."})+
-      defItem({t:"Sustainable anaerobic",d:"From your aerobic threshold up to your anaerobic threshold - the extra capacity your lactate system contributes and can still sustain."})+
-      defItem({t:"Unsustainable anaerobic",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that cannot be sustained."})+
+      defItem({t:"Sustainable anaerobic",d:"From your aerobic threshold up to your anaerobic threshold - extra capacity your lactate system adds on top of the aerobic energy that is still being produced, and which you can still sustain."})+
+      defItem({t:"Unsustainable",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that outpaces clearance and cannot be sustained."})+
     '</div>'+
-    /* Working popup - editor only (never printed). The #fu-eq / #fu-chart /
-       #fu-table-wrap ids live in here now; computeFractional() still finds them. */
+    /* Working table, on the page. #fu-table-wrap id kept so computeFractional() updates it. */
+    '<h3 class="vo2-sub" style="margin:26px 0 8px;">The numbers behind it</h3>'+
+    '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>')+'</div>'+
+    /* Two example profiles for context. */
+    '<h3 class="vo2-sub" style="margin:26px 0 8px;">What different profiles look like</h3>'+
+    '<div style="display:flex;gap:22px;align-items:flex-start;">'+
+      egDonut(84,94,'Endurance athlete','Uses a big share of VO₂ max aerobically and holds a high anaerobic threshold - the red slice is tiny.')+
+      egDonut(56,74,'Sprinter / power athlete','A large ceiling but a smaller usable fraction - more of the range sits in the red, unsustainable zone.')+
+    '</div>'+
+    /* Working popup - editor only (never printed): equation + fit chart. */
     '<div class="fu-pop-back no-print" data-fu-back>'+
       '<div class="fu-pop-card">'+
         '<div class="fu-pop-top"><h3 class="vo2-sub" style="margin:0;">How this is calculated</h3>'+
           '<button class="fu-pop-close" data-fu-close type="button" aria-label="Close">&times;</button></div>'+
-        '<div class="fu-note" style="margin-top:0;">Shown in the editor only - the PDF prints just the donut.</div>'+
+        '<div class="fu-note" style="margin-top:0;">Shown in the editor only - the PDF prints the donut and table.</div>'+
         '<div class="fu-note">1-2 · VO₂ at each stage vs '+wk+', fitted with a 2nd-order polynomial:</div>'+
         '<div class="fu-eq" id="fu-eq">'+(res?fuEqHtml(res):'Enter at least 3 VO₂ stages (in the appendix) to fit the curve.')+'</div>'+
         '<div class="fu-chart" id="fu-chart">'+(res?fuChart(res):'')+'</div>'+
-        '<div class="fu-note">3-7 · '+wk+' at each lactate threshold → VO₂ from the fit → ÷ VO₂ max:</div>'+
-        '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'')+'</div>'+
       '</div>'+
     '</div>'+
     '</div>';
@@ -1592,6 +1648,7 @@ function combinedAppendix(){
   var defs=DEFAULTS.defs.map(defItem).join("");
   var intHead=HASPACE()?"Speed (km/h)":"Power (W)";
   return '<div class="sheet">'+rh()+'<div class="eyebrow">07 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
+    (!HASPACE()?'<p class="edit" contenteditable="true" style="margin:2px 0 14px;max-width:none;">Why watts? On the bike we measure your effort in watts - your actual power output - rather than speed or gear. Power is independent of the resistance setting, gradient or wind, so a given wattage always means the same physiological demand, which makes it the fairest and most repeatable way to prescribe and track your training. (A fuller explanation is coming in a future blog post.)</p>':'')+
     '<h3 class="subtitle" style="font-size:18px;margin:0 0 8px;">Lactate stages</h3>'+
     '<table class="raw"><thead><tr><th>'+intHead+'</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
     '<button class="add no-print" data-add="row">+ Add row</button>'+
@@ -1925,6 +1982,8 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(e.target.closest("[data-rm-generated]")){const g=e.target.closest(".combo-generated");if(g)g.style.display="none";return;}
   if(e.target.closest("[data-combo-toggle]")){const a=e.target.closest(".combo-graph-area");if(a)a.classList.toggle("use-upload");return;}
   if(e.target.closest("[data-add-an-below]")){const blk=e.target.closest(".an-block");if(blk)blk.insertAdjacentHTML("afterend",anBlock({h:"New section",p:"Write here."}));return;}
+  const _cs=e.target.closest("[data-compare-sex]");
+  if(_cs){ report.vo2._compareSex=_cs.getAttribute("data-compare-sex"); if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   if(e.target.closest("[data-fu-open]")){const sh=e.target.closest(".sheet"),bk=sh&&sh.querySelector("[data-fu-back]");if(bk)bk.classList.add("open");return;}
   if(e.target.closest("[data-fu-close]")||e.target.matches("[data-fu-back]")){const bk=e.target.closest("[data-fu-back]");if(bk)bk.classList.remove("open");return;}
   const rm=e.target.closest("[data-rm]");
@@ -3185,6 +3244,7 @@ document.getElementById("stage").addEventListener("click",e=>{
      (+ their HR inputs) and firing 'change' flows through the editor's existing
      threshold sync (IG card, prose tokens, charts). */
   function applyThreshold(field,spd,hr,method){
+    if(!HASPACE()&&!isNaN(spd))spd=Math.round(spd);   /* cycling: whole watts */
     var spdInput=document.getElementById(field==='aet'?'cb-aet':'cb-ant');
     var hrInput=document.getElementById(field==='aet'?'cb-aet-hr':'cb-ant-hr');
     if(spdInput&&!isNaN(spd)){spdInput.value=spd;spdInput.dispatchEvent(new Event('change',{bubbles:true}));}
