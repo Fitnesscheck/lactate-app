@@ -101,6 +101,9 @@
   .ig-th .v{font-size:27px;font-weight:500;line-height:1;}
   .ig-th .v small{font-size:13px;color:#8FA096;font-weight:400;}
   .ig-th .meta{font-size:12.5px;color:var(--cream);margin-top:6px;}
+  /* Cycling quick-reference card: make the heart-rate figures more prominent. */
+  body.modality-bike .ig-combo .ig-th .meta{font-size:16px;color:var(--cream);margin-top:8px;}
+  body.modality-bike .ig-combo .ig-th .meta .hr{font-size:20px;font-weight:700;color:var(--cream);}
   .ig-graph{width:100%;flex:1;min-height:0;background:#fff;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-top:6mm;}
   .ig-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5mm;font-size:11px;}
   .ig-foot .tag{color:#8FA096;}
@@ -342,7 +345,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v42</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v43</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1282,7 +1285,7 @@ function combinedQuickRef(){
     ? window.fcLactateChart({rows:comboRawRows(), aet:report.aet.speed, ant:report.ant.speed, showHR:false})   /* VO2 line removed - the VO2 max number is shown above */
     : '';
   if(!graph)graph='<div class="ig-graph-empty">Enter the lactate data and import the VO₂ files to draw the curve.</div>';
-  var card='<div class="ig-card">'+
+  var card='<div class="ig-card ig-combo">'+
     '<div class="ig-top"><div class="wm">'+tick()+' Fitness<b>Check</b></div><div class="handle">'+report.handle+'</div></div>'+
     '<div class="ig-title edit" contenteditable="true">Lactate Threshold + VO₂ Max</div>'+
     '<div class="ig-client edit" contenteditable="true">'+report.client+' · '+report.location+'</div>'+
@@ -1344,7 +1347,7 @@ function econStages(){
 function movingAvg2(pts){var o=[];for(var i=1;i<pts.length;i++)o.push([pts[i][0],(pts[i-1][1]+pts[i][1])/2]);return o;}
 function econChart(pts){
   var run=HASPACE();
-  var W=600,H=300,mL=50,mR=22,mT=16,mB=44,i;
+  var W=600,H=300,mL=62,mR=22,mT=16,mB=58,i;
   var xs=pts.map(function(p){return p[0];});
   var xlo=xs.length?Math.min.apply(null,xs):0, xhi=xs.length?Math.max.apply(null,xs):1;
   var pad=(xhi-xlo)*0.06||1; xlo=Math.max(0,xlo-pad); xhi+=pad;
@@ -1362,15 +1365,28 @@ function econChart(pts){
       s+='<text x="'+(mL+(W-mL-mR)/2)+'" y="'+((y1+y2)/2+3).toFixed(1)+'" font-size="10" font-weight="700" fill="#16324a" text-anchor="middle" opacity="0.75">'+b.label.toUpperCase()+'</text>';
       prev=top; });
   }
+  /* Best-economy zone: a translucent, per-report editable band over the power/pace
+     range where this athlete is most economical. Read from report.econZone (seeded
+     + editable via the controls under the chart; persists in saved snapshots). */
+  var z=report.econZone;
+  if(z&&z.on&&z.from!=null&&z.to!=null&&!isNaN(z.from)&&!isNaN(z.to)&&(+z.to)>(+z.from)){
+    var zx1=X(Math.max(xlo,Math.min(+z.from,+z.to))), zx2=X(Math.min(xhi,Math.max(+z.from,+z.to)));
+    if(zx2>zx1){
+      s+='<rect x="'+zx1.toFixed(1)+'" y="'+mT+'" width="'+(zx2-zx1).toFixed(1)+'" height="'+(H-mT-mB)+'" fill="#1D9E75" opacity="0.14"/>';
+      s+='<line x1="'+zx1.toFixed(1)+'" y1="'+mT+'" x2="'+zx1.toFixed(1)+'" y2="'+(H-mB)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
+      s+='<line x1="'+zx2.toFixed(1)+'" y1="'+mT+'" x2="'+zx2.toFixed(1)+'" y2="'+(H-mB)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
+      s+='<text x="'+((zx1+zx2)/2).toFixed(1)+'" y="'+(mT+13)+'" font-size="12" font-weight="700" fill="#14663f" text-anchor="middle" opacity="0.92">Best economy</text>';
+    }
+  }
   s+='<line x1="'+mL+'" y1="'+mT+'" x2="'+mL+'" y2="'+(H-mB)+'" stroke="#333"/><line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="#333"/>';
   var yStep=run?20:((yhi-ylo)>6?2:1);
   for(var v=Math.ceil(ylo/yStep)*yStep;v<=yhi+0.01;v+=yStep){var yy=Y(v);
-    s+='<text x="'+(mL-6)+'" y="'+(yy+3).toFixed(1)+'" font-size="9" fill="#555" text-anchor="end">'+(Math.round(v*10)/10)+'</text>';
+    s+='<text x="'+(mL-7)+'" y="'+(yy+4).toFixed(1)+'" font-size="12.5" fill="#444" text-anchor="end">'+(Math.round(v*10)/10)+'</text>';
     if(!run)s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/>';}
-  s+='<text transform="rotate(-90 12 '+(H/2)+')" x="12" y="'+(H/2)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?'Running economy (ml/kg/km)':'Cycling economy (ml/kg/W)')+'</text>';
+  s+='<text transform="rotate(-90 14 '+(H/2)+')" x="14" y="'+(H/2)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">'+(run?'Running economy (ml/kg/km)':'Cycling economy (ml/kg/W)')+'</text>';
   var nx=5; for(i=0;i<=nx;i++){var xv=xlo+(xhi-xlo)*i/nx,xx=X(xv);
-    s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+13)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?pace(xv):Math.round(xv))+'</text>';}
-  s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-3)+'" font-size="9" fill="#555" text-anchor="middle">'+(run?'Pace (min/km)':'Power (W)')+'</text>';
+    s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+17)+'" font-size="12.5" fill="#444" text-anchor="middle">'+(run?pace(xv):Math.round(xv))+'</text>';}
+  s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-5)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">'+(run?'Pace (min/km)':'Power (W)')+'</text>';
   var ma=movingAvg2(pts);
   if(ma.length>1)s+='<path d="'+ma.map(function(p,i){return (i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#123f5a" stroke-width="2" stroke-dasharray="2 3"/>';
   /* Last two points red: at the very top of the test VO2 has plateaued, so that
@@ -1404,6 +1420,24 @@ function econWorkTableHtml(){
 }
 function economy(){
   var run=HASPACE(), pts=econStages();
+  /* Seed the editable "best economy" zone once, from the data: a window around the
+     most economical (lowest) sustainable point (the last two points are the plateau,
+     excluded). The doctor can adjust or hide it per report via the controls below. */
+  if(!report.econZone){
+    /* Seed from report.vo2.stages (the source of truth for this modality) rather than
+       econStages(), which reads the LIVE #vo2-body - still the previous modality's
+       table while assembleReport() builds the string, which would seed wrong units. */
+    var seedPts=((report.vo2&&report.vo2.stages)||[]).map(function(st){var x=parseFloat(st.speed),v=parseFloat(st.vo2);return (!isNaN(x)&&x>0&&!isNaN(v))?[x,v*60/x]:null;}).filter(Boolean);
+    var sust=seedPts.slice(0,Math.max(1,seedPts.length-2)), best=null;
+    sust.forEach(function(p){if(best===null||p[1]<best[1])best=p;});
+    if(best){
+      var xsAll=seedPts.map(function(p){return p[0];});
+      var span=(Math.max.apply(null,xsAll)-Math.min.apply(null,xsAll))||best[0]||1;
+      report.econZone={from:Math.round(best[0]-span*0.09), to:Math.round(best[0]+span*0.09), on:true};
+    } else { report.econZone={from:null,to:null,on:false}; }
+  }
+  var ez=report.econZone||{from:null,to:null,on:false};
+  var zUnit=UNIT();
   /* Plain-language intro (before the graph): what economy is, what affects it, how we
      measure it here, and that lower = better. */
   var intro=run
@@ -1418,8 +1452,8 @@ function economy(){
     ? "[Note the paces where this athlete is most and least economical.]"
     : "[Note the power ranges where this athlete is most and least economical.]";
   var improveGen=run
-    ? "In general, running economy improves with better <b>running form and technique</b>, <b>neuromuscular (plyometric) work</b> and well-fitted, <b>appropriate footwear</b> - together these lower the oxygen cost of every stride."
-    : "In general, cycling economy improves with refined <b>pedalling technique</b>, <b>neuromuscular work</b> and an efficient, well-fitted <b>bike position</b>.";
+    ? "In general, running economy improves with better <b>running form and technique</b>, <b>neuromuscular (plyometric) work</b> and well-fitted, <b>appropriate footwear</b> - together these lower the oxygen cost of every stride. It also improves as your <b>overall fitness</b> develops: as your aerobic system grows stronger, the oxygen cost of the same pace comes down."
+    : "In general, cycling economy improves with refined <b>pedalling technique</b>, <b>neuromuscular work</b> and an efficient, well-fitted <b>bike position</b>. It also improves as your <b>overall fitness</b> develops: as your aerobic system grows stronger, the oxygen cost of the same power comes down.";
   var improveSpec=run
     ? "[Specific to you: tie this to your goals. For example, with a Hyrox event coming up, focus on... Your threshold paces are usually the least economical, and economy naturally drops above threshold - but practising those particular paces will improve it.]"
     : "[Specific to you: note the power ranges most relevant to your goals and events, and practise the paces you will race at.]";
@@ -1429,6 +1463,13 @@ function economy(){
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
     '<p '+psty+'margin:12px 0 12px;">'+intro+'</p>'+
     '<div class="combo-chart" id="econ-chart">'+econChart(pts)+'</div>'+
+    /* Per-report control for the shaded "best economy" band (never printed). */
+    '<div class="econ-zone-ctl no-print" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;color:#6b746f;margin:8px 0 2px;">'+
+      '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:10px;background:#1D9E75;opacity:0.25;border:1px dashed #1D9E75;"></span>Best-economy zone:</span>'+
+      '<input type="number" id="econ-zone-from" value="'+(ez.from==null?'':ez.from)+'" step="1" style="width:66px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;"> to '+
+      '<input type="number" id="econ-zone-to" value="'+(ez.to==null?'':ez.to)+'" step="1" style="width:66px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;"> '+zUnit+
+      '<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;margin-left:6px;"><input type="checkbox" id="econ-zone-on"'+(ez.on?' checked':'')+'> show on report</label>'+
+    '</div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">What your economy shows</h3>'+
       '<p '+psty+'margin:8px 0 7px;">'+lowPower+'</p>'+
       '<p '+psty+'margin:0 0 7px;">'+endNote+'</p>'+
@@ -1453,10 +1494,31 @@ function economy(){
 /* redraw the economy chart + refresh the auto summary line when a VO2 stage / work
    rate is edited, or after a test-type switch (fixes a bike report showing the stale
    treadmill average). */
+/* Read the best-economy zone controls (if present) into report.econZone. Baked input
+   values mean this also restores the zone from a saved snapshot. */
+function readEconZone(){
+  var f=document.getElementById('econ-zone-from'), t=document.getElementById('econ-zone-to'), o=document.getElementById('econ-zone-on');
+  if(!f&&!t&&!o)return;
+  report.econZone=report.econZone||{from:null,to:null,on:true};
+  if(f)report.econZone.from=(f.value===''?null:parseFloat(f.value));
+  if(t)report.econZone.to=(t.value===''?null:parseFloat(t.value));
+  if(o)report.econZone.on=o.checked;
+}
 function computeEconomy(){
+  readEconZone();
   var host=document.getElementById('econ-chart');if(host)host.innerHTML=econChart(econStages());
   var wk=document.getElementById('econ-work');if(wk)wk.innerHTML=econWorkTableHtml();
 }
+/* Redraw the economy band live as the doctor edits its range / visibility, and mirror
+   the control state into HTML attributes so it survives a saved-snapshot round-trip
+   (snapshot() bakes number-input values but not the checkbox's checked state). */
+function syncEconZoneAttrs(){
+  var f=document.getElementById('econ-zone-from'),t=document.getElementById('econ-zone-to'),o=document.getElementById('econ-zone-on');
+  if(f)f.setAttribute('value',f.value); if(t)t.setAttribute('value',t.value);
+  if(o){if(o.checked)o.setAttribute('checked','checked');else o.removeAttribute('checked');}
+}
+document.addEventListener('input',function(e){if(e.target&&/^econ-zone-(from|to|on)$/.test(e.target.id||'')){syncEconZoneAttrs();computeEconomy();}});
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='econ-zone-on'){syncEconZoneAttrs();computeEconomy();}});
 
 /* Fractional utilisation doughnut. Whole ring = VO2max (100%). Segments come from
    EDITABLE % fields: aerobic utilisation, then transition, then unsustainable. */
@@ -1622,6 +1684,7 @@ function fractional(){
     '<div class="defs" style="margin-top:20px;">'+
       defItem({t:"VO₂ max",d:"100% of the aerobic capacity you can call on - the blue inner ring."})+
       defItem({t:"Aerobic",d:"The VO₂ at your aerobic threshold as a share of VO₂ max - how much of your ceiling the oxidative system is using there."})+
+      defItem({t:"Oxidative (aerobic) system",d:"Your body's aerobic ‘engine’: it uses oxygen to turn carbohydrate and fat into energy. It is efficient and can keep going for hours, which is why it powers everything from easy rides up to your threshold - unlike the faster anaerobic system, which produces energy without oxygen but tires quickly."})+
       defItem({t:"Sustainable anaerobic",d:"From your aerobic threshold up to your anaerobic threshold - extra capacity your lactate system adds on top of the aerobic energy that is still being produced, and which you can still sustain."})+
       defItem({t:"Unsustainable",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that outpaces clearance and cannot be sustained."})+
     '</div>'+
@@ -1726,6 +1789,7 @@ function selectTestType(key,keepData){
   var d=DEMO[report.modality]||DEMO.treadmill;
   report.aet={speed:d.aet.speed,hr:d.aet.hr};
   report.ant={speed:d.ant.speed,hr:d.ant.hr};
+  report.econZone=null;   /* re-seed the best-economy zone for the new modality/units */
   /* Switching to a VO2 type from the picker loads that modality's demo curve.
      keepData is passed by the importer so a real import isn't overwritten. */
   if((TEST_TYPES[key].kind==='vo2'||TEST_TYPES[key].kind==='combined') && !keepData) report.vo2=vo2Demo(report.modality);
