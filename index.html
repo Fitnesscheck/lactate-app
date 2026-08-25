@@ -342,7 +342,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v41</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v42</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -729,8 +729,13 @@ function buildDefaults(){ return {
   ],
   paces:"",
   retest:"People often see benefits after at least an 8 to 12 week period of structured training. The first test is your baseline, the re-test shows whether the work actually moved your thresholds.<br><br>As a thank you for choosing us, you will receive an email with a discount code that is valid for six months and for one use only. It can be used either by you or passed to a friend.<br><br>Re-tests are designed to be more streamlined than an initial test. The questionnaire is abbreviated and the testing protocol is focused around your previous data. If the booking dates are not yet released on our website, simply click to join the waitlist. Those on the waitlist are prioritised and told dates before others.",
-  /* Sample curve, no name attached - replaced by real data on every test. */
-  raw: (DEMO[report.modality]||DEMO.treadmill).raw.map(function(r){return r.slice();}),
+  /* Sample curve, no name attached - replaced by real data on every test.
+     __fcRawOverride lets the "Upgrade an old report" flow inject that report's
+     real lactate stages so renderStage() rebuilds the appendix + charts from them
+     (cleared again right after that one render). */
+  raw: (window.__fcRawOverride && window.__fcRawOverride.length)
+        ? window.__fcRawOverride.map(function(r){return r.slice();})
+        : (DEMO[report.modality]||DEMO.treadmill).raw.map(function(r){return r.slice();}),
   defs:[
     {t:"Lactate",
      d:"A naturally occurring compound produced during energy metabolism. As exercise intensity increases, lactate accumulates in the blood at predictable rates, providing valuable insight into how the body is responding to training. By measuring blood lactate directly, we can accurately identify key physiological thresholds and prescribe training zones tailored to your fitness and performance goals."},
@@ -2787,6 +2792,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A3A33;">'+
         '<div style="flex:1;color:var(--cream);font-size:13px;">'+(ix[id].title||'Untitled')+cur+'<div style="color:#8FA096;font-size:11px;">'+fmtTime(ix[id].updatedAt)+'</div></div>'+
         '<button class="btn cb-btn2" data-open="'+id+'" style="padding:5px 12px;">Open</button>'+
+        '<button class="btn" data-upgrade="'+id+'" title="Rebuild this report in the latest app version, keeping its data and your written text" style="padding:5px 10px;background:#1D9E75;color:#08120d;">⬆ Upgrade</button>'+
         '<button class="btn" data-del="'+id+'" style="padding:5px 10px;background:#3a2424;color:#e0b4b4;">Delete</button>'+
       '</div>';
     }).join('');
@@ -2804,6 +2810,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   document.addEventListener('click',function(e){
     var o=e.target.closest&&e.target.closest('[data-open]');if(o){openDraft(o.getAttribute('data-open'));return;}
+    var up=e.target.closest&&e.target.closest('[data-upgrade]');if(up){var uh=LS.getItem(key(up.getAttribute('data-upgrade')));if(!uh){alert('That saved report is missing.');return;}window.fcUpgradeFromHTML(uh);return;}
     var d=e.target.closest&&e.target.closest('[data-del]');if(d){if(confirm('Delete this saved report? This cannot be undone.'))delDraft(d.getAttribute('data-del'));return;}
     if(e.target.closest&&e.target.closest('#sd-new')){newReport();return;}
   });
@@ -2861,6 +2868,7 @@ document.getElementById("stage").addEventListener("click",e=>{
         return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A3A33;">'+
           '<div style="flex:1;color:var(--cream);font-size:13px;">'+(it.title||it.client_name||'Untitled')+cur+'<div style="color:#8FA096;font-size:11px;">'+new Date(it.updated_at).toLocaleString()+'</div></div>'+
           '<button class="btn cb-btn2" data-clopen="'+it.id+'" style="padding:5px 12px;">Open</button>'+
+          '<button class="btn" data-cupgrade="'+it.id+'" title="Rebuild this report in the latest app version, keeping its data and your written text" style="padding:5px 10px;background:#1D9E75;color:#08120d;">⬆ Upgrade</button>'+
           '<button class="btn" data-cldel="'+it.id+'" style="padding:5px 10px;background:#3a2424;color:#e0b4b4;">Delete</button>'+
         '</div>';
       }).join('');
@@ -2886,6 +2894,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   })();
   document.addEventListener('click',function(e){
     var o=e.target.closest&&e.target.closest('[data-clopen]');if(o){cloudOpen(o.getAttribute('data-clopen'));return;}
+    var cu=e.target.closest&&e.target.closest('[data-cupgrade]');if(cu){clStatus('Loading for upgrade…');fetch(backend()+'/editor-drafts/'+cu.getAttribute('data-cupgrade')).then(function(res){if(!res.ok)throw new Error('HTTP '+res.status);return res.json();}).then(function(d){clStatus('');window.fcUpgradeFromHTML(d.html);}).catch(function(e){clStatus('Upgrade load failed: '+e.message,'err');});return;}
     var d=e.target.closest&&e.target.closest('[data-cldel]');if(d){cloudDelete(d.getAttribute('data-cldel'));return;}
   });
   setInterval(function(){if(cloudSyncOn&&cloudDirty)cloudSave(false);},60000);
@@ -2895,6 +2904,137 @@ document.getElementById("stage").addEventListener("click",e=>{
   init();
 })();
 /* ===== END AUTOSAVE + LOCAL DRAFTS ===== */
+</script>
+<script>
+/* ===== UPGRADE AN OLD REPORT TO THE LATEST VERSION =====
+   Saved/cloud reports are full-page snapshots that run their OWN (old) code when
+   opened, so they never pick up new formatting. This reads an old snapshot's DATA
+   inertly (DOMParser never runs the snapshot's scripts), then rebuilds the report
+   in the CURRENT app: all charts/computed sections regenerate in the new format,
+   while the athlete's data, images and hand-written prose carry over verbatim.
+   The original saved report is left untouched as a backup. */
+(function(){
+  function T(el){return el?(el.textContent||'').trim():'';}
+  function numOrNull(v){var n=parseFloat(v);return isNaN(n)?null:n;}
+
+  window.fcExtractSnapshot=function(html){
+    var doc;
+    try{doc=new DOMParser().parseFromString(html,'text/html');}catch(e){return null;}
+    if(!doc||!doc.body)return null;
+    var Q=function(s,r){return (r||doc).querySelector(s);};
+    var QA=function(s,r){return [].slice.call((r||doc).querySelectorAll(s));};
+    var b={};
+    b.testType=doc.body.getAttribute('data-fc-test-type')||'lt_treadmill';
+    b.client=T(Q('.cov-name'));
+    b.location=T(Q('.cov-loc'));
+    b.date=T(Q('.cov-date b'))||T(Q('.cov-date'));
+    b.authors=QA('.cov-foot .auth .edit').map(T).filter(Boolean);
+    /* lactate stages: cells [speed, pace(computed), stage, hr, lactate, rpe] */
+    b.raw=QA('#raw-body tr').map(function(tr){
+      var c=QA('td',tr);
+      return [T(c[0]),'',T(c[2]),T(c[3]),T(c[4]),T(c[5])];
+    }).filter(function(r){return r[0]!==''||r[3]!==''||r[4]!=='';});
+    /* VO2 stages: cells [step, speed, vo2, hr] */
+    b.vo2stages=QA('#vo2-body tr').map(function(tr,i){
+      var c=QA('td',tr);
+      return {step:(numOrNull(T(c[0]))!=null?numOrNull(T(c[0])):i+1),
+              speed:numOrNull(T(c[1])),vo2:numOrNull(T(c[2])),hr:numOrNull(T(c[3]))};
+    }).filter(function(s){return s.vo2!=null||s.speed!=null;});
+    /* thresholds: the .ig-th tiles (first = aerobic, second = anaerobic) */
+    var ths=QA('.ig-th');
+    function thFrom(el){if(!el)return null;return {speed:numOrNull(T(Q('.spd',el))),hr:numOrNull(T(Q('.hr',el)))};}
+    b.aet=thFrom(ths[0]);b.ant=thFrom(ths[1]);
+    /* engine-audit fallback if the tiles were missing */
+    try{if((!b.aet||b.aet.speed==null)){var a=JSON.parse(doc.body.getAttribute('data-fc-aet-engine')||'null');if(a)b.aet={speed:numOrNull(a.value),hr:numOrNull(a.hr)};}}catch(e){}
+    try{if((!b.ant||b.ant.speed==null)){var an=JSON.parse(doc.body.getAttribute('data-fc-ant-engine')||'null');if(an)b.ant={speed:numOrNull(an.value),hr:numOrNull(an.hr)};}}catch(e){}
+    /* VO2 summary */
+    b.vo2max=numOrNull(T(Q('[data-vo2max-echo]')||Q('[data-vo2max]')||Q('.ks-main .v')||Q('.vo2-max .v')));
+    b.maxHR=numOrNull(T(Q('.vo2-maxhr .v')||Q('.ks-side b')));
+    b.age=numOrNull(T(Q('[data-vo2-age]')));
+    var sx=T(Q('[data-vo2-sex]'));b.sex=(sx&&sx!=='-')?sx:null;
+    /* uploaded graph images (baked as data: URIs in the snapshot) */
+    b.images=QA('.imgslot').map(function(sl){var img=Q('.shot',sl);var src=img?img.getAttribute('src'):'';return (sl.id&&src)?{id:sl.id,src:src}:null;}).filter(Boolean);
+    /* hand-written prose, scoped by section so combined reports' duplicate ids
+       (analysis + vo2Analysis both use #an-list) never cross over */
+    function prose(sec,inner){var el=Q('[data-section="'+sec+'"] '+inner);return (el&&el.innerHTML.trim())?el.innerHTML:null;}
+    b.analysisHTML=prose('analysis','#an-list');
+    b.recsHTML=prose('recommendations','#rec-list');
+    b.defsHTML=prose('appendix','#def-list')||prose('combinedAppendix','#def-list')||prose('vo2Appendix','#def-list');
+    return b;
+  };
+
+  window.fcApplyBundle=function(b){
+    if(!b)return null;
+    if(!TEST_TYPES[b.testType])b.testType='lt_treadmill';
+    report.testType=b.testType;
+    report.modality=TEST_TYPES[b.testType].modality;
+    document.body.setAttribute('data-fc-test-type',report.testType);
+    if(b.client)report.client=b.client;
+    if(b.date)report.date=b.date;
+    if(b.location)report.location=b.location;
+    if(b.authors&&b.authors.length)report.authors=b.authors;
+    /* map location back to a gym partner where it uniquely matches */
+    if(b.location){for(var gk in GYMS){if(GYMS[gk]&&GYMS[gk].location===b.location){report.gymKey=gk;report.gym=GYMS[gk];break;}}}
+    if(b.aet&&b.aet.speed!=null)report.aet={speed:b.aet.speed,hr:(b.aet.hr!=null?b.aet.hr:report.aet.hr)};
+    if(b.ant&&b.ant.speed!=null)report.ant={speed:b.ant.speed,hr:(b.ant.hr!=null?b.ant.hr:report.ant.hr)};
+    report.vo2=report.vo2||{};
+    if(b.vo2max!=null)report.vo2.vo2max=b.vo2max;
+    if(b.maxHR!=null)report.vo2.maxHR=b.maxHR;
+    if(b.age!=null)report.vo2.age=b.age;
+    if(b.sex)report.vo2.sex=b.sex;
+    if(b.vo2stages&&b.vo2stages.length)report.vo2.stages=b.vo2stages;
+    /* inject the real lactate stages, render, then clear the override */
+    window.__fcRawOverride=(b.raw&&b.raw.length)?b.raw:null;
+    renderStage();
+    window.__fcRawOverride=null;
+    if(typeof syncCollectionLabels==='function')syncCollectionLabels();
+    var ca=document.getElementById('cb-aet'),cn=document.getElementById('cb-ant'),
+        cah=document.getElementById('cb-aet-hr'),cnh=document.getElementById('cb-ant-hr');
+    if(ca)ca.value=report.aet.speed;if(cn)cn.value=report.ant.speed;
+    if(cah)cah.value=report.aet.hr;if(cnh)cnh.value=report.ant.hr;
+    /* transplant hand-written prose verbatim (only where both old + new have it) */
+    function setInner(sec,inner,html){if(!html)return false;var el=document.querySelector('[data-section="'+sec+'"] '+inner);if(el){el.innerHTML=html;return true;}return false;}
+    var carried={analysis:setInner('analysis','#an-list',b.analysisHTML),
+                 recs:setInner('recommendations','#rec-list',b.recsHTML),
+                 defs:setInner('appendix','#def-list',b.defsHTML)||setInner('combinedAppendix','#def-list',b.defsHTML)||setInner('vo2Appendix','#def-list',b.defsHTML)};
+    /* restore uploaded graphs */
+    var imgN=0;
+    (b.images||[]).forEach(function(im){var sl=document.getElementById(im.id);if(!sl)return;var img=sl.querySelector('.shot');if(img){img.setAttribute('src',im.src);sl.classList.add('has-img');imgN++;}});
+    /* redraw derived visuals now everything is in place */
+    if(typeof computeFractional==='function')computeFractional();
+    if(typeof computeEconomy==='function')computeEconomy();
+    if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+    var rb=document.getElementById('fc-resume-bar');if(rb)rb.remove();
+    /* mark dirty so it autosaves as a NEW draft (the old one stays as a backup) */
+    try{document.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
+    return {carried:carried,images:imgN,rawN:(b.raw||[]).length,vo2N:(b.vo2stages||[]).length};
+  };
+
+  window.fcUpgradeFromHTML=function(html){
+    var b=window.fcExtractSnapshot(html);
+    if(!b){alert('Sorry - could not read that saved report.');return;}
+    var ver=T(document.querySelector('.t-left span'))||'the latest version';
+    var msg='Upgrade this report to '+ver+'?\n\n'+
+      'Carries over: your test data ('+(b.raw||[]).length+' lactate stages, '+(b.vo2stages||[]).length+' VO₂ stages), '+
+      'thresholds, uploaded graphs, cover details, and your written analysis / recommendations / definitions.\n\n'+
+      'Rebuilt in the new format: the computed sections (quick reference, VO₂ depth, economy, fractional utilisation).\n\n'+
+      'Your original saved report is kept as a backup. Continue?';
+    if(!window.confirm(msg))return;
+    var r=window.fcApplyBundle(b);
+    if(!r){alert('Sorry - the upgrade could not be completed.');return;}
+    var check=[];
+    if(!b.aet||b.aet.speed==null)check.push('the thresholds');
+    if(b.vo2max==null&&TEST_TYPES[b.testType].kind!=='lt')check.push('VO₂ max');
+    if(!b.sex&&TEST_TYPES[b.testType].kind!=='lt')check.push('athlete sex (for the VO₂ comparison table)');
+    var summary='✓ Upgraded "'+(report.client||'report')+'" to '+ver+'. Carried '+r.rawN+' lactate stages, '+r.vo2N+' VO₂ stages, '+
+      r.images+' graph image(s)'+(r.carried.analysis?', your analysis':'')+(r.carried.recs?', recommendations':'')+(r.carried.defs?', definitions':'')+'.'+
+      (check.length?(' Please double-check '+check.join(', ')+'.'):'')+
+      ' Review it, then use "Save draft" (or Save to cloud) to store the upgraded copy.';
+    var el=document.getElementById('sd-status');if(el){el.textContent=summary;el.className='cb-status ok';}
+    try{window.scrollTo(0,0);}catch(e){}
+    alert(summary);
+  };
+})();
 </script>
 <div id="te-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(6,10,8,0.72);overflow:auto;padding:24px 16px;">
   <div id="te-modal-card" style="background:#0F1714;border:1px solid #2A3A33;border-radius:14px;max-width:720px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,0.55);">
