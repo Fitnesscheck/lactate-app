@@ -229,6 +229,8 @@
   .vo2-norms thead th{background:#EAF6F1;color:var(--green-dark);font-weight:600;font-size:9px;line-height:1.15;}
   .vo2-norms tbody th{background:#F5F7F5;font-weight:600;width:34px;}
   .vo2-norms td.hl{background:#1D9E75;color:#fff;font-weight:700;}
+  .vo2-norms td.pickcell{cursor:pointer;}
+  .vo2-norms td.pickcell:hover{outline:2px solid var(--green);outline-offset:-2px;}
   .vo2-norms-note{font-size:10.5px;color:#6B756F;margin:2px 0 0;}
 
   .an-block{margin-bottom:14px;break-inside:avoid;position:relative;}
@@ -345,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v43</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v44</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -987,7 +989,7 @@ function ratingProse(cat){
    drive the rating badge (so table and badge always agree). Optionally highlights the
    athlete's own age-band x category cell. */
 var VO2_AGE_LABELS={19:"13-19",29:"20-29",39:"30-39",49:"40-49",59:"50-59",200:"60+"};
-function normsTable(sexKey,hlBandMax,hlCatIdx){
+function normsTable(sexKey,hlBandMax,hlCatIdx,clickable){
   var cats=["Very poor","Poor","Fair","Good","Excellent","Superior"];
   var f=function(x){return x.toFixed(1);};
   var head='<tr><th>Age</th>'+cats.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr>';
@@ -996,7 +998,13 @@ function normsTable(sexKey,hlBandMax,hlCatIdx){
     var vals=['&lt;'+f(c[0]),f(c[0])+'-'+f(c[1]-0.1),f(c[1])+'-'+f(c[2]-0.1),
               f(c[2])+'-'+f(c[3]-0.1),f(c[3])+'-'+f(c[4]-0.1),f(c[4])+'+'];
     var tds=vals.map(function(t,ci){
-      return '<td'+((row.max===hlBandMax&&ci===hlCatIdx)?' class="hl"':'')+'>'+t+'</td>';
+      var isHl=(row.max===hlBandMax&&ci===hlCatIdx);
+      /* clickable cells carry their row (age band) + column so a click can move the
+         highlight - used to fix a report where the age was entered wrong. */
+      var attr=clickable
+        ? ' data-hl-band="'+row.max+'" data-hl-cat="'+ci+'" class="pickcell'+(isHl?' hl':'')+'"'
+        : (isHl?' class="hl"':'');
+      return '<td'+attr+'>'+t+'</td>';
     }).join('');
     return '<tr><th>'+VO2_AGE_LABELS[row.max]+'</th>'+tds+'</tr>';
   }).join('');
@@ -1015,11 +1023,16 @@ function compareTablesHtml(){
   var sel=report.vo2._compareSex||sex, own=(sel===sex);
   var srows=VO2_NORMS[sel], sBand=srows[srows.length-1].max;
   for(var j=0;j<srows.length;j++){ if(aNum<=srows[j].max){sBand=srows[j].max;break;} }
+  /* A manual override (set by clicking a cell) wins over the age-derived position, so
+     a report with a wrong age can still show the correct green box. */
+  var hlBand=sBand, hlCat=catIdx, overridden=false;
+  if(report.vo2._hlCell&&report.vo2._hlCell.bandMax!=null){ hlBand=report.vo2._hlCell.bandMax; hlCat=report.vo2._hlCell.catIdx; overridden=true; }
   var toggle='<div class="vo2-sex-toggle no-print">'+['Male','Female'].map(function(sx){
     return '<button type="button" data-compare-sex="'+sx+'"'+(sx===sel?' class="on"':'')+'>'+(sx==='Male'?'Men':'Women')+'</button>';
   }).join('')+'</div>';
+  var hint=own?'<div class="vo2-hl-hint no-print" style="font-size:11px;color:#6b746f;margin:5px 0 0;">Click any cell to move the highlighted box'+(overridden?' · <a href="#" data-hl-reset style="color:var(--green-dark);">reset to age</a>':'')+'.</div>':'';
   return toggle+'<div><div class="vo2-norms-cap">'+(sel==='Male'?'Men':'Women')+'</div>'+
-    normsTable(sel, own?sBand:null, own?catIdx:null)+'</div>';
+    normsTable(sel, own?hlBand:null, own?hlCat:null, own)+'</div>'+hint;
 }
 function refreshCompareTables(){ var w=document.getElementById('vo2-norms-wrap'); if(w)w.innerHTML=compareTablesHtml(); }
 /* Single source of truth for VO2 max (report.vo2.vo2max). Editing it anywhere - the
@@ -2053,6 +2066,10 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(e.target.closest("[data-add-an-below]")){const blk=e.target.closest(".an-block");if(blk)blk.insertAdjacentHTML("afterend",anBlock({h:"New section",p:"Write here."}));return;}
   const _cs=e.target.closest("[data-compare-sex]");
   if(_cs){ report.vo2._compareSex=_cs.getAttribute("data-compare-sex"); if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
+  const _hlr=e.target.closest("[data-hl-reset]");
+  if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
+  const _hc=e.target.closest("[data-hl-band]");
+  if(_hc){ report.vo2._hlCell={bandMax:parseInt(_hc.getAttribute("data-hl-band"),10),catIdx:parseInt(_hc.getAttribute("data-hl-cat"),10)}; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   if(e.target.closest("[data-fu-open]")){const sh=e.target.closest(".sheet"),bk=sh&&sh.querySelector("[data-fu-back]");if(bk)bk.classList.add("open");return;}
   if(e.target.closest("[data-fu-close]")||e.target.matches("[data-fu-back]")){const bk=e.target.closest("[data-fu-back]");if(bk)bk.classList.remove("open");return;}
   const rm=e.target.closest("[data-rm]");
