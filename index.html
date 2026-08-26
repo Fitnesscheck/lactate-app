@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v45</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v46</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -489,6 +489,16 @@
     <div id="lib-list"></div>
   </div>
   <div class="cb-status" id="lib-status">Browse reports saved to the library and re-download their PDF or Instagram card. To edit a finished report, open its editable copy from “Cloud reports”.</div>
+</details>
+<details class="chart-builder no-print" id="backup-panel">
+  <summary><span class="cb-arrow">&#9656;</span> &#128190; Backup / restore (tiny file, no cloud needed)</summary>
+  <div class="cb-inner" style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" id="bk-export">&#128190; Export this report</button>
+      <label class="btn cb-btn2" style="cursor:pointer;">&#128193; Restore from file<input type="file" id="bk-import-file" accept=".json,application/json" style="display:none;"></label>
+    </div>
+  </div>
+  <div class="cb-status" id="bk-status">Export saves just this report's data as a tiny file (usually a few KB) you can keep anywhere - on your computer, Drive or email. Restore rebuilds it in the app. Uploaded graph images add to the size; the app-generated charts don't.</div>
 </details>
 <div id="chk-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10002;background:rgba(6,10,8,0.82);overflow:auto;padding:24px 16px;">
   <div style="background:#0F1714;border:1px solid #2A3A33;border-radius:14px;max-width:640px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,0.6);">
@@ -3013,9 +3023,10 @@ document.getElementById("stage").addEventListener("click",e=>{
   function T(el){return el?(el.textContent||'').trim():'';}
   function numOrNull(v){var n=parseFloat(v);return isNaN(n)?null:n;}
 
-  window.fcExtractSnapshot=function(html){
-    var doc;
-    try{doc=new DOMParser().parseFromString(html,'text/html');}catch(e){return null;}
+  /* Core extractor: pull a compact data bundle from any document (a parsed snapshot
+     OR the live page). This is the whole report in a few KB - no app code, no baked
+     HTML - which is what the backup file and the upgrade path both use. */
+  window.fcExtractFromDoc=function(doc){
     if(!doc||!doc.body)return null;
     var Q=function(s,r){return (r||doc).querySelector(s);};
     var QA=function(s,r){return [].slice.call((r||doc).querySelectorAll(s));};
@@ -3056,6 +3067,25 @@ document.getElementById("stage").addEventListener("click",e=>{
     b.analysisHTML=prose('analysis','#an-list');
     b.recsHTML=prose('recommendations','#rec-list');
     b.defsHTML=prose('appendix','#def-list')||prose('combinedAppendix','#def-list')||prose('vo2Appendix','#def-list');
+    /* editable best-economy zone (from its controls; values baked into snapshots) */
+    var zf=doc.getElementById?doc.getElementById('econ-zone-from'):Q('#econ-zone-from'),
+        zt=doc.getElementById?doc.getElementById('econ-zone-to'):Q('#econ-zone-to'),
+        zo=doc.getElementById?doc.getElementById('econ-zone-on'):Q('#econ-zone-on');
+    if(zf||zt||zo){b.econZone={from:(zf&&zf.value!==''?numOrNull(zf.value):null),to:(zt&&zt.value!==''?numOrNull(zt.value):null),on:zo?!!zo.checked:true};}
+    return b;
+  };
+  /* Parse a saved snapshot's HTML, then extract from it. */
+  window.fcExtractSnapshot=function(html){
+    var doc;try{doc=new DOMParser().parseFromString(html,'text/html');}catch(e){return null;}
+    return window.fcExtractFromDoc(doc);
+  };
+  /* Extract the report currently open on the page. */
+  window.fcExtractLive=function(){
+    var b=window.fcExtractFromDoc(document);
+    if(b&&typeof report!=='undefined'){
+      if(report.gymKey)b.gymKey=report.gymKey;
+      if(report.econZone&&!b.econZone)b.econZone=report.econZone;
+    }
     return b;
   };
 
@@ -3069,8 +3099,11 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
     if(b.authors&&b.authors.length)report.authors=b.authors;
-    /* map location back to a gym partner where it uniquely matches */
-    if(b.location){for(var gk in GYMS){if(GYMS[gk]&&GYMS[gk].location===b.location){report.gymKey=gk;report.gym=GYMS[gk];break;}}}
+    /* prefer an explicit gym key (backup files carry it); else map from the location */
+    if(b.gymKey&&GYMS[b.gymKey]){report.gymKey=b.gymKey;report.gym=GYMS[b.gymKey];}
+    else if(b.location){for(var gk in GYMS){if(GYMS[gk]&&GYMS[gk].location===b.location){report.gymKey=gk;report.gym=GYMS[gk];break;}}}
+    /* best-economy zone: set before render so economy() uses it instead of re-seeding */
+    report.econZone=(b.econZone&&(b.econZone.from!=null||b.econZone.to!=null))?{from:b.econZone.from,to:b.econZone.to,on:b.econZone.on!==false}:null;
     if(b.aet&&b.aet.speed!=null)report.aet={speed:b.aet.speed,hr:(b.aet.hr!=null?b.aet.hr:report.aet.hr)};
     if(b.ant&&b.ant.speed!=null)report.ant={speed:b.ant.speed,hr:(b.ant.hr!=null?b.ant.hr:report.ant.hr)};
     report.vo2=report.vo2||{};
@@ -3172,6 +3205,52 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(lp)lp.addEventListener('toggle',function(){if(lp.open&&!ALL.length)load();});
   var rb=document.getElementById('lib-refresh');if(rb)rb.addEventListener('click',load);
   var sb=document.getElementById('lib-search');if(sb)sb.addEventListener('input',render);
+})();
+</script>
+<script>
+/* ===== BACKUP / RESTORE (tiny data-only file) =====
+   Export the open report as a small JSON file (just the data, via fcExtractLive -
+   no app code, no baked HTML), and restore it later via fcApplyBundle. This is the
+   "store small, bring back when needed" path, and works fully offline. */
+(function(){
+  function bkStatus(msg,cls){var el=document.getElementById('bk-status');if(el){el.textContent=msg;el.className='cb-status '+(cls||'');}}
+  function slug(s){return (String(s||'').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase())||'report';}
+  function download(filename,text){
+    var blob=new Blob([text],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+    setTimeout(function(){try{document.body.removeChild(a);}catch(e){}URL.revokeObjectURL(url);},150);
+  }
+  var exp=document.getElementById('bk-export');
+  if(exp)exp.addEventListener('click',function(){
+    if(typeof window.fcExtractLive!=='function'){bkStatus('Backup engine not ready - reload the page.','err');return;}
+    var b=window.fcExtractLive();
+    if(!b){bkStatus('Could not read the current report.','err');return;}
+    var payload={fcBackup:1,savedAt:new Date().toISOString(),appVersion:((document.querySelector('.t-left span')||{}).textContent||'').trim(),report:b};
+    var json=JSON.stringify(payload);
+    var name=((document.querySelector('.cov-name')||{}).textContent||'report').trim();
+    var date=((document.querySelector('.cov-date b')||{}).textContent||'').trim();
+    download(slug(name)+(date?'-'+slug(date):'')+'.fcreport.json',json);
+    var kb=(json.length/1024).toFixed(json.length<10240?1:0), imgN=(b.images||[]).length;
+    bkStatus('✓ Exported "'+name+'" ('+kb+' KB'+(imgN?', includes '+imgN+' uploaded graph'+(imgN>1?'s':''):', charts regenerate on restore')+'). Keep this file safe; use Restore to bring it back any time.','ok');
+  });
+  var imp=document.getElementById('bk-import-file');
+  if(imp)imp.addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];if(!f){return;}
+    var reader=new FileReader();
+    reader.onload=function(){
+      var data;try{data=JSON.parse(reader.result);}catch(err){bkStatus('That file is not a valid backup (could not read it).','err');e.target.value='';return;}
+      var b=(data&&data.report)?data.report:data;   /* accept a raw bundle too */
+      if(!b||!b.testType){bkStatus('That file does not look like a FitnessCheck backup.','err');e.target.value='';return;}
+      if(!window.confirm('Restore "'+(b.client||'this report')+'"?\n\nIt will replace the report currently open on screen. Your other Saved / Cloud reports are not affected.')){e.target.value='';return;}
+      if(typeof window.fcApplyBundle!=='function'){bkStatus('Restore engine not ready - reload the page.','err');e.target.value='';return;}
+      var r=window.fcApplyBundle(b);
+      if(!r){bkStatus('Sorry - the restore could not be completed.','err');e.target.value='';return;}
+      bkStatus('✓ Restored "'+(b.client||'report')+'" ('+r.rawN+' lactate stages, '+r.vo2N+' VO₂ stages, '+r.images+' graph image(s)). It is now open and autosaving.','ok');
+      e.target.value='';try{window.scrollTo(0,0);}catch(_){}
+    };
+    reader.readAsText(f);
+  });
 })();
 </script>
 <div id="te-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(6,10,8,0.72);overflow:auto;padding:24px 16px;">
