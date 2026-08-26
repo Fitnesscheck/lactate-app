@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v44</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v45</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -478,6 +478,17 @@
     <div id="cl-list"></div>
   </div>
   <div class="cb-status" id="cl-status">Save the current report to the cloud so it is safe and your partner can open it. It then auto-syncs as you edit.</div>
+</details>
+<details class="chart-builder no-print" id="library-panel">
+  <summary><span class="cb-arrow">&#9656;</span> &#128218; Report library (finished reports saved to library)</summary>
+  <div class="cb-inner" style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn cb-btn2" id="lib-refresh">&#8635; Refresh list</button>
+      <input type="search" id="lib-search" placeholder="Filter by client or gym…" style="flex:1;min-width:160px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;">
+    </div>
+    <div id="lib-list"></div>
+  </div>
+  <div class="cb-status" id="lib-status">Browse reports saved to the library and re-download their PDF or Instagram card. To edit a finished report, open its editable copy from “Cloud reports”.</div>
 </details>
 <div id="chk-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10002;background:rgba(6,10,8,0.82);overflow:auto;padding:24px 16px;">
   <div style="background:#0F1714;border:1px solid #2A3A33;border-radius:14px;max-width:640px;margin:0 auto;box-shadow:0 24px 70px rgba(0,0,0,0.6);">
@@ -2528,7 +2539,11 @@ document.getElementById("stage").addEventListener("click",e=>{
       const res=await fetch(backend()+'/complete',{method:'POST',body:fd});
       if(!res.ok)throw new Error('HTTP '+res.status+' '+(await res.text()));
       const out=await res.json();
-      setStatus('✓ Saved to library (report '+String(out.report_id).slice(0,8)+'). '+(png?'IG card stored. ':'')+(pdf?'PDF stored. ':'')+(lastDraft?'Corrections logged for future drafts.':''),'ok');
+      setStatus('✓ Saved to library (report '+String(out.report_id).slice(0,8)+'). '+(png?'IG card stored. ':'')+(pdf?'PDF stored. ':'')+(lastDraft?'Corrections logged for future drafts. ':'')+'Also saving an editable copy to Cloud reports so you can reopen it.','ok');
+      /* The library archives the finished report (data + prose + PDF/PNG) but not the
+         full editable page, so also keep an editable copy in Cloud reports - that is
+         the tier you reopen from. Non-fatal if the cloud save fails. */
+      try{var _cl=document.getElementById('cl-save');if(_cl)_cl.click();}catch(e){}
     }catch(e){setStatus('Save failed: '+e.message,'err');}
     busy(false);
   });
@@ -3115,6 +3130,48 @@ document.getElementById("stage").addEventListener("click",e=>{
     try{window.scrollTo(0,0);}catch(e){}
     alert(summary);
   };
+})();
+</script>
+<script>
+/* ===== REPORT LIBRARY (browse + re-download finished, saved-to-library reports) =====
+   Reads GET /reports (client name, date, gym, signed PDF/PNG URLs). The library is the
+   finished archive; the editable copy lives in Cloud reports, so this panel is for
+   finding and re-downloading, not editing. */
+(function(){
+  var DEFAULT_BACKEND='https://web-production-bb0d36.up.railway.app';
+  function backend(){var el=document.getElementById('be-url');return ((el&&el.value)||localStorage.getItem('fc_backend')||DEFAULT_BACKEND).trim().replace(/\/+$/,'');}
+  function status(msg,cls){var el=document.getElementById('lib-status');if(el){el.textContent=msg;el.className='cb-status '+(cls||'');}}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function fmtDate(r){var d=r.test_date||r.created_at;if(!d)return '';try{return new Date(d).toLocaleDateString();}catch(e){return d;}}
+  var ALL=[];
+  function render(){
+    var box=document.getElementById('lib-list');if(!box)return;
+    if(!ALL.length){box.innerHTML='<div style="color:#8FA096;font-size:12.5px;">No reports in the library yet. Use “Save to library” after finishing a report.</div>';return;}
+    var q=((document.getElementById('lib-search')||{}).value||'').trim().toLowerCase();
+    var items=ALL.filter(function(r){return !q||((r.client_name||'')+' '+(r.gym||'')).toLowerCase().indexOf(q)>-1;});
+    if(!items.length){box.innerHTML='<div style="color:#8FA096;font-size:12.5px;">No reports match that search.</div>';return;}
+    box.innerHTML=items.map(function(r){
+      var pdf=r.pdf_url?'<a class="btn cb-btn2" href="'+esc(r.pdf_url)+'" style="padding:5px 12px;text-decoration:none;">PDF</a>':'<span style="color:#6b746f;font-size:11px;white-space:nowrap;">no PDF</span>';
+      var png=r.png_url?'<a class="btn cb-btn2" href="'+esc(r.png_url)+'" style="padding:5px 12px;text-decoration:none;">Card</a>':'';
+      var meta=[fmtDate(r),r.gym].filter(Boolean).join(' · ');
+      return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A3A33;">'+
+        '<div style="flex:1;min-width:0;color:var(--cream);font-size:13px;">'+esc(r.client_name||'(no name)')+'<div style="color:#8FA096;font-size:11px;">'+esc(meta)+'</div></div>'+
+        png+pdf+
+      '</div>';
+    }).join('');
+  }
+  function load(){
+    status('Loading library…');
+    var box=document.getElementById('lib-list');if(box)box.innerHTML='<div style="color:#8FA096;font-size:12.5px;">Loading…</div>';
+    return fetch(backend()+'/reports').then(function(res){if(!res.ok)throw new Error('HTTP '+res.status);return res.json();}).then(function(items){
+      ALL=Array.isArray(items)?items:[];render();
+      status(ALL.length?(ALL.length+' report'+(ALL.length===1?'':'s')+' in the library. Links open in a new tab (a report only has a PDF if one was attached when it was saved).'):'The library is empty.','ok');
+    }).catch(function(e){status('Could not load the library: '+e.message,'err');if(box)box.innerHTML='';});
+  }
+  var lp=document.getElementById('library-panel');
+  if(lp)lp.addEventListener('toggle',function(){if(lp.open&&!ALL.length)load();});
+  var rb=document.getElementById('lib-refresh');if(rb)rb.addEventListener('click',load);
+  var sb=document.getElementById('lib-search');if(sb)sb.addEventListener('input',render);
 })();
 </script>
 <div id="te-modal" class="no-print" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(6,10,8,0.72);overflow:auto;padding:24px 16px;">
