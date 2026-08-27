@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v49</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v50</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1687,18 +1687,34 @@ function computeFractional(){
   var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU)+'%';
   var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU))+'%';
 }
+/* Example-profile donuts, toggle-able between men and women. The aerobic/anaerobic
+   percentages are identical for both sexes; only the VO₂ max (centre) is scaled down
+   for women. report._egSex holds the choice; refreshFuExamples() redraws in place. */
+function fuExamplesHtml(){
+  var sex=report._egSex||(report.vo2?vo2Sex(report.vo2.sex):'Male');
+  var isF=(sex==='Female');
+  function egDonut(aer,an,vM,vF,title,note){
+    return '<div style="text-align:center;min-width:0;">'+
+      '<div style="max-width:148px;margin:0 auto;">'+doughnut(aer,an,false,isF?vF:vM)+'</div>'+
+      '<div style="font-weight:700;margin-top:6px;font-size:11px;line-height:1.2;">'+title+'</div>'+
+      '<div style="font-size:10px;color:#6b746f;line-height:1.3;margin-top:2px;">'+note+'</div></div>';
+  }
+  var toggle='<div class="vo2-sex-toggle no-print" style="margin-bottom:8px;">'+['Male','Female'].map(function(sx){
+    return '<button type="button" data-eg-sex="'+sx+'"'+(sx===sex?' class="on"':'')+'>'+(sx==='Male'?'Men':'Women')+'</button>';
+  }).join('')+'</div>';
+  var grid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:12px;align-items:start;">'+
+    egDonut(80,90,78,66,'Elite endurance','Uses almost all of a big engine - the red is a sliver.')+
+    egDonut(65,75,58,50,'Cyclist (FTP 3.5 W/kg)','An endurance-focused cyclist: a high, sustainable threshold.')+
+    egDonut(45,78,42,36,'25-min 5K runner','A recreational runner with plenty of room to grow.')+
+    egDonut(35,67,35,28,'Untrained','Engine barely used - mostly red, lots of headroom.')+
+  '</div>';
+  return toggle+grid;
+}
+function refreshFuExamples(){var w=document.getElementById('fu-examples-wrap');if(w)w.innerHTML=fuExamplesHtml();}
 function fractional(){
   var res=fuCompute();
   var aerL=res?Math.round(res.aerFU):'-',anL=res?Math.round(res.anFU):'-',gapL=res?Math.max(0,100-Math.round(res.anFU)):'-';
   var wk=HASPACE()?'speed':'power';
-  /* illustrative profiles (representative numbers, not this athlete's). The centre
-     shows each profile's typical VO₂ max (= 100% of its own ring). */
-  function egDonut(aer,an,vmax,title,note){
-    return '<div style="text-align:center;min-width:0;">'+
-      '<div style="max-width:118px;margin:0 auto;">'+doughnut(aer,an,false,vmax)+'</div>'+
-      '<div style="font-weight:700;margin-top:6px;font-size:11px;line-height:1.2;">'+title+'</div>'+
-      '<div style="font-size:10px;color:#6b746f;line-height:1.3;margin-top:2px;">'+note+'</div></div>';
-  }
   return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
@@ -1724,14 +1740,10 @@ function fractional(){
     /* Working table, on the page. #fu-table-wrap id kept so computeFractional() updates it. */
     '<h3 class="vo2-sub" style="margin:26px 0 8px;">The numbers behind it</h3>'+
     '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>')+'</div>'+
-    /* Two example profiles for context. */
-    '<h3 class="vo2-sub" style="margin:26px 0 8px;">What different profiles look like</h3>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:12px;align-items:start;">'+
-      egDonut(80,90,78,'Elite endurance','Uses almost all of a big engine - the red is a sliver.')+
-      egDonut(70,82,58,'Cyclist (FTP 3.5 W/kg)','Well trained: a high, sustainable threshold.')+
-      egDonut(62,78,45,'25-min 5K runner','A solid recreational profile with room to grow.')+
-      egDonut(50,67,35,'Untrained','Engine under-used - lots of red, lots of headroom.')+
-    '</div>'+
+    /* Example profiles for context (men/women toggle; same %s, VO₂ max scaled). */
+    '<h3 class="vo2-sub" style="margin:26px 0 4px;">What different profiles look like</h3>'+
+    '<p style="font-size:11px;color:#6b746f;margin:0 0 10px;line-height:1.4;">Representative profiles for athletes in their mid-30s. The percentages are the same for men and women; only the VO₂ max in the centre is scaled for each.</p>'+
+    '<div id="fu-examples-wrap">'+fuExamplesHtml()+'</div>'+
     /* Working popup - editor only (never printed): equation + fit chart. */
     '<div class="fu-pop-back no-print" data-fu-back>'+
       '<div class="fu-pop-card">'+
@@ -2088,6 +2100,8 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(e.target.closest("[data-add-an-below]")){const blk=e.target.closest(".an-block");if(blk)blk.insertAdjacentHTML("afterend",anBlock({h:"New section",p:"Write here."}));return;}
   const _cs=e.target.closest("[data-compare-sex]");
   if(_cs){ report.vo2._compareSex=_cs.getAttribute("data-compare-sex"); if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
+  const _egs=e.target.closest("[data-eg-sex]");
+  if(_egs){ report._egSex=_egs.getAttribute("data-eg-sex"); if(typeof refreshFuExamples==='function')refreshFuExamples(); return; }
   const _hlr=e.target.closest("[data-hl-reset]");
   if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   const _hc=e.target.closest("[data-hl-band]");
