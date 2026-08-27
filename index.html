@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v47</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v48</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1554,7 +1554,7 @@ function fcArc(cx,cy,r,a0,a1){
 /* Inner ring = VO2max (a full blue circle, = 100%). Outer ring stacks the three
    zones of that capacity: aerobic (0->aer%), sustainable anaerobic (aer%->an%),
    unsustainable anaerobic (an%->100%). */
-function doughnut(aer,an,mark){
+function doughnut(aer,an,mark,vmax){
   aer=Math.max(0,Math.min(100,parseFloat(aer)||0));
   an=Math.max(aer,Math.min(100,parseFloat(an)||0));
   var S=240,cx=120,cy=120,sw=16,rOut=84,rIn=56;
@@ -1575,8 +1575,16 @@ function doughnut(aer,an,mark){
   if(aer>3)s+=lab(aer/2,Math.round(aer)+'%');
   if(an-aer>4)s+=lab((aer+an)/2,Math.round(an)+'%');
   if(100-an>3)s+=lab((an+100)/2,Math.round(100-an)+'%');
-  s+='<text x="'+cx+'" y="'+(cy-3)+'" font-size="11" fill="#2c332f" text-anchor="middle" font-weight="600">VO₂ max</text>';
-  s+='<text x="'+cx+'" y="'+(cy+12)+'" font-size="10" fill="#8a938e" text-anchor="middle">100%</text>';
+  var vnum=parseFloat(vmax);
+  if(vmax!=null&&vmax!==''&&!isNaN(vnum)){
+    var vtxt=(Math.round(vnum)===vnum)?String(vnum):vnum.toFixed(1);
+    s+='<text x="'+cx+'" y="'+(cy-9)+'" font-size="10" fill="#2c332f" text-anchor="middle" font-weight="600">VO₂ max</text>';
+    s+='<text x="'+cx+'" y="'+(cy+6)+'" font-size="17" fill="#2c332f" text-anchor="middle" font-weight="700">'+vtxt+'</text>';
+    s+='<text x="'+cx+'" y="'+(cy+19)+'" font-size="9" fill="#8a938e" text-anchor="middle">100%</text>';
+  }else{
+    s+='<text x="'+cx+'" y="'+(cy-3)+'" font-size="11" fill="#2c332f" text-anchor="middle" font-weight="600">VO₂ max</text>';
+    s+='<text x="'+cx+'" y="'+(cy+12)+'" font-size="10" fill="#8a938e" text-anchor="middle">100%</text>';
+  }
   /* mark the amber/red boundary as the fractional-utilisation point */
   if(mark && an>1 && an<99){
     var ma=(an/100*360-90)*Math.PI/180, mc=Math.cos(ma), ms=Math.sin(ma);
@@ -1674,7 +1682,7 @@ function computeFractional(){
   var chart=document.getElementById('fu-chart'),eq=document.getElementById('fu-eq'),tw=document.getElementById('fu-table-wrap'),host=document.getElementById('frac-chart');
   if(!res){ if(eq)eq.textContent='Enter at least 3 VO₂ stages (in the appendix) to fit the curve.'; if(chart)chart.innerHTML=''; if(tw)tw.innerHTML='<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>'; return; }
   if(eq)eq.innerHTML=fuEqHtml(res); if(chart)chart.innerHTML=fuChart(res); if(tw)tw.innerHTML=fuTableHtml(res);
-  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU,true);
+  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU,true,report.vo2?report.vo2.vo2max:null);
   var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(res.aerFU)+'%';
   var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU)+'%';
   var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU))+'%';
@@ -1683,12 +1691,13 @@ function fractional(){
   var res=fuCompute();
   var aerL=res?Math.round(res.aerFU):'-',anL=res?Math.round(res.anFU):'-',gapL=res?Math.max(0,100-Math.round(res.anFU)):'-';
   var wk=HASPACE()?'speed':'power';
-  /* two illustrative profiles (representative numbers, not this athlete's) */
-  function egDonut(aer,an,title,note){
-    return '<div style="flex:1 1 0;min-width:0;text-align:center;">'+
-      '<div style="max-width:150px;margin:0 auto;">'+doughnut(aer,an)+'</div>'+
-      '<div style="font-weight:700;margin-top:6px;font-size:12px;">'+title+'</div>'+
-      '<div style="font-size:11px;color:#6b746f;line-height:1.35;margin-top:2px;">'+note+'</div></div>';
+  /* illustrative profiles (representative numbers, not this athlete's). The centre
+     shows each profile's typical VO₂ max (= 100% of its own ring). */
+  function egDonut(aer,an,vmax,title,note){
+    return '<div style="text-align:center;min-width:0;">'+
+      '<div style="max-width:118px;margin:0 auto;">'+doughnut(aer,an,false,vmax)+'</div>'+
+      '<div style="font-weight:700;margin-top:6px;font-size:11px;line-height:1.2;">'+title+'</div>'+
+      '<div style="font-size:10px;color:#6b746f;line-height:1.3;margin-top:2px;">'+note+'</div></div>';
   }
   return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
@@ -1697,7 +1706,7 @@ function fractional(){
     '<p class="edit" contenteditable="true" style="margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold - how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice - the part you cannot sustain - as small as possible.</p>'+
     /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
     '<div class="frac-wrap" style="margin-top:18px;">'+
-      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0,true)+'</div>'+
+      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0,true,(res&&report.vo2)?report.vo2.vo2max:null)+'</div>'+
       '<div class="frac-legend">'+
         '<div class="fl"><span class="sw" style="background:#2E86D6"></span>VO₂ max (inner ring) - 100% of your aerobic capacity</div>'+
         '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b id="frac-aer-lab">'+aerL+'%</b> of VO₂ max</div>'+
@@ -1717,9 +1726,12 @@ function fractional(){
     '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>')+'</div>'+
     /* Two example profiles for context. */
     '<h3 class="vo2-sub" style="margin:26px 0 8px;">What different profiles look like</h3>'+
-    '<div style="display:flex;gap:22px;align-items:flex-start;">'+
-      egDonut(84,94,'Endurance athlete','Uses a big share of VO₂ max aerobically and holds a high anaerobic threshold - the red slice is tiny.')+
-      egDonut(56,74,'Sprinter / power athlete','A large ceiling but a smaller usable fraction - more of the range sits in the red, unsustainable zone.')+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:12px;align-items:start;">'+
+      egDonut(80,90,78,'Elite endurance','Uses almost all of a big engine - the red is a sliver.')+
+      egDonut(70,82,58,'Cyclist (FTP 3.5 W/kg)','Well trained: a high, sustainable threshold.')+
+      egDonut(56,74,54,'Sprinter / power','Strong anaerobically - a large, unsustainable red zone.')+
+      egDonut(62,78,45,'25-min 5K runner','A solid recreational profile with room to grow.')+
+      egDonut(50,67,35,'Untrained','Engine under-used - lots of red, lots of headroom.')+
     '</div>'+
     /* Working popup - editor only (never printed): equation + fit chart. */
     '<div class="fu-pop-back no-print" data-fu-back>'+
