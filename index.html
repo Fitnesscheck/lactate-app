@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v48</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v49</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1710,7 +1710,7 @@ function fractional(){
       '<div class="frac-legend">'+
         '<div class="fl"><span class="sw" style="background:#2E86D6"></span>VO₂ max (inner ring) - 100% of your aerobic capacity</div>'+
         '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b id="frac-aer-lab">'+aerL+'%</b> of VO₂ max</div>'+
-        '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable anaerobic - up to <b id="frac-an-lab">'+anL+'%</b></div>'+
+        '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable - up to <b id="frac-an-lab">'+anL+'%</b></div>'+
         '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable - <b id="frac-gap-lab">'+gapL+'%</b></div>'+
       '</div>'+
     '</div>'+
@@ -1718,7 +1718,7 @@ function fractional(){
       defItem({t:"VO₂ max",d:"100% of the aerobic capacity you can call on - the blue inner ring."})+
       defItem({t:"Aerobic",d:"The VO₂ at your aerobic threshold as a share of VO₂ max - how much of your ceiling the oxidative system is using there."})+
       defItem({t:"Oxidative (aerobic) system",d:"Your body's aerobic ‘engine’: it uses oxygen to turn carbohydrate and fat into energy. It is efficient and can keep going for hours, which is why it powers everything from easy rides up to your threshold - unlike the faster anaerobic system, which produces energy without oxygen but tires quickly."})+
-      defItem({t:"Sustainable anaerobic",d:"From your aerobic threshold up to your anaerobic threshold - extra capacity your lactate system adds on top of the aerobic energy that is still being produced, and which you can still sustain."})+
+      defItem({t:"Sustainable",d:"From your aerobic threshold up to your anaerobic threshold - extra capacity your lactate system adds on top of the aerobic energy that is still being produced, and which you can still sustain."})+
       defItem({t:"Unsustainable",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that outpaces clearance and cannot be sustained."})+
     '</div>'+
     /* Working table, on the page. #fu-table-wrap id kept so computeFractional() updates it. */
@@ -1729,7 +1729,6 @@ function fractional(){
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:12px;align-items:start;">'+
       egDonut(80,90,78,'Elite endurance','Uses almost all of a big engine - the red is a sliver.')+
       egDonut(70,82,58,'Cyclist (FTP 3.5 W/kg)','Well trained: a high, sustainable threshold.')+
-      egDonut(56,74,54,'Sprinter / power','Strong anaerobically - a large, unsustainable red zone.')+
       egDonut(62,78,45,'25-min 5K runner','A solid recreational profile with room to grow.')+
       egDonut(50,67,35,'Untrained','Engine under-used - lots of red, lots of headroom.')+
     '</div>'+
