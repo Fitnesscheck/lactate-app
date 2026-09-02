@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v50</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v51</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1682,11 +1682,33 @@ function computeFractional(){
   var chart=document.getElementById('fu-chart'),eq=document.getElementById('fu-eq'),tw=document.getElementById('fu-table-wrap'),host=document.getElementById('frac-chart');
   if(!res){ if(eq)eq.textContent='Enter at least 3 VO₂ stages (in the appendix) to fit the curve.'; if(chart)chart.innerHTML=''; if(tw)tw.innerHTML='<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>'; return; }
   if(eq)eq.innerHTML=fuEqHtml(res); if(chart)chart.innerHTML=fuChart(res); if(tw)tw.innerHTML=fuTableHtml(res);
-  if(host)host.innerHTML=doughnut(res.aerFU,res.anFU,true,report.vo2?report.vo2.vo2max:null);
-  var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(res.aerFU)+'%';
-  var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU)+'%';
-  var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU))+'%';
+  /* a manual donut override (edited %s) wins over the recomputed fit */
+  var _o=report.fuOverride||null;
+  var eAer=(_o&&_o.aer!=null)?_o.aer:res.aerFU, eAn=(_o&&_o.an!=null)?_o.an:res.anFU;
+  if(host)host.innerHTML=doughnut(eAer,eAn,true,report.vo2?report.vo2.vo2max:null);
+  var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(eAer);
+  var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(eAn);
+  var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(eAn));
+  var rl=document.getElementById('fu-reset-link');if(rl)rl.style.display=_o?'inline':'none';
 }
+/* Apply the hand-edited donut %s (from the editable legend numbers) live. */
+function fuApplyOverrideFromLabels(){
+  var aEl=document.getElementById('frac-aer-lab'),nEl=document.getElementById('frac-an-lab');
+  if(!aEl||!nEl)return;
+  var aer=parseFloat((aEl.textContent||'').replace(/[^0-9.]/g,''));
+  var an=parseFloat((nEl.textContent||'').replace(/[^0-9.]/g,''));
+  if(isNaN(aer)&&isNaN(an))return;
+  if(isNaN(aer))aer=0; if(isNaN(an))an=100;
+  aer=Math.max(0,Math.min(100,aer)); an=Math.max(aer,Math.min(100,an));
+  report.fuOverride={aer:aer,an:an};
+  var host=document.getElementById('frac-chart');
+  if(host)host.innerHTML=doughnut(aer,an,true,report.vo2?report.vo2.vo2max:null);
+  var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(an));
+  var rl=document.getElementById('fu-reset-link');if(rl)rl.style.display='inline';
+}
+/* live redraw while typing; normalise the shown numbers to the clamped values on blur */
+document.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='frac-aer-lab'||id==='frac-an-lab')fuApplyOverrideFromLabels();});
+document.addEventListener('focusout',function(e){var id=e.target&&e.target.id;if((id==='frac-aer-lab'||id==='frac-an-lab')&&report.fuOverride){var a=document.getElementById('frac-aer-lab'),n=document.getElementById('frac-an-lab');if(a)a.textContent=Math.round(report.fuOverride.aer);if(n)n.textContent=Math.round(report.fuOverride.an);}});
 /* Example-profile donuts, toggle-able between men and women. The aerobic/anaerobic
    percentages are identical for both sexes; only the VO₂ max (centre) is scaled down
    for women. report._egSex holds the choice; refreshFuExamples() redraws in place. */
@@ -1713,7 +1735,12 @@ function fuExamplesHtml(){
 function refreshFuExamples(){var w=document.getElementById('fu-examples-wrap');if(w)w.innerHTML=fuExamplesHtml();}
 function fractional(){
   var res=fuCompute();
-  var aerL=res?Math.round(res.aerFU):'-',anL=res?Math.round(res.anFU):'-',gapL=res?Math.max(0,100-Math.round(res.anFU)):'-';
+  /* effective aerobic / sustainable %: a manual override (edited on the donut) wins
+     over the computed fit, so the doctor can adjust the donut directly. */
+  var _o=report.fuOverride||null;
+  var eAer=(_o&&_o.aer!=null)?_o.aer:(res?res.aerFU:null);
+  var eAn=(_o&&_o.an!=null)?_o.an:(res?res.anFU:null);
+  var aerL=(eAer!=null)?Math.round(eAer):'-',anL=(eAn!=null)?Math.round(eAn):'-',gapL=(eAn!=null)?Math.max(0,100-Math.round(eAn)):'-';
   var wk=HASPACE()?'speed':'power';
   return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
@@ -1722,14 +1749,15 @@ function fractional(){
     '<p class="edit" contenteditable="true" style="margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold - how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice - the part you cannot sustain - as small as possible.</p>'+
     /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
     '<div class="frac-wrap" style="margin-top:18px;">'+
-      '<div class="frac-chart" id="frac-chart">'+doughnut(res?res.aerFU:0,res?res.anFU:0,true,(res&&report.vo2)?report.vo2.vo2max:null)+'</div>'+
+      '<div class="frac-chart" id="frac-chart">'+doughnut((eAer!=null?eAer:0),(eAn!=null?eAn:0),true,(res&&report.vo2)?report.vo2.vo2max:null)+'</div>'+
       '<div class="frac-legend">'+
         '<div class="fl"><span class="sw" style="background:#2E86D6"></span>VO₂ max (inner ring) - 100% of your aerobic capacity</div>'+
-        '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b id="frac-aer-lab">'+aerL+'%</b> of VO₂ max</div>'+
-        '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable - up to <b id="frac-an-lab">'+anL+'%</b></div>'+
-        '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable - <b id="frac-gap-lab">'+gapL+'%</b></div>'+
+        '<div class="fl"><span class="sw" style="background:#1D9E75"></span>Aerobic - <b class="edit" contenteditable="true" id="frac-aer-lab">'+aerL+'</b>% of VO₂ max</div>'+
+        '<div class="fl"><span class="sw" style="background:#D99A2B"></span>Sustainable - up to <b class="edit" contenteditable="true" id="frac-an-lab">'+anL+'</b>%</div>'+
+        '<div class="fl"><span class="sw" style="background:#E1655A"></span>Unsustainable - <b id="frac-gap-lab">'+gapL+'</b>%</div>'+
       '</div>'+
     '</div>'+
+    '<div class="no-print" style="font-size:11px;color:#6b746f;margin:6px 0 0;">Tip: click the <b>Aerobic</b> or <b>Sustainable</b> % above to adjust the donut by hand. <a href="#" data-fu-reset id="fu-reset-link" style="color:var(--green-dark);display:'+(_o?'inline':'none')+';">↺ reset to calculated</a></div>'+
     '<div class="defs" style="margin-top:20px;">'+
       defItem({t:"VO₂ max",d:"100% of the aerobic capacity you can call on - the blue inner ring."})+
       defItem({t:"Aerobic",d:"The VO₂ at your aerobic threshold as a share of VO₂ max - how much of your ceiling the oxidative system is using there."})+
@@ -2102,6 +2130,8 @@ document.getElementById("stage").addEventListener("click",e=>{
   if(_cs){ report.vo2._compareSex=_cs.getAttribute("data-compare-sex"); if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   const _egs=e.target.closest("[data-eg-sex]");
   if(_egs){ report._egSex=_egs.getAttribute("data-eg-sex"); if(typeof refreshFuExamples==='function')refreshFuExamples(); return; }
+  const _fr=e.target.closest("[data-fu-reset]");
+  if(_fr){ e.preventDefault(); report.fuOverride=null; if(typeof computeFractional==='function')computeFractional(); return; }
   const _hlr=e.target.closest("[data-hl-reset]");
   if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   const _hc=e.target.closest("[data-hl-band]");
