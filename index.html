@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v51</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v52</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -380,6 +380,7 @@
       <input type="file" id="be-vo2-files" multiple style="display:none;">
       <button class="btn cb-btn2" id="be-vo2" title="Import the VO2 Master exports (Details.txt, ProtocolSteps.xlsx, DataAverage.xlsx + optional PDF for the graphs) into a VO&#8322; max report. You can add them one at a time; it imports once all three data files are in (needs internet).">&#129504; Import VO&#8322; Master files</button>
     </div>
+    <div id="be-vo2-checklist" class="no-print" style="display:none;border-top:1px solid #2A3A33;padding-top:8px;font-size:11.5px;line-height:1.7;"></div>
     <div class="cal-only" style="border-top:1px solid #2A3A33;padding-top:8px;font-size:10px;color:#8FA096;">
       Tip: tap the <b style="color:#9fdcc6;">&#9678;</b> dot to the left of any row to <b style="color:#9fdcc6;">check treadmill calibration</b> (belt length &times; revolutions &divide; time &times; 3.6) and write the measured speed into that step.
     </div>
@@ -1852,6 +1853,11 @@ function renderStage(){
   /* Redraw the combined quick-ref card from the now-live lactate table + thresholds
      (its first build during assembleReport used the stale fallback data). */
   if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+  /* #raw-body was rebuilt, dropping the data-collection baseline + warm-up rows;
+     tell the collection grid to put them back (no-op on reports without a lactate
+     table). Guarded so the initial parse-time render (before the listener exists)
+     is harmless. */
+  try{document.dispatchEvent(new Event('fc-raw-updated'));}catch(e){}
 }
 /* Switch the whole report to another test type (picked on the cover). Resets to
    that type's demo data + units and re-renders; panels outside #stage keep their
@@ -2626,6 +2632,38 @@ document.getElementById("stage").addEventListener("click",e=>{
   var staged={};          // name -> File
   var vo2Done=false;      // a successful import has run
   function isPdf(f){ return /\.pdf$/i.test(f.name) || f.type==='application/pdf'; }
+  /* sort the staged files into the four expected slots (by name), for the checklist */
+  function catFiles(){
+    var xlsx=[],txt=null,pdf=null,other=[];
+    Object.keys(staged).forEach(function(k){var f=staged[k];
+      if(isPdf(f))pdf=f;
+      else if(/\.txt$/i.test(f.name)||/details/i.test(f.name))txt=txt||f;
+      else if(/\.xlsx$/i.test(f.name))xlsx.push(f);
+      else other.push(f);
+    });
+    var prot=null,data=null,leftover=[];
+    xlsx.forEach(function(f){ if(!prot&&/protocol/i.test(f.name))prot=f; else if(!data&&/average|data/i.test(f.name))data=f; else leftover.push(f); });
+    leftover.forEach(function(f){ if(!prot)prot=f; else if(!data)data=f; else other.push(f); });
+    return {txt:txt,prot:prot,data:data,pdf:pdf,other:other};
+  }
+  function renderChecklist(extra){
+    var box=document.getElementById('be-vo2-checklist'); if(!box)return;
+    if(!Object.keys(staged).length){ box.style.display='none'; box.innerHTML=''; return; }
+    var c=catFiles();
+    function row(ok,label,f,opt){
+      var mark=ok?'<span style="color:#5DCAA5;">&#10003;</span>':'<span style="color:#8FA096;">&#9675;</span>';
+      return '<div>'+mark+' '+label+(opt?' <span style="color:#8FA096;">(optional)</span>':'')+(f?' &mdash; <span style="color:#9fdcc6;">'+f.name+'</span>':'')+'</div>';
+    }
+    var dataN=(c.txt?1:0)+(c.prot?1:0)+(c.data?1:0);
+    var html='<div style="color:#9fdcc6;margin-bottom:3px;">'+dataN+' of 3 data files staged'+(c.pdf?' &middot; PDF added':'')+':</div>'+
+      row(!!c.txt,'Details.txt',c.txt)+
+      row(!!c.prot,'ProtocolSteps.xlsx',c.prot)+
+      row(!!c.data,'DataAverage.xlsx',c.data)+
+      row(!!c.pdf,'Session PDF (graphs)',c.pdf,true);
+    if(c.other.length)html+='<div style="color:#e0b48a;margin-top:2px;">Not recognised: '+c.other.map(function(f){return f.name;}).join(', ')+'</div>';
+    if(extra)html+='<div style="margin-top:5px;color:#9fdcc6;">'+extra+'</div>';
+    box.style.display='block'; box.innerHTML=html;
+  }
   btn.addEventListener('click',function(){inp.click();});
   inp.addEventListener('change',async function(){
     var picked=this.files?Array.prototype.slice.call(this.files):[];
@@ -2637,9 +2675,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     picked.forEach(function(f){ staged[f.name]=f; });
     var all=Object.keys(staged).map(function(k){return staged[k];});
     var pdfs=all.filter(isPdf), nonPdf=all.filter(function(f){return !isPdf(f);});
-    var names=all.map(function(f){return f.name;}).join(', ');
+    renderChecklist();
     if(nonPdf.length<3){
-      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+' ('+names+'). Add the rest - Details.txt and the two .xlsx'+(pdfs.length?'':', plus the PDF for the graphs')+'. You can add them one at a time.');
+      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+'. Still need '+(3-nonPdf.length)+' more data file'+((3-nonPdf.length)===1?'':'s')+' - see the checklist below. You can add them one at a time.');
       return;
     }
     btn.disabled=true; setStatus('Reading '+all.length+' VO₂ Master file'+(all.length===1?'':'s')+'…');
@@ -2657,8 +2695,12 @@ document.getElementById("stage").addEventListener("click",e=>{
       var d=await res.json();
       applyVo2(d); vo2Done=true;
       var n=(d.stages||[]).length;
-      var g=d.graphs?' Two VO₂ Master graphs added to the analysis page.':' (Add the PDF to pull the two graphs in automatically, or upload them by hand.)';
-      setStatus('✓ Imported '+n+' stage(s). VO₂ max '+d.vo2max+' ml/kg/min, max HR '+(d.max_hr||'-')+'.'+g+' Verify every value before use.','ok');
+      var hadPdf=all.some(isPdf);
+      var g=d.graphs?'&#10003; Two VO₂ Master graphs added to the analysis page.'
+            :(hadPdf?'&#9888; The PDF was read but its graph page couldn\'t be found automatically - add the two graphs by hand on the analysis page.'
+                    :'&#9675; No PDF added, so no graphs - add the session PDF to pull them in, or upload them by hand.');
+      renderChecklist('Imported '+n+' stage(s). VO₂ max '+d.vo2max+', max HR '+(d.max_hr||'-')+'.<br>'+g);
+      setStatus('✓ Imported '+n+' stage(s). VO₂ max '+d.vo2max+' ml/kg/min, max HR '+(d.max_hr||'-')+'. Verify every value before use.','ok');
     }catch(e){var msg=(e&&e.name==='AbortError')?'timed out - the server was slow to respond, please try again.':((e&&e.message||e)+' - add the missing file and it retries automatically.');setStatus('VO₂ import failed: '+msg,'err');}
     btn.disabled=false;
   });
@@ -2682,7 +2724,20 @@ document.getElementById("stage").addEventListener("click",e=>{
     var curKind=(TEST_TYPES[report.testType]||{}).kind;
     var vt=(curKind==='vo2'||curKind==='combined') ? report.testType
          : ((d.modality==='bike')?'vo2_bike':'vo2_treadmill');
+    /* selectTestType re-renders from demo data, which would WIPE the lactate data-
+       collection table (its entered values plus the permanent baseline + warm-up
+       rows). Capture it first and restore it after, so importing the VO2 files never
+       resets the lactate side of a combined report. */
+    var rawSaved=(document.getElementById('raw-body')||{}).innerHTML||'';
     selectTestType(vt,true);   /* keepData: don't overwrite the import with the demo */
+    var rb=document.getElementById('raw-body');
+    if(rb && rawSaved && rawSaved.replace(/\s/g,'')){
+      rb.innerHTML=rawSaved;
+      try{document.dispatchEvent(new Event('fc-raw-updated'));}catch(e){}   /* re-sync the collection grid + baseline/warm-up */
+      if(typeof computeFractional==='function')computeFractional();
+      if(typeof computeEconomy==='function')computeEconomy();
+      if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+    }
     var picker=document.querySelector('.type-picker select'); if(picker)picker.value=vt;
     if(a.test_date){
       var dt=(typeof fmtDMY==='function')?fmtDMY(a.test_date):a.test_date;
