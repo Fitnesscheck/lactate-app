@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v53</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v54</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1262,12 +1262,13 @@ function vo2Analysis(){
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
   return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
-    /* Live VO₂/HR chart drawn from the stage data (follows appendix edits). Toggle to
-       the uploaded VO₂ Master image if you'd rather show that on a given report. */
-    '<div class="curve-slot curve-slot-big combo-graph-area">'+
+    /* When a VO₂ Master image was imported, show THAT by default; a click swaps to the
+       live VO₂/HR chart (which follows appendix edits) and back. With no image, the
+       live chart is the default. */
+    '<div class="curve-slot curve-slot-big combo-graph-area'+(g.metabolic?' use-upload':'')+'">'+
       '<div class="combo-generated" id="vo2-metabolic-gen">'+vo2StageGraph(v.stages)+'</div>'+
       slot("slot-vo2-metabolic", g.metabolic)+
-      '<button class="no-print combo-toggle" data-combo-toggle title="Switch between the live chart and the uploaded VO₂ Master image">⇄ use uploaded</button>'+
+      '<button class="no-print combo-toggle" data-combo-toggle title="Switch between the uploaded VO₂ Master image and the live, editable chart">'+(g.metabolic?'⇄ use live chart':'⇄ use uploaded')+'</button>'+
     '</div>'+
     '<p class="edit" contenteditable="true" style="font-size:13px;line-height:1.6;color:#4b554f;margin:2px 0 12px;">Throughout the test your VO₂ rose consistently in step with your heart rate, as expected - your cardiovascular system kept delivering more oxygen as the effort increased.</p>'+
     '<div id="an-list">'+depth+'</div>'+
@@ -2171,7 +2172,7 @@ async function exportIgCard(){
 document.getElementById("stage").addEventListener("click",e=>{
   if(e.target.closest("#dl-ig")){exportIgCard();return;}
   if(e.target.closest("[data-rm-generated]")){const g=e.target.closest(".combo-generated");if(g)g.style.display="none";return;}
-  if(e.target.closest("[data-combo-toggle]")){const a=e.target.closest(".combo-graph-area");if(a)a.classList.toggle("use-upload");return;}
+  if(e.target.closest("[data-combo-toggle]")){const tb=e.target.closest("[data-combo-toggle]");const a=e.target.closest(".combo-graph-area");if(a){a.classList.toggle("use-upload");tb.innerHTML=a.classList.contains("use-upload")?"⇄ use live chart":"⇄ use uploaded";}return;}
   if(e.target.closest("[data-add-an-below]")){const blk=e.target.closest(".an-block");if(blk)blk.insertAdjacentHTML("afterend",anBlock({h:"New section",p:"Write here."}));return;}
   const _cs=e.target.closest("[data-compare-sex]");
   if(_cs){ report.vo2._compareSex=_cs.getAttribute("data-compare-sex"); if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
