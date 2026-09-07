@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v52</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v53</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1125,20 +1125,32 @@ function vo2Tile(lab,val,unit){
 function vo2StageGraph(stages){
   var stg=(stages||[]).filter(function(s){return s.speed!=null&&s.speed!==''&&s.vo2!=null&&s.vo2!=='';});
   if(stg.length<2) return '<div class="vo2-graph-empty">Import the VO₂ Master files to draw the VO₂ &amp; heart-rate curve.</div>';
-  /* flatten each stage to its real samples (the jagged trace); fall back to the mean */
-  var seq=[];
+  /* Flatten each stage to its real samples (the jagged trace), but SHIFT each stage's
+     samples so their average lands on that stage's editable mean VO₂ (s.vo2). This
+     keeps the VO₂-Master jagged look while making the trace follow appendix edits:
+     change a stage's VO₂ and its whole segment slides to the new value. HR is drawn
+     as one anchor per stage (its editable mean), so editing HR moves the HR line. */
+  var seq=[], hrAnchors=[];
   stg.forEach(function(s,si){
-    var sm=(s.samples&&s.samples.length)?s.samples:[{vo2:s.vo2,hr:s.hr}];
+    var sm=(s.samples&&s.samples.length)?s.samples:[{vo2:s.vo2}];
+    var svals=sm.map(function(p){return parseFloat(p.vo2);}).filter(function(x){return !isNaN(x);});
+    var m0=svals.length?svals.reduce(function(a,b){return a+b;},0)/svals.length:NaN;
+    var target=parseFloat(s.vo2);
+    var shift=(!isNaN(target)&&!isNaN(m0))?(target-m0):0;
+    var start=seq.length;
     sm.forEach(function(p,pi){
       var v=parseFloat(p.vo2); if(isNaN(v))return;
-      var h=(p.hr==null||p.hr==='')?null:parseFloat(p.hr);
-      seq.push({vo2:v,hr:(isNaN(h)?null:h),speed:s.speed,first:pi===0});
+      seq.push({vo2:v+shift,speed:s.speed,first:pi===0});
     });
+    if(seq.length>start){
+      var h=(s.hr==null||s.hr==='')?null:parseFloat(s.hr);
+      if(h!=null&&!isNaN(h))hrAnchors.push({x:(start+seq.length-1)/2,hr:h});
+    }
   });
   if(seq.length<2) return '<div class="vo2-graph-empty">Import the VO₂ Master files to draw the VO₂ &amp; heart-rate curve.</div>';
   var W=340,H=196,mL=32,mR=30,mT=24,mB=30, N=seq.length;
   var vo2=seq.map(function(p){return p.vo2;});
-  var hv=seq.map(function(p){return p.hr;}).filter(function(h){return h!=null;});
+  var hv=hrAnchors.map(function(a){return a.hr;});
   var vmin=Math.min.apply(null,vo2),vmax=Math.max.apply(null,vo2);
   var hmin=hv.length?Math.min.apply(null,hv):0,hmax=hv.length?Math.max.apply(null,hv):0;
   var vLo=Math.max(0,Math.floor((vmin-4)/5)*5),vHi=Math.ceil((vmax+3)/5)*5;
@@ -1161,7 +1173,7 @@ function vo2StageGraph(stages){
   s+='<path d="'+vd+'" fill="none" stroke="'+VO2C+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>';
   /* HR as a single STRAIGHT (least-squares) line - VO2 is the jagged trace, HR reads
      clean. HR rises near-linearly with intensity, so a straight line represents it well. */
-  var hpts=[];seq.forEach(function(p,i){if(p.hr!=null)hpts.push([i,p.hr]);});
+  var hpts=hrAnchors.map(function(a){return [a.x,a.hr];});
   if(hpts.length>1){
     var n=hpts.length,sx=0,sy=0,sxy=0,sxx=0;
     hpts.forEach(function(q){sx+=q[0];sy+=q[1];sxy+=q[0]*q[1];sxx+=q[0]*q[0];});
@@ -1174,6 +1186,28 @@ function vo2StageGraph(stages){
     '<circle cx="'+(mL+106)+'" cy="12" r="3" fill="'+CORAL+'"/><text x="'+(mL+112)+'" y="15" fill="'+TXT+'">HR (bpm)</text>'+
   '</g></svg>';
   return s;
+}
+/* Redraw the live VO₂/HR metabolic chart from the current #vo2-body values, keeping
+   each stage's imported jagged samples (they slide to the edited mean). Syncs the
+   edited values back onto report.vo2.stages so the graph + everything else agree. */
+function computeVo2Graph(){
+  var host=document.getElementById('vo2-metabolic-gen'); if(!host||!report.vo2)return;
+  var trs=document.querySelectorAll('#vo2-body tr');
+  if(trs.length){
+    var old=report.vo2.stages||[], next=[];
+    trs.forEach(function(tr,i){
+      var c=tr.querySelectorAll('td'); if(c.length<4)return;
+      var o=old[i]||{};
+      var sp=parseFloat(c[1].textContent), v=parseFloat(c[2].textContent), h=c[3].textContent.trim();
+      next.push({step:(c[0].textContent||'').trim(),
+                 speed:isNaN(sp)?o.speed:sp,
+                 vo2:isNaN(v)?o.vo2:v,
+                 hr:(h===''?null:(isNaN(parseFloat(h))?o.hr:parseFloat(h))),
+                 samples:o.samples||null});
+    });
+    if(next.length)report.vo2.stages=next;
+  }
+  host.innerHTML=vo2StageGraph(report.vo2.stages||[]);
 }
 function vo2Summary(){
   var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex);
@@ -1228,7 +1262,13 @@ function vo2Analysis(){
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
   return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
-    '<div class="curve-slot curve-slot-big">'+slot("slot-vo2-metabolic", g.metabolic)+'</div>'+
+    /* Live VO₂/HR chart drawn from the stage data (follows appendix edits). Toggle to
+       the uploaded VO₂ Master image if you'd rather show that on a given report. */
+    '<div class="curve-slot curve-slot-big combo-graph-area">'+
+      '<div class="combo-generated" id="vo2-metabolic-gen">'+vo2StageGraph(v.stages)+'</div>'+
+      slot("slot-vo2-metabolic", g.metabolic)+
+      '<button class="no-print combo-toggle" data-combo-toggle title="Switch between the live chart and the uploaded VO₂ Master image">⇄ use uploaded</button>'+
+    '</div>'+
     '<p class="edit" contenteditable="true" style="font-size:13px;line-height:1.6;color:#4b554f;margin:2px 0 12px;">Throughout the test your VO₂ rose consistently in step with your heart rate, as expected - your cardiovascular system kept delivering more oxygen as the effort increased.</p>'+
     '<div id="an-list">'+depth+'</div>'+
     '<button class="add no-print" data-add="an">+ Add section</button>'+
@@ -1965,10 +2005,11 @@ document.getElementById('stage').addEventListener('input',e=>{
     if(typeof recomputeVo2Rating==='function')recomputeVo2Rating();
     if(typeof refreshCompareTables==='function')refreshCompareTables();
   }
-  /* a VO2 stage edit feeds fractional utilisation + economy */
+  /* a VO2 stage edit feeds fractional utilisation + economy + the live VO₂/HR graph */
   if(e.target.closest('#vo2-body td')){
     if(typeof computeFractional==='function')computeFractional();
     if(typeof computeEconomy==='function')computeEconomy();
+    if(typeof computeVo2Graph==='function')computeVo2Graph();
   }
 });
 
