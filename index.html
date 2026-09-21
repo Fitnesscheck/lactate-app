@@ -283,7 +283,7 @@
   /* bike report: hide the pace column (kept in the DOM so cell indices are stable) */
   table.raw.no-pace th:nth-child(2),table.raw.no-pace td:nth-child(2){display:none;}
   /* bike test: hide treadmill-only belt-calibration controls */
-  body.modality-bike .cal-only{display:none;}
+  body.modality-bike .cal-only,body.modality-swim .cal-only{display:none;}
 
   table.rec-table{width:100%;border-collapse:collapse;font-size:13px;margin:0 0 20px;break-inside:avoid;}
   table.rec-table th{text-align:left;font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:0 12px 8px;border-bottom:0.5px solid var(--line);}
@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v58</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v59</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1977,6 +1977,7 @@ function selectTestType(key,keepData){
 function syncCollectionLabels(){
   var u=UNIT(), swim=SWIM();
   document.body.classList.toggle('modality-bike', report.modality==='bike');
+  document.body.classList.toggle('modality-swim', report.modality==='swim');
   var thUnit=swim?'/100m':u;
   var ca=document.getElementById('cb-aet'); if(ca){var l=ca.closest('.cb-field').querySelector('label'); if(l)l.textContent='Aerobic threshold ('+(swim?'m/s':u)+')';}
   var cn=document.getElementById('cb-ant'); if(cn){var l2=cn.closest('.cb-field').querySelector('label'); if(l2)l2.textContent='Anaerobic threshold ('+(swim?'m/s':u)+')';}
@@ -3989,7 +3990,13 @@ document.getElementById("stage").addEventListener("click",e=>{
   function secPace(sec){return pace100(100/sec);}
   function updateInc(){
     var el=document.getElementById('dc-inc');if(!el)return;
-    if(SWIM()){var wp=pSec('dc-warmup'),tpp=pSec('dc-top');el.textContent=(!isNaN(wp)&&!isNaN(tpp)&&tpp<wp)?('-'+Math.round((wp-tpp)/numSteps())+'s'):'-';return;}
+    if(SWIM()){
+      /* linear in SPEED (m/s), not pace - a fixed pace drop is not a fixed speed rise.
+         show the per-step speed increment, since the pace gap changes across the range. */
+      var wp=pSec('dc-warmup'),tpp=pSec('dc-top');
+      el.textContent=(!isNaN(wp)&&!isNaN(tpp)&&tpp<wp)?('+'+((100/tpp-100/wp)/numSteps()).toFixed(3)+' m/s'):'-';
+      return;
+    }
     var wu=num('dc-warmup'),tp=num('dc-top');
     el.textContent=(!isNaN(wu)&&!isNaN(tp)&&tp>wu)?String(round2((tp-wu)/numSteps())):'-';
   }
@@ -4001,12 +4008,15 @@ document.getElementById("stage").addEventListener("click",e=>{
     var existing=stepRows();
     var hasData=existing.some(function(r){return cellVal(r,COL.hr)||cellVal(r,COL.lactate)||cellVal(r,COL.rpe);});
     if(hasData&&!window.confirm('Replace the current '+existing.length+' step(s) with a fresh '+N+'-step protocol? Entered HR / lactate / RPE will be cleared.'))return;
-    var inc=(tpp-wp)/N;   /* negative: pace gets faster each step */
-    rows().forEach(function(r){if(kindOf(r)==='warm'){setCell(r,COL.speed,(100/wp).toFixed(3));setCell(r,COL.pace,secPace(wp));}});
+    /* Step LINEARLY IN SPEED so the physiological load rises evenly, then show each
+       step's pace (100/speed). A fixed pace drop would be a growing speed jump, which
+       is why we work in speed and only display pace. */
+    var vWarm=100/wp, vTop=100/tpp, vInc=(vTop-vWarm)/N;
+    rows().forEach(function(r){if(kindOf(r)==='warm'){setCell(r,COL.speed,vWarm.toFixed(3));setCell(r,COL.pace,pace100(vWarm));}});
     existing.forEach(function(r){r.remove();});
-    for(var i=1;i<=N;i++){var ps=Math.round(wp+i*inc);b.insertAdjacentHTML('beforeend',rawRow([(100/ps).toFixed(3),secPace(ps),'4','','','']));}
+    for(var i=1;i<=N;i++){var v=vWarm+i*vInc;b.insertAdjacentHTML('beforeend',rawRow([v.toFixed(3),pace100(v),'4','','','']));}
     render();
-    status('Built '+N+' steps '+secPace(Math.round(wp+inc))+'–'+secPace(tpp)+' /100m. Fill HR / lactate / RPE per step as you go.');
+    status('Built '+N+' steps '+pace100(vWarm+vInc)+'–'+pace100(vTop)+' /100m (linear speed rise of '+vInc.toFixed(3)+' m/s per step). Fill HR / lactate / RPE per step as you go.');
   }
   function buildSteps(){
     if(SWIM())return buildStepsSwim();
