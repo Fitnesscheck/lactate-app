@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v56</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v57</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -627,6 +627,12 @@ var GYMS = {
     buttonName:"Phil Mataj",
     intro:"We\u2019re partnered with Phil Mataj at Kulture Training Club, who coaches everyone from beginners to Elite 15 Hyrox athletes. He can build a programme personalised to you incorporating your data and specific goals. The button below gets a message ready to send to him.",
     mailBody:"Dear Phil,\nI\u2019ve had a test with FitnessCheck and I am interested in a structured programming.\nThanks"
+  },
+  /* Testing venue (swim + bike). No coach email on file yet, so the coach block
+     shows the generic pointer; add email/ig/offer here to enable the full CTA. */
+  "Heathwood":{
+    name:"Heathwood Swimming and Triathlon",
+    location:"Heathwood Swimming and Triathlon"
   }
 };
 
@@ -810,7 +816,10 @@ function cover(){
     '<circle cx="348" cy="801" r="4" fill="#5DCAA5"/><circle cx="536" cy="696" r="4" fill="#5DCAA5"/></svg>';
   const gymOpts=Object.keys(GYMS).map(function(k){
     var city=GYMS[k].location.split(",").pop().trim();
-    return '<option value="'+k+'"'+(k===report.gymKey?" selected":"")+'>'+GYMS[k].name+" - "+city+'</option>';
+    /* only append the city when it adds something (avoids "Name - Name" when the
+       location has no separate town yet) */
+    var lab=(city&&city!==GYMS[k].name)?(GYMS[k].name+" - "+city):GYMS[k].name;
+    return '<option value="'+k+'"'+(k===report.gymKey?" selected":"")+'>'+lab+'</option>';
   }).join("");
   const gymPicker='<div class="gym-picker no-print"><label>Gym partner</label><select onchange="selectGym(this.value)">'+gymOpts+'</select></div>';
   const typeOpts=Object.keys(TEST_TYPES).map(function(k){
@@ -914,18 +923,23 @@ function coachBlock(){
   const body=encodeURIComponent(g.mailBody||
     "Hi,\n\nI recently completed a lactate threshold test with FitnessCheck and I\u2019d like help building a training programme around my results.\n\nLook forward to hearing from you."
   );
-  const mailto="mailto:"+g.email+"?subject="+subj+"&body="+body;
+  const hasEmail=!!g.email;
+  const mailto=hasEmail?("mailto:"+g.email+"?subject="+subj+"&body="+body):"#";
   /* A gym can supply a full custom `intro`; otherwise Team Rees treadmill (run) tests
      name their run coach specifically and every other gym keeps the generic default. */
   const coachIntro=(report.gymKey==='Team Rees'&&HASPACE())
     ? 'Richard Rees, a qualified UK Athletics run coach'
     : 'a coach at '+g.name;
-  const intro=g.intro||('Let us put you in touch with '+coachIntro+' who can build a programme around your data. The button below gets a message ready to send to them.');
+  /* No coach email on file (e.g. a testing-only venue) -> drop the "button below"
+     line and show a generic pointer instead of a broken mailto. */
+  const intro=g.intro||('Let us put you in touch with '+coachIntro+' who can build a programme around your data.'+(hasEmail?' The button below gets a message ready to send to them.':''));
   return '<div class="subsec coach-block">'+
     '<h3 class="subtitle edit" contenteditable="true">Want help structuring your training?</h3>'+
     '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:0 0 12px;">'+intro+'</p>'+
-    '<a class="cta" href="'+mailto+'" onclick="return emailCoach(event)">Email '+(g.buttonName||g.name)+' &rarr;</a>'+
-    '<div class="mail-opts">Or email <a href="mailto:'+g.email+'">'+g.email+'</a> directly.</div>'+
+    (hasEmail
+      ? '<a class="cta" href="'+mailto+'" onclick="return emailCoach(event)">Email '+(g.buttonName||g.name)+' &rarr;</a>'+
+        '<div class="mail-opts">Or email <a href="mailto:'+g.email+'">'+g.email+'</a> directly.</div>'
+      : '<div class="mail-opts edit" contenteditable="true">Ask the FitnessCheck team at your test to connect you with a coach.</div>')+
     (g.offer?('<div class="gym-offer" style="border:1px solid #1D9E75;background:#EAF6F1;border-radius:10px;padding:12px 14px;margin:16px 0 4px;">'+
       '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#0F6E56;margin:0 0 7px;">'+g.offer.text+'</p>'+
       '<a href="'+g.offer.url+'" target="_blank" rel="noopener" style="font-size:13px;color:#0F6E56;font-weight:600;word-break:break-all;">'+g.offer.url+'</a>'+
