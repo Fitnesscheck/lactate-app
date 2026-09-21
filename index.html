@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v55</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v56</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2517,6 +2517,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   function buildModule(){
     const t=thresholds();
     return {type:'lactate_threshold',data:{
+      modality:report.modality,   /* treadmill | bike | swim - drives the prose units */
       aerobic_threshold:{speed:t.aet.speed,hr:t.aet.hr,source:'human'},
       anaerobic_threshold:{speed:t.ant.speed,hr:t.ant.hr,source:'human'},
       max_hr:num(document.getElementById('be-maxhr').value),
@@ -3519,9 +3520,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0F1714;border:1px solid #2A3A33;border-radius:10px;">';
     s+='<line x1="'+ml+'" y1="'+(mt+ph)+'" x2="'+(W-mr)+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
     s+='<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
-    for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
+    if(SWIM()){var pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
+      for(var pv=Math.ceil(pLo/pStep)*pStep;pv<=pHi+0.01;pv+=pStep){var spd=100/pv;if(spd<xmin||spd>xmax)continue;var X=px(spd);
+        s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
+        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';}
+    }else{for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
       s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
-      s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}
+      s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}}
     for(var yv=0;yv<=ymax;yv+=(ymax>6?2:1)){var Y=py(yv);
       s+='<line x1="'+(ml-4)+'" y1="'+Y+'" x2="'+ml+'" y2="'+Y+'" stroke="#2A3A33"/>';
       s+='<text x="'+(ml-7)+'" y="'+(Y+3)+'" fill="#8FA096" font-size="9" text-anchor="end">'+yv+'</text>';}
@@ -3583,9 +3588,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0F1714;border:1px solid #2A3A33;border-radius:10px;">';
     s+='<line x1="'+ml+'" y1="'+(mt+ph)+'" x2="'+(W-mr)+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
     s+='<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
-    for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
+    if(SWIM()){var pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
+      for(var pv=Math.ceil(pLo/pStep)*pStep;pv<=pHi+0.01;pv+=pStep){var spd=100/pv;if(spd<xmin||spd>xmax)continue;var X=px(spd);
+        s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
+        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';}
+    }else{for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
       s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
-      s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}
+      s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}}
     var ystep=isRatio?(ymax/5):(ymax>6?2:1);
     for(var yv=0;yv<=ymax+1e-9;yv+=ystep){var Y=py(yv);
       s+='<line x1="'+(ml-4)+'" y1="'+Y+'" x2="'+ml+'" y2="'+Y+'" stroke="#2A3A33"/>';
@@ -3612,7 +3621,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var incl=readAllPoints().filter(function(p){return !excluded[p.intensity];}).map(function(p){return {x:p.intensity,y:p.lactate};});
     var m=lastResult.methods[key];
     var extra=(key==='LogPolyModDmax'&&m.source==='raw')?' (ExPhysLab raw)':'';
-    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' - '+m.intensity+' '+UNIT();
+    document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' - '+(SWIM()?(pace100(m.intensity)+' /100m'):(m.intensity+' '+UNIT()));
     document.getElementById('te-view-body').innerHTML=buildMethodSVG(lastResult,key,incl);
     document.getElementById('te-view-desc').textContent=METHOD_INFO[key]||'';
   }
@@ -3632,9 +3641,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(all.length){
       var chips=all.map(function(p){
         var ex=!!excluded[p.intensity];
-        return '<span data-te-toggle="'+p.intensity+'" title="click to '+(ex?'include':'exclude')+'" style="cursor:pointer;user-select:none;display:inline-block;margin:2px;padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+(ex?'#5a3a3a':'#2A3A33')+';background:'+(ex?'#2a1414':'#16201B')+';color:'+(ex?'#e08a8a':'var(--cream)')+';text-decoration:'+(ex?'line-through':'none')+';">'+p.intensity+(ex?' ✕':'')+'</span>';
+        return '<span data-te-toggle="'+p.intensity+'" title="click to '+(ex?'include':'exclude')+'" style="cursor:pointer;user-select:none;display:inline-block;margin:2px;padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid '+(ex?'#5a3a3a':'#2A3A33')+';background:'+(ex?'#2a1414':'#16201B')+';color:'+(ex?'#e08a8a':'var(--cream)')+';text-decoration:'+(ex?'line-through':'none')+';">'+(SWIM()?pace100(p.intensity):p.intensity)+(ex?' ✕':'')+'</span>';
       }).join('');
-      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points ('+UNIT()+') - click to include / exclude from the fit</div>'+chips+'</div>';
+      html+='<div style="margin-bottom:10px;"><div style="font-size:10px;color:#8FA096;margin-bottom:3px;">Data points ('+(SWIM()?'/100m':UNIT())+') - click to include / exclude from the fit</div>'+chips+'</div>';
     }
     if(data.suggested_exclusions&&data.suggested_exclusions.length){
       html+='<div style="background:#2a1f12;border:1px solid #b8860b;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#f0c674;">'+
