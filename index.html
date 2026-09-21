@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v57</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v58</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -628,11 +628,15 @@ var GYMS = {
     intro:"We\u2019re partnered with Phil Mataj at Kulture Training Club, who coaches everyone from beginners to Elite 15 Hyrox athletes. He can build a programme personalised to you incorporating your data and specific goals. The button below gets a message ready to send to him.",
     mailBody:"Dear Phil,\nI\u2019ve had a test with FitnessCheck and I am interested in a structured programming.\nThanks"
   },
-  /* Testing venue (swim + bike). No coach email on file yet, so the coach block
-     shows the generic pointer; add email/ig/offer here to enable the full CTA. */
+  /* Coaching + services partner (swim + bike). Contact email/IG to be confirmed with
+     the owner, so the direct-email CTA stays off for now (coachBlock shows the generic
+     connect line). servicesNote is an editable placeholder for the endless-pool app
+     booking + a possible promotion. */
   "Heathwood":{
     name:"Heathwood Swimming and Triathlon",
-    location:"Heathwood Swimming and Triathlon"
+    location:"Heathwood Swimming and Triathlon, Cardiff",
+    intro:"Let us put you in touch with Heathwood’s team of highly experienced and very friendly coaches. They cater for all levels and know exactly how to use your report within a lesson or training programme. With your permission we can send them your report along with the two video clips taken during your test, so they can analyse everything beforehand and you get the most out of your sessions with them.",
+    servicesNote:"[Book your endless-pool sessions through the Heathwood app. Promotion / offer to be confirmed with the Heathwood team.]"
   }
 };
 
@@ -940,6 +944,8 @@ function coachBlock(){
       ? '<a class="cta" href="'+mailto+'" onclick="return emailCoach(event)">Email '+(g.buttonName||g.name)+' &rarr;</a>'+
         '<div class="mail-opts">Or email <a href="mailto:'+g.email+'">'+g.email+'</a> directly.</div>'
       : '<div class="mail-opts edit" contenteditable="true">Ask the FitnessCheck team at your test to connect you with a coach.</div>')+
+    /* optional services / booking note (e.g. Heathwood endless-pool app booking) */
+    (g.servicesNote?('<p class="edit" contenteditable="true" style="font-size:13px;line-height:1.6;color:#2c332f;margin:14px 0 0;">'+g.servicesNote+'</p>'):'')+
     (g.offer?('<div class="gym-offer" style="border:1px solid #1D9E75;background:#EAF6F1;border-radius:10px;padding:12px 14px;margin:16px 0 4px;">'+
       '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#0F6E56;margin:0 0 7px;">'+g.offer.text+'</p>'+
       '<a href="'+g.offer.url+'" target="_blank" rel="noopener" style="font-size:13px;color:#0F6E56;font-weight:600;word-break:break-all;">'+g.offer.url+'</a>'+
