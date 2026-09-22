@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v60</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v61</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -890,8 +890,10 @@ function recItem(txt){
 function recTable(){
   const aH=report.aet.hr, nH=report.ant.hr;
   const col=HASPACE()?"Pace":"Power";
-  const aI=HASPACE()?("Slower than "+pace(report.aet.speed)+"/km"):("Below "+report.aet.speed+" "+UNIT());
-  const nI=HASPACE()?("Use "+pace(report.ant.speed)+"/km as a guide"):("Use "+report.ant.speed+" "+UNIT()+" as a guide");
+  const aI=SWIM()?("Slower than "+pace100(report.aet.speed)+" /100m")
+        :(HASPACE()?("Slower than "+pace(report.aet.speed)+"/km"):("Below "+report.aet.speed+" "+UNIT()));
+  const nI=SWIM()?("Use "+pace100(report.ant.speed)+" /100m as a guide")
+        :(HASPACE()?("Use "+pace(report.ant.speed)+"/km as a guide"):("Use "+report.ant.speed+" "+UNIT()+" as a guide"));
   return '<table class="rec-table"><thead><tr><th>Goal</th><th>Heart rate</th><th>'+col+'</th></tr></thead><tbody>'+
     '<tr><td class="goal" contenteditable="true">Improve aerobic base</td><td contenteditable="true">Below '+aH+' bpm</td><td contenteditable="true">'+aI+'</td></tr>'+
     '<tr><td class="goal" contenteditable="true">Target anaerobic threshold</td><td contenteditable="true">Use '+nH+' bpm as a guide</td><td contenteditable="true">'+nI+'</td></tr>'+
@@ -2344,9 +2346,12 @@ document.getElementById("stage").addEventListener("click",e=>{
     }
     /* x tick positions: integers for speed (km/h), ~6 rounded steps for power (W)
        so a bike axis doesn't produce 180 ticks + nonsense pace labels. */
-    const hpX=HASPACE();
+    const hpX=HASPACE(), sw=(typeof SWIM==='function'&&SWIM());
     const xTicks=[];
-    if(hpX){ for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++)xTicks.push(v); }
+    if(sw){ /* x is swim speed (m/s); place ticks at round pace intervals */
+      const pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
+      for(let pv=Math.ceil(pLo/pStep)*pStep; pv<=pHi+0.01; pv+=pStep){const sp=100/pv; if(sp>=xmin&&sp<=xmax)xTicks.push(sp);} }
+    else if(hpX){ for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++)xTicks.push(v); }
     else { const span=xmax-xmin, raw=span/6, mag=Math.pow(10,Math.floor(Math.log10(raw||1))); let step=Math.max(1,Math.ceil((raw||1)/mag)*mag);
       for(let v=Math.ceil(xmin/step)*step; v<=xmax+0.001; v+=step)xTicks.push(v); }
     xTicks.forEach(function(v){const x=px(v);
@@ -2387,9 +2392,9 @@ document.getElementById("stage").addEventListener("click",e=>{
       }
     }
     xTicks.forEach(function(v){const x=px(v);
-      s+=`<text x="${x.toFixed(1)}" y="${H-mb+14}" text-anchor="middle" font-size="10.5" fill="${tc}" font-family="sans-serif">${v}</text>`;
-      if(hpX)s+=`<text x="${x.toFixed(1)}" y="${H-mb+27}" text-anchor="middle" font-size="9" fill="${tc}" font-family="sans-serif">${fmtPace(v)}</text>`;});
-    s+=`<text x="${(ml+(W-mr))/2}" y="${H-mb+41}" text-anchor="middle" font-size="9.5" fill="${tc}" font-family="sans-serif">${HASPACE()?'Speed (km/h) \u00B7 Pace (min/km)':'Power (W)'}</text>`;
+      s+=`<text x="${x.toFixed(1)}" y="${H-mb+14}" text-anchor="middle" font-size="10.5" fill="${tc}" font-family="sans-serif">${sw?pace100(v):(Math.round(v*100)/100)}</text>`;
+      if(hpX&&!sw)s+=`<text x="${x.toFixed(1)}" y="${H-mb+27}" text-anchor="middle" font-size="9" fill="${tc}" font-family="sans-serif">${fmtPace(v)}</text>`;});
+    s+=`<text x="${(ml+(W-mr))/2}" y="${H-mb+41}" text-anchor="middle" font-size="9.5" fill="${tc}" font-family="sans-serif">${sw?'Pace (/100m)':(HASPACE()?'Speed (km/h) \u00B7 Pace (min/km)':'Power (W)')}</text>`;
     /* Watch zone bar - blended gradient, labels above */
     const barY=H-mb+52,barH=16;
     const mid12=xmin+(aetSpd-xmin)*0.4,mid34=(aetSpd+antSpd)/2;
