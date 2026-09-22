@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v61</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v62</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3255,15 +3255,17 @@ document.getElementById("stage").addEventListener("click",e=>{
     var QA=function(s,r){return [].slice.call((r||doc).querySelectorAll(s));};
     var b={};
     b.testType=doc.body.getAttribute('data-fc-test-type')||'lt_treadmill';
+    var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
     b.date=T(Q('.cov-date b'))||T(Q('.cov-date'));
     b.authors=QA('.cov-foot .auth .edit').map(T).filter(Boolean);
-    /* lactate stages: cells [speed, pace(computed), stage, hr, lactate, rpe] */
+    /* lactate stages: cells [speed, pace, stage, hr, lactate, rpe]. Keep the pace cell
+       too - for swim it's the editable value (speed is derived from it on restore). */
     b.raw=QA('#raw-body tr').map(function(tr){
       var c=QA('td',tr);
-      return [T(c[0]),'',T(c[2]),T(c[3]),T(c[4]),T(c[5])];
-    }).filter(function(r){return r[0]!==''||r[3]!==''||r[4]!=='';});
+      return [T(c[0]),T(c[1]),T(c[2]),T(c[3]),T(c[4]),T(c[5])];
+    }).filter(function(r){return r[0]!==''||r[1]!==''||r[3]!==''||r[4]!=='';});
     /* VO2 stages: cells [step, speed, vo2, hr] */
     b.vo2stages=QA('#vo2-body tr').map(function(tr,i){
       var c=QA('td',tr);
@@ -3272,7 +3274,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     }).filter(function(s){return s.vo2!=null||s.speed!=null;});
     /* thresholds: the .ig-th tiles (first = aerobic, second = anaerobic) */
     var ths=QA('.ig-th');
-    function thFrom(el){if(!el)return null;return {speed:numOrNull(T(Q('.spd',el))),hr:numOrNull(T(Q('.hr',el)))};}
+    /* swim .spd holds pace (m:ss /100m) - convert to the stored speed */
+    function thFrom(el){if(!el)return null;var raw=T(Q('.spd',el));var sp=isSwim?paceToSpeed(raw):numOrNull(raw);return {speed:(sp!=null&&isFinite(sp))?sp:null,hr:numOrNull(T(Q('.hr',el)))};}
     b.aet=thFrom(ths[0]);b.ant=thFrom(ths[1]);
     /* engine-audit fallback if the tiles were missing */
     try{if((!b.aet||b.aet.speed==null)){var a=JSON.parse(doc.body.getAttribute('data-fc-aet-engine')||'null');if(a)b.aet={speed:numOrNull(a.value),hr:numOrNull(a.hr)};}}catch(e){}
@@ -3308,6 +3311,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(b&&typeof report!=='undefined'){
       if(report.gymKey)b.gymKey=report.gymKey;
       if(report.econZone&&!b.econZone)b.econZone=report.econZone;
+      /* use the exact synced thresholds (the IG pace tile is display-rounded) */
+      if(report.aet&&report.aet.speed!=null)b.aet={speed:report.aet.speed,hr:report.aet.hr};
+      if(report.ant&&report.ant.speed!=null)b.ant={speed:report.ant.speed,hr:report.ant.hr};
     }
     return b;
   };
