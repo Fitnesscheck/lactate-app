@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v62</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v63</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3523,12 +3523,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   var excluded={};  // intensities the user (or a spike flag) has excluded from the fit
   function fitChoice(){var s=document.getElementById('te-fit');return s?s.value:'poly3';}
-  /* Swim always uses the FitnessCheck (Python) engine: it is fast and memory-light,
-     whereas the R (ExPhysLab) engine + its background sweep can exhaust the small
-     Railway container's memory on some datasets ("compute failed: out of memory").
-     The Python engine produces the same lactater methods; exact R matching was only
-     ever validated for running anyway. */
-  function sourceChoice(){if(typeof SWIM==='function'&&SWIM())return 'interp';var s=document.getElementById('te-source');return s?s.value:'interp';}
+  function sourceChoice(){var s=document.getElementById('te-source');return s?s.value:'interp';}
   function readAllPoints(){
     var pts=[];
     Array.prototype.forEach.call(document.querySelectorAll('#raw-body tr'),function(row){
@@ -3758,15 +3753,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     .catch(function(){});
   }
 
-  function openModal(){var m=document.getElementById('te-modal');if(m){m.style.display='block';document.body.style.overflow='hidden';}
-    /* swim is fixed to the FitnessCheck engine (see sourceChoice) - reflect + lock the
-       toggle, saving/restoring the run/bike choice so they keep their R default. */
-    var src=document.getElementById('te-source');
-    if(src){var sw=(typeof SWIM==='function'&&SWIM());
-      if(sw){if(src.value!=='interp')src.setAttribute('data-prev',src.value);src.value='interp';src.disabled=true;src.title='Swim uses the FitnessCheck engine';}
-      else{src.disabled=false;var prev=src.getAttribute('data-prev');if(prev){src.value=prev;src.removeAttribute('data-prev');}src.title='affects LogPoly + LTP break-points (ModDmax & LT ratio match in both)';}
-    }
-  }
+  function openModal(){var m=document.getElementById('te-modal');if(m){m.style.display='block';document.body.style.overflow='hidden';}}
   function closeModal(){var m=document.getElementById('te-modal');if(m){m.style.display='none';document.body.style.overflow='';}}
   var btn=document.getElementById('te-run');if(btn)btn.addEventListener('click',function(){openModal();doCompute(false);});
   var teClose=document.getElementById('te-close');if(teClose)teClose.addEventListener('click',closeModal);
