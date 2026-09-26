@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v63</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v64</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1725,8 +1725,13 @@ function fuCompute(){
   var vmaxEl=document.querySelector('[data-vo2max]');
   var vmax=vmaxEl?parseFloat(vmaxEl.textContent):parseFloat(report.vo2.vo2max);
   var aet=parseFloat(report.aet.speed),ant=parseFloat(report.ant.speed);
-  var vAeT=evalQuad(c,aet),vAnT=evalQuad(c,ant);
-  return {pts:pts,c:c,r2:(ss?1-sr/ss:0),aet:aet,ant:ant,vmax:vmax,vAeT:vAeT,vAnT:vAnT,
+  var vAeTfit=evalQuad(c,aet),vAnTfit=evalQuad(c,ant);
+  /* manual overrides from the editable "numbers behind it" table (vmax comes from
+     report.vo2.vo2max above, so it's global; vAeT/vAnT are FU-specific overrides). */
+  var o=report.fuNums||{};
+  var vAeT=(o.vAeT!=null&&isFinite(o.vAeT))?o.vAeT:vAeTfit;
+  var vAnT=(o.vAnT!=null&&isFinite(o.vAnT))?o.vAnT:vAnTfit;
+  return {pts:pts,c:c,r2:(ss?1-sr/ss:0),aet:aet,ant:ant,vmax:vmax,vAeT:vAeT,vAnT:vAnT,vAeTfit:vAeTfit,vAnTfit:vAnTfit,
     aerFU:(vmax?vAeT/vmax*100:0),anFU:(vmax?vAnT/vmax*100:0)};
 }
 function fuEqHtml(res){
@@ -1759,16 +1764,18 @@ function fuChart(res){
     return '<line x1="'+xx.toFixed(1)+'" y1="'+mT+'" x2="'+xx.toFixed(1)+'" y2="'+(H-mB)+'" stroke="'+col+'" stroke-dasharray="5 3"/>'+
       '<circle cx="'+xx.toFixed(1)+'" cy="'+Y(y).toFixed(1)+'" r="3.5" fill="'+col+'"/>'+
       '<text x="'+xx.toFixed(1)+'" y="'+(mT-3)+'" font-size="8.5" font-weight="600" fill="'+col+'" text-anchor="middle">'+label+'</text>';}
-  s+=mk(res.aet,res.vAeT,'AeT',"#1D9E75")+mk(res.ant,res.vAnT,'AnT',"#e53935");
+  s+=mk(res.aet,res.vAeTfit,'AeT',"#1D9E75")+mk(res.ant,res.vAnTfit,'AnT',"#e53935");  /* markers sit on the fitted curve */
   return s+'</svg>';
 }
 function fuTableHtml(res){
   function r1(v){return isFinite(v)?v.toFixed(1):'-';}
   function pc(v){return isFinite(v)?Math.round(v)+'%':'-';}
-  return '<table class="rec-table"><thead><tr><th>Threshold</th><th>'+(HASPACE()?'Speed':'Power')+' ('+UNIT()+')</th><th>VO₂ (from fit)</th><th>Fractional utilisation</th></tr></thead><tbody>'+
-    '<tr><td class="goal">Aerobic</td><td>'+(isNaN(res.aet)?'-':powFmt(res.aet))+'</td><td>'+r1(res.vAeT)+'</td><td>'+pc(res.aerFU)+'</td></tr>'+
-    '<tr><td class="goal">Anaerobic</td><td>'+(isNaN(res.ant)?'-':powFmt(res.ant))+'</td><td>'+r1(res.vAnT)+'</td><td>'+pc(res.anFU)+'</td></tr>'+
-    '<tr><td class="goal">VO₂ max</td><td>-</td><td>'+r1(res.vmax)+'</td><td>100%</td></tr></tbody></table>';
+  /* the VO₂ column is editable - editing a value recomputes the fractional-utilisation
+     %s and the donut live (data-fu-num marks which value; data-fu-pc marks the % cell). */
+  return '<table class="rec-table"><thead><tr><th>Threshold</th><th>'+(HASPACE()?'Speed':'Power')+' ('+UNIT()+')</th><th>VO₂ (ml/kg/min)</th><th>Fractional utilisation</th></tr></thead><tbody>'+
+    '<tr><td class="goal">Aerobic</td><td>'+(isNaN(res.aet)?'-':powFmt(res.aet))+'</td><td class="edit" contenteditable="true" data-fu-num="vAeT">'+r1(res.vAeT)+'</td><td data-fu-pc="aer">'+pc(res.aerFU)+'</td></tr>'+
+    '<tr><td class="goal">Anaerobic</td><td>'+(isNaN(res.ant)?'-':powFmt(res.ant))+'</td><td class="edit" contenteditable="true" data-fu-num="vAnT">'+r1(res.vAnT)+'</td><td data-fu-pc="an">'+pc(res.anFU)+'</td></tr>'+
+    '<tr><td class="goal">VO₂ max</td><td>-</td><td class="edit" contenteditable="true" data-fu-num="vmax">'+r1(res.vmax)+'</td><td>100%</td></tr></tbody></table>';
 }
 /* recompute + update the working and donut in place (on threshold/stage/VO2max edits) */
 function computeFractional(){
@@ -1783,7 +1790,8 @@ function computeFractional(){
   var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(eAer);
   var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(eAn);
   var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(eAn));
-  var rl=document.getElementById('fu-reset-link');if(rl)rl.style.display=_o?'inline':'none';
+  var _n=report.fuNums&&(report.fuNums.vAeT!=null||report.fuNums.vAnT!=null);
+  var rl=document.getElementById('fu-reset-link');if(rl)rl.style.display=(_o||_n)?'inline':'none';
 }
 /* Apply the hand-edited donut %s (from the editable legend numbers) live. */
 function fuApplyOverrideFromLabels(){
@@ -1803,6 +1811,30 @@ function fuApplyOverrideFromLabels(){
 /* live redraw while typing; normalise the shown numbers to the clamped values on blur */
 document.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='frac-aer-lab'||id==='frac-an-lab')fuApplyOverrideFromLabels();});
 document.addEventListener('focusout',function(e){var id=e.target&&e.target.id;if((id==='frac-aer-lab'||id==='frac-an-lab')&&report.fuOverride){var a=document.getElementById('frac-aer-lab'),n=document.getElementById('frac-an-lab');if(a)a.textContent=Math.round(report.fuOverride.aer);if(n)n.textContent=Math.round(report.fuOverride.an);}});
+/* Edit the VO₂ numbers in the "numbers behind it" table -> recompute FU % + donut live.
+   Editing a number clears any direct % override (the numbers now drive the %). vmax is
+   the global VO₂ max, so it propagates everywhere on blur. */
+function fuApplyNumsLive(el){
+  var tw=document.getElementById('fu-table-wrap'); if(!tw||!el)return;
+  report.fuNums=report.fuNums||{};
+  var k=el.getAttribute('data-fu-num'),v=parseFloat(el.textContent);
+  if(k==='vmax'){ if(isFinite(v)&&v>0){report.vo2.vo2max=v;document.querySelectorAll('[data-vo2max],[data-vo2max-echo]').forEach(function(x){if(x!==el&&x.textContent!==String(v))x.textContent=String(v);});} }
+  else if(k){ report.fuNums[k]=isFinite(v)?v:null; }   /* only the edited value is overridden */
+  report.fuOverride=null;
+  var res=fuCompute(); if(!res)return;
+  var host=document.getElementById('frac-chart'); if(host)host.innerHTML=doughnut(res.aerFU,res.anFU,true,report.vo2?report.vo2.vo2max:null);
+  var la=document.getElementById('frac-aer-lab');if(la)la.textContent=Math.round(res.aerFU);
+  var ln=document.getElementById('frac-an-lab');if(ln)ln.textContent=Math.round(res.anFU);
+  var lg=document.getElementById('frac-gap-lab');if(lg)lg.textContent=Math.max(0,100-Math.round(res.anFU));
+  var pa=tw.querySelector('[data-fu-pc="aer"]');if(pa)pa.textContent=isFinite(res.aerFU)?Math.round(res.aerFU)+'%':'-';
+  var pn=tw.querySelector('[data-fu-pc="an"]');if(pn)pn.textContent=isFinite(res.anFU)?Math.round(res.anFU)+'%':'-';
+  var rl=document.getElementById('fu-reset-link');if(rl)rl.style.display='inline';
+}
+document.addEventListener('input',function(e){var el=e.target;if(el&&el.getAttribute&&el.getAttribute('data-fu-num'))fuApplyNumsLive(el);});
+document.addEventListener('focusout',function(e){var el=e.target;if(!el||!el.getAttribute)return;var k=el.getAttribute('data-fu-num');if(!k)return;
+  if(k==='vmax'&&typeof syncVo2Max==='function')syncVo2Max(el);   /* full global propagation for VO₂ max */
+  else if(typeof computeFractional==='function')computeFractional();
+});
 /* Example-profile donuts, toggle-able between men and women. The aerobic/anaerobic
    percentages are identical for both sexes; only the VO₂ max (centre) is scaled down
    for women. report._egSex holds the choice; refreshFuExamples() redraws in place. */
@@ -1860,7 +1892,8 @@ function fractional(){
       defItem({t:"Unsustainable",d:"From your anaerobic threshold up to VO₂ max - lactate-driven production that outpaces clearance and cannot be sustained."})+
     '</div>'+
     /* Working table, on the page. #fu-table-wrap id kept so computeFractional() updates it. */
-    '<h3 class="vo2-sub" style="margin:26px 0 8px;">The numbers behind it</h3>'+
+    '<h3 class="vo2-sub" style="margin:26px 0 4px;">The numbers behind it</h3>'+
+    '<p class="no-print" style="font-size:11px;color:#6b746f;margin:0 0 8px;">Tip: click a <b>VO₂</b> value below (VO₂ max or the VO₂ at a threshold) to edit it - the fractional-utilisation %s and the donut update automatically.</p>'+
     '<div id="fu-table-wrap">'+(res?fuTableHtml(res):'<div class="fu-note">Enter at least 3 VO₂ stages (in the appendix) to fit the curve.</div>')+'</div>'+
     /* Example profiles for context (men/women toggle; same %s, VO₂ max scaled). */
     '<h3 class="vo2-sub" style="margin:26px 0 4px;">What different profiles look like</h3>'+
@@ -2241,7 +2274,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   const _egs=e.target.closest("[data-eg-sex]");
   if(_egs){ report._egSex=_egs.getAttribute("data-eg-sex"); if(typeof refreshFuExamples==='function')refreshFuExamples(); return; }
   const _fr=e.target.closest("[data-fu-reset]");
-  if(_fr){ e.preventDefault(); report.fuOverride=null; if(typeof computeFractional==='function')computeFractional(); return; }
+  if(_fr){ e.preventDefault(); report.fuOverride=null; report.fuNums=null; if(typeof computeFractional==='function')computeFractional(); return; }
   const _hlr=e.target.closest("[data-hl-reset]");
   if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   const _hc=e.target.closest("[data-hl-band]");
