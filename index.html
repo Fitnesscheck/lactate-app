@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v64</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v65</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3374,6 +3374,14 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(b.age!=null)report.vo2.age=b.age;
     if(b.sex)report.vo2.sex=b.sex;
     if(b.vo2stages&&b.vo2stages.length)report.vo2.stages=b.vo2stages;
+    /* Restore the imported VO₂ Master graphs BEFORE render so the VO₂ analysis page
+       defaults to showing the imported image (not the live chart). Without this the
+       combo defaults to the generated straight-line chart even though the image was
+       captured. */
+    var _imgById={};(b.images||[]).forEach(function(im){_imgById[im.id]=im.src;});
+    if(_imgById['slot-vo2-metabolic']||_imgById['slot-vo2-ventilation']){
+      report.vo2.graphs={metabolic:_imgById['slot-vo2-metabolic']||'',ventilation:_imgById['slot-vo2-ventilation']||''};
+    }
     /* inject the real lactate stages, render, then clear the override */
     window.__fcRawOverride=(b.raw&&b.raw.length)?b.raw:null;
     renderStage();
