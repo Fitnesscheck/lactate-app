@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v65</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v66</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -756,14 +756,14 @@ function buildDefaults(){ return {
      p:"Your aerobic threshold sits at "+intVal(report.aet.speed)+" at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy "+MOD().verb+". Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
      p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
-    {h:"Your Rate of Perceived Exertion (RPE)",
+    {h:"Your Rating of Perceived Exertion (RPE)",
      p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ] : [
     {h:"Aerobic Threshold",
      p:"Your aerobic threshold sits at "+powFmt(report.aet.speed)+" "+UNIT()+" at a heart rate of "+report.aet.hr+" bpm. Targeting an average power below this on your long, easy rides is a good aim - it lets you build aerobic fitness and endurance while staying fresh enough to keep training consistently."},
     {h:"Anaerobic Threshold",
      p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions - it is the highest power you can hold at a steady state before lactate builds up faster than your body can clear it."},
-    {h:"Your Rate of Perceived Exertion (RPE)",
+    {h:"Your Rating of Perceived Exertion (RPE)",
      p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
   recs:[
@@ -806,6 +806,17 @@ function paceToSpeed(p){ if(p==null)return NaN; p=String(p).trim(); var m=p.matc
 function hrTxt(v){return (v==null?"-":v)+" bpm";}
 function tick(c){c=c||"#1D9E75";return '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13 L10 18 L19 6" fill="none" stroke="'+c+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function rh(){return '<div class="rh"><div class="mark">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>';}
+/* Page numbering for section eyebrows. Sections are shared across report types, so a
+   fixed "0N" would be wrong in another type's order (e.g. Recommendations is 3rd in a
+   lactate report but 6th in a combined one). eyb() derives the number from the
+   section's position in THIS report's section list (cover excluded), so every report
+   type numbers its pages 01, 02, 03 … in the order they actually appear. */
+function secNo(name){
+  var secs=(TEST_TYPES[report.testType]||{}).sections||[], n=0;
+  for(var i=0;i<secs.length;i++){ if(secs[i].name==='cover')continue; n++; if(secs[i].name===name)return n; }
+  return n||1;
+}
+function eyb(name,label){var n=secNo(name);return '<div class="eyebrow">'+(n<10?'0'+n:n)+' · '+label+'</div>';}
 function slot(id,src){var has=src?' has-img':'';var im=src?(' src="'+src+'"'):'';return '<div class="imgslot'+has+'" id="'+id+'"><input type="file" accept="image/*" class="file"><div class="drop no-print">Click to upload graph</div><img class="shot"'+im+' alt="Lactate graph"><div class="ph">Graph to be added</div><div class="img-ctl no-print"><button data-act="replace">Replace</button><button data-act="remove">Remove</button></div></div>';}
 
 /* ---------- COVER ---------- */
@@ -868,7 +879,7 @@ function ataGlance(){
     '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
   '</div>';
   const dl='<button class="add no-print" id="dl-ig" style="display:block;width:155mm;margin:0 auto;">⬇ Download Instagram card (1080×1350 PNG)</button>';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">01 · Summary</div><h2 class="title">At a glance</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
+  return '<div class="sheet">'+rh()+eyb('ataGlance','Summary')+'<h2 class="title">At a glance</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
 }
 
 /* ---------- ANALYSIS ---------- */
@@ -877,7 +888,7 @@ function anBlock(b){
 }
 function analysis(){
   let blocks=DEFAULTS.analysis.map(anBlock).join("");
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your lactate curve, analysed</h2>'+
+  return '<div class="sheet">'+rh()+eyb('analysis','Analysis')+'<h2 class="title">Your lactate curve, analysed</h2>'+
     '<div class="curve-slot">'+slot("slot-curve")+'</div>'+
     '<div id="an-list">'+blocks+'</div>'+
     '<button class="add no-print" data-add="an">+ Add section</button></div>';
@@ -959,7 +970,7 @@ function coachBlock(){
 }
 function recommendations(){
   let items=DEFAULTS.recs.map(recItem).join("");
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">03 · What to do next</div><h2 class="title">Recommendations</h2>'+
+  return '<div class="sheet">'+rh()+eyb('recommendations','What to do next')+'<h2 class="title">Recommendations</h2>'+
     '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 10px;">Training programmes are written in different ways. Some prescribe target '+(HASPACE()?'paces':'power targets')+', others target heart rates. To account for both, we have given you the data for each below. We recommend you don\u2019t try to hit both at once. Pick whichever is most suited to how your programme is structured.</p>'+
     '<p class="edit" contenteditable="true" style="font-size:12.5px;line-height:1.55;color:#6B756F;margin:0 0 16px;">(Factors such as fatigue, illness, injury and terrain can affect the '+(HASPACE()?'pace':'power')+' you are able to sustain. Likewise, heart rate can be influenced by factors including caffeine intake and hydration status. It is important to bear this in mind when training.)</p>'+
     recTable()+
@@ -991,8 +1002,8 @@ function appendix(){
   var intHead=SWIM()?"Speed (m/s)":(HASPACE()?"Speed (km/h)":"Power (W)");
   var paceHead=SWIM()?"Pace (/100m)":"Pace (/km)";
   var rawClass=HASPACE()?"raw":"raw no-pace";
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
-    '<table class="'+rawClass+'"><thead><tr><th>'+intHead+'</th><th>'+paceHead+'</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE (Rate of Perceived Exertion)</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
+  return '<div class="sheet">'+rh()+eyb('appendix','Appendix')+'<h2 class="title">Raw data & definitions</h2>'+
+    '<table class="'+rawClass+'"><thead><tr><th>'+intHead+'</th><th>'+paceHead+'</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE (Rating of Perceived Exertion)</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
     '<button class="add no-print" data-add="row">+ Add row</button>'+
     '<div class="defs" style="margin-top:22px;" id="def-list">'+defs+'</div>'+
     '<button class="add no-print" data-add="def">+ Add definition</button></div>';
@@ -1278,7 +1289,7 @@ function vo2Summary(){
     '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
   '</div>';
   var dl='<button class="add no-print" id="dl-ig" style="display:block;width:155mm;margin:0 auto;">⬇ Download Instagram card (1080×1350 PNG)</button>';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">01 · Summary</div><h2 class="title">At a glance</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
+  return '<div class="sheet">'+rh()+eyb('vo2Summary','Summary')+'<h2 class="title">At a glance</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
 }
 function vo2Analysis(){
   var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex);
@@ -1312,7 +1323,7 @@ function vo2Analysis(){
   var breath=anBlock({h:"What Your Breathing Shows",
     p:"We look at your breathing to screen for disordered or dysfunctional breathing during exercise. [For this athlete: this was NOT a problem - or describe the finding.] Most of the time it is not an issue. Where breathing is not a limiter there is no further work to do in this area: your lungs are not the limiting factor in delivering oxygen to your muscles."});
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
-  return '<div class="sheet vo2-depth">'+rh()+'<div class="eyebrow">02 · Analysis</div><h2 class="title">Your VO₂, analysed</h2>'+
+  return '<div class="sheet vo2-depth">'+rh()+eyb('vo2Analysis','Analysis')+'<h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
     /* When a VO₂ Master image was imported, show THAT by default; a click swaps to the
        live VO₂/HR chart (which follows appendix edits) and back. With no image, the
@@ -1337,7 +1348,7 @@ function vo2Recommendations(){
     "[Personalise: note the athlete’s training history, weekly volume, and the single biggest lever for them.]"
   ];
   var items=recs.map(recItem).join("");
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">03 · What to do next</div><h2 class="title">Recommendations</h2>'+
+  return '<div class="sheet">'+rh()+eyb('vo2Recommendations','What to do next')+'<h2 class="title">Recommendations</h2>'+
     '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 14px;">VO₂ max responds to training. Improving it means both raising your ceiling with harder aerobic work and expanding the base that lets you use more of it. The points below are a starting framework - tailor them to this athlete.</p>'+
     '<ol class="recs" id="rec-list">'+items+'</ol>'+
     '<button class="add no-print" data-add="rec">+ Add recommendation</button>'+
@@ -1361,7 +1372,7 @@ function vo2Appendix(){
     {t:"Maximal Heart Rate",d:"The highest heart rate recorded during the test. A true maximal effort is confirmed when VO₂ plateaus or rises only slightly despite increasing speed."}
   ];
   var defHtml=defs.map(defItem).join("");
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">03 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
+  return '<div class="sheet">'+rh()+eyb('vo2Appendix','Appendix')+'<h2 class="title">Raw data & definitions</h2>'+
     '<h3 class="subtitle" style="font-family:\'Playfair Display\',Georgia,serif;font-weight:500;font-size:18px;color:var(--ink);margin:0 0 8px;">Test & athlete details</h3>'+info+
     '<h3 class="subtitle" style="font-family:\'Playfair Display\',Georgia,serif;font-weight:500;font-size:18px;color:var(--ink);margin:0 0 8px;">Stage data</h3>'+
     '<table class="raw vo2-raw"><thead><tr><th>Step</th><th>'+MOD().intLabel+' ('+UNIT()+')</th><th>VO₂ (ml/kg/min)</th><th>HR (bpm)</th><th class="rmcell no-print"></th></tr></thead><tbody id="vo2-body">'+rows+'</tbody></table>'+
@@ -1420,7 +1431,7 @@ function combinedQuickRef(){
     '<div class="ig-foot"><span class="tag edit" contenteditable="true">Measured, not estimated.</span><span class="url">'+report.website+'</span></div>'+
   '</div>';
   var dl='<button class="add no-print" id="dl-ig" style="display:block;width:155mm;margin:0 auto;">⬇ Download Instagram card (1080×1350 PNG)</button>';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">01 · Summary</div><h2 class="title">Quick reference</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
+  return '<div class="sheet">'+rh()+eyb('combinedQuickRef','Summary')+'<h2 class="title">Quick reference</h2><div class="ig-wrap">'+card+'</div>'+dl+'</div>';
 }
 /* Lactate rows for the combined quick-ref chart: the LIVE appendix table if it
    exists (so the card matches the analysis-page chart), else the demo curve.
@@ -1576,7 +1587,7 @@ function economy(){
     ? "[Specific to you: tie this to your goals. For example, with a Hyrox event coming up, focus on... Your threshold paces are usually the least economical, and economy naturally drops above threshold - but practising those particular paces will improve it.]"
     : "[Specific to you: note the power ranges most relevant to your goals and events, and practise the paces you will race at.]";
   var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">04 · Economy</div>'+
+  return '<div class="sheet">'+rh()+eyb('economy','Economy')+
     '<div class="fu-head"><h2 class="title" style="margin:0;">'+(run?'Running economy':'Cycling economy')+'</h2>'+
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
     '<p '+psty+'margin:12px 0 12px;">'+intro+'</p>'+
@@ -1868,11 +1879,11 @@ function fractional(){
   var eAn=(_o&&_o.an!=null)?_o.an:(res?res.anFU:null);
   var aerL=(eAer!=null)?Math.round(eAer):'-',anL=(eAn!=null)?Math.round(eAn):'-',gapL=(eAn!=null)?Math.max(0,100-Math.round(eAn)):'-';
   var wk=HASPACE()?'speed':'power';
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">05 · Fractional utilisation</div>'+
+  return '<div class="sheet">'+rh()+eyb('fractional','Fractional utilisation')+
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
     /* Plain explanation: what FU is and why it matters. */
-    '<p class="edit" contenteditable="true" style="margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold - how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice - the part you cannot sustain - as small as possible.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold - how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice - the part you cannot sustain - as small as possible.</p>'+
     /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
     '<div class="frac-wrap" style="margin-top:18px;">'+
       '<div class="frac-chart" id="frac-chart">'+doughnut((eAer!=null?eAer:0),(eAn!=null?eAn:0),true,(res&&report.vo2)?report.vo2.vo2max:null)+'</div>'+
@@ -1917,7 +1928,7 @@ function combinedAppendix(){
   var vrows=report.vo2.stages.map(vo2StageRow).join("");
   var defs=DEFAULTS.defs.map(defItem).join("");
   var intHead=HASPACE()?"Speed (km/h)":"Power (W)";
-  return '<div class="sheet">'+rh()+'<div class="eyebrow">07 · Appendix</div><h2 class="title">Raw data & definitions</h2>'+
+  return '<div class="sheet">'+rh()+eyb('combinedAppendix','Appendix')+'<h2 class="title">Raw data & definitions</h2>'+
     (!HASPACE()?'<p class="edit" contenteditable="true" style="margin:2px 0 14px;max-width:none;">Why watts? On the bike we measure your effort in watts - your actual power output - rather than speed or gear. Power is independent of the resistance setting, gradient or wind, so a given wattage always means the same physiological demand, which makes it the fairest and most repeatable way to prescribe and track your training. (A fuller explanation is coming in a future blog post.)</p>':'')+
     '<h3 class="subtitle" style="font-size:18px;margin:0 0 8px;">Lactate stages</h3>'+
     '<table class="raw"><thead><tr><th>'+intHead+'</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
