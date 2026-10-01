@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v68</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v69</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -810,6 +810,19 @@ function pace100(mps){var v=parseFloat(mps); if(!(v>0))return '-'; var t=100/v,m
    or plain digits "130" (last two digits are the seconds, the rest minutes) -> all 1:30.
    One or two plain digits are read as seconds ("55" -> 0:55); if the two-digit seconds
    part would exceed 59 the whole number is treated as total seconds ("170" -> 2:50). */
+/* Swim x-axis pace ticks, returned as SPEEDS (m/s) to place on the chart. Guards against
+   a resting/baseline point at speed 0 (a lactate measured at rest): 100/0 is Infinity,
+   which would spin the "100/pv" tick loop forever and overflow the SVG string, surfacing
+   as "compute failed: invalid string length". Only positive speeds set the fast end, and
+   the tick count is hard-capped as a belt-and-braces guard. */
+function swimAxisSpeeds(xmax, xs){
+  var xPos=Infinity,i; for(i=0;i<xs.length;i++){var v=+xs[i]; if(v>0.05&&v<xPos)xPos=v;}
+  if(!isFinite(xPos)||!(xmax>0))return [];
+  var pLo=100/xmax,pHi=100/xPos; if(!isFinite(pHi)||pHi<=pLo)return [];
+  var pStep=(pHi-pLo)>60?20:10,out=[];
+  for(var pv=Math.ceil(pLo/pStep)*pStep; pv<=pHi+0.01 && out.length<60; pv+=pStep){var sp=100/pv; if(sp>=xPos-1e-9&&sp<=xmax)out.push(sp);}
+  return out;
+}
 function paceToSpeed(p){
   if(p==null)return NaN; p=String(p).trim(); if(!p)return NaN;
   var sec, m=p.match(/^(\d+)\s*[:.\s]\s*(\d{1,2})$/);
@@ -2418,8 +2431,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     const hpX=HASPACE(), sw=(typeof SWIM==='function'&&SWIM());
     const xTicks=[];
     if(sw){ /* x is swim speed (m/s); place ticks at round pace intervals */
-      const pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
-      for(let pv=Math.ceil(pLo/pStep)*pStep; pv<=pHi+0.01; pv+=pStep){const sp=100/pv; if(sp>=xmin&&sp<=xmax)xTicks.push(sp);} }
+      swimAxisSpeeds(xmax,_xs).forEach(function(sp){if(sp>=xmin&&sp<=xmax)xTicks.push(sp);}); }
     else if(hpX){ for(let v=Math.ceil(xmin);v<=Math.floor(xmax);v++)xTicks.push(v); }
     else { const span=xmax-xmin, raw=span/6, mag=Math.pow(10,Math.floor(Math.log10(raw||1))); let step=Math.max(1,Math.ceil((raw||1)/mag)*mag);
       for(let v=Math.ceil(xmin/step)*step; v<=xmax+0.001; v+=step)xTicks.push(v); }
@@ -3629,10 +3641,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0F1714;border:1px solid #2A3A33;border-radius:10px;">';
     s+='<line x1="'+ml+'" y1="'+(mt+ph)+'" x2="'+(W-mr)+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
     s+='<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
-    if(SWIM()){var pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
-      for(var pv=Math.ceil(pLo/pStep)*pStep;pv<=pHi+0.01;pv+=pStep){var spd=100/pv;if(spd<xmin||spd>xmax)continue;var X=px(spd);
+    if(SWIM()){swimAxisSpeeds(xmax,curve.map(function(p){return p[0];})).forEach(function(spd){var X=px(spd);
         s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
-        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';}
+        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';});
     }else{for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
       s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
       s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}}
@@ -3697,10 +3708,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0F1714;border:1px solid #2A3A33;border-radius:10px;">';
     s+='<line x1="'+ml+'" y1="'+(mt+ph)+'" x2="'+(W-mr)+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
     s+='<line x1="'+ml+'" y1="'+mt+'" x2="'+ml+'" y2="'+(mt+ph)+'" stroke="#2A3A33"/>';
-    if(SWIM()){var pLo=100/xmax,pHi=100/xmin,pStep=(pHi-pLo)>60?20:10;
-      for(var pv=Math.ceil(pLo/pStep)*pStep;pv<=pHi+0.01;pv+=pStep){var spd=100/pv;if(spd<xmin||spd>xmax)continue;var X=px(spd);
+    if(SWIM()){swimAxisSpeeds(xmax,curve.map(function(p){return p[0];})).forEach(function(spd){var X=px(spd);
         s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
-        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';}
+        s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+pace100(spd)+'</text>';});
     }else{for(var xv=Math.ceil(xmin);xv<=Math.floor(xmax);xv++){var X=px(xv);
       s+='<line x1="'+X+'" y1="'+(mt+ph)+'" x2="'+X+'" y2="'+(mt+ph+4)+'" stroke="#2A3A33"/>';
       s+='<text x="'+X+'" y="'+(mt+ph+16)+'" fill="#8FA096" font-size="9" text-anchor="middle">'+xv+'</text>';}}
