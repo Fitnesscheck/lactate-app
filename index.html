@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v67</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v68</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -805,7 +805,22 @@ var DEFAULTS = buildDefaults();
 function pace(kmh){const t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);return ss===60?(mm+1)+":00":mm+":"+String(ss).padStart(2,"0");}
 /* swim: SPEED (m/s) -> pace mm:ss per 100 m, and the inverse (pace -> m/s). */
 function pace100(mps){var v=parseFloat(mps); if(!(v>0))return '-'; var t=100/v,mm=Math.floor(t/60),ss=Math.round(t-mm*60); if(ss===60){mm++;ss=0;} return mm+":"+String(ss).padStart(2,"0");}
-function paceToSpeed(p){ if(p==null)return NaN; p=String(p).trim(); var m=p.match(/^(\d+):(\d{1,2})$/); var sec=m?(parseInt(m[1],10)*60+parseInt(m[2],10)):parseFloat(p); return (sec>0)?(100/sec):NaN; }
+/* Pace (/100 m) -> speed (m/s). Accepts several ways to type a pace so an iPad numeric
+   keyboard (which has no colon) can be used: "1:30", "1.30" or "1 30" (minutes + seconds),
+   or plain digits "130" (last two digits are the seconds, the rest minutes) -> all 1:30.
+   One or two plain digits are read as seconds ("55" -> 0:55); if the two-digit seconds
+   part would exceed 59 the whole number is treated as total seconds ("170" -> 2:50). */
+function paceToSpeed(p){
+  if(p==null)return NaN; p=String(p).trim(); if(!p)return NaN;
+  var sec, m=p.match(/^(\d+)\s*[:.\s]\s*(\d{1,2})$/);
+  if(m){ sec=parseInt(m[1],10)*60+parseInt(m[2],10); }
+  else if(/^\d+$/.test(p)){
+    if(p.length<=2){ sec=parseInt(p,10); }
+    else { var mm=parseInt(p.slice(0,-2),10), ss=parseInt(p.slice(-2),10); sec=(ss<=59)?(mm*60+ss):parseInt(p,10); }
+  }
+  else { sec=parseFloat(p); }
+  return (sec>0&&isFinite(sec))?(100/sec):NaN;
+}
 function hrTxt(v){return (v==null?"-":v)+" bpm";}
 function tick(c){c=c||"#1D9E75";return '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13 L10 18 L19 6" fill="none" stroke="'+c+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function rh(){return '<div class="rh"><div class="mark">'+tick()+'<span>Fitness<b>Check</b></span></div><div class="url">'+report.website+'</div></div>';}
@@ -2037,8 +2052,10 @@ function syncCollectionLabels(){
   var cn=document.getElementById('cb-ant'); if(cn){var l2=cn.closest('.cb-field').querySelector('label'); if(l2)l2.textContent='Anaerobic threshold ('+(swim?'m/s':u)+')';}
   /* swim warm-up / fastest are entered as pace (m:ss /100m), so make those inputs
      text (a number field can't hold "1:30") and relabel them. */
-  var wu=document.getElementById('dc-warmup'); if(wu){wu.type=swim?'text':'number';wu.placeholder=swim?'m:ss':u; var lw=wu.closest('label'); if(lw&&lw.childNodes[0])lw.childNodes[0].nodeValue=swim?'Warm-up pace (/100m) ':('Warm-up ('+u+')');}
-  var tp=document.getElementById('dc-top'); if(tp){tp.type=swim?'text':'number';tp.placeholder=swim?'m:ss':u; var lt=tp.closest('label'); if(lt&&lt.childNodes[0])lt.childNodes[0].nodeValue=swim?'Fastest pace (/100m) ':('Predicted top ('+u+')');}
+  /* swim pace inputs stay text (a number field can't hold "1:30") but keep the iPad
+     numeric pad via inputmode; paceToSpeed accepts a colon-free "130" for 1:30. */
+  var wu=document.getElementById('dc-warmup'); if(wu){wu.type=swim?'text':'number';wu.setAttribute('inputmode',swim?'decimal':'decimal');wu.placeholder=swim?'1:30 or 130':u; var lw=wu.closest('label'); if(lw&&lw.childNodes[0])lw.childNodes[0].nodeValue=swim?'Warm-up pace (/100m) ':('Warm-up ('+u+')');}
+  var tp=document.getElementById('dc-top'); if(tp){tp.type=swim?'text':'number';tp.setAttribute('inputmode',swim?'decimal':'decimal');tp.placeholder=swim?'1:15 or 115':u; var lt=tp.closest('label'); if(lt&&lt.childNodes[0])lt.childNodes[0].nodeValue=swim?'Fastest pace (/100m) ':('Predicted top ('+u+')');}
   if(typeof window.__dcRender==='function')window.__dcRender();
 }
 document.body.setAttribute("data-fc-test-type", report.testType);
@@ -4004,7 +4021,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       var dispStage=stageV||(k?'':'4');
       var rm=k?'<span></span>':'<button data-dc-rm="'+i+'" title="remove step" style="cursor:pointer;background:transparent;border:none;color:#8FA096;font-size:17px;line-height:1;">&times;</button>';
       /* swim enters PACE per step (m:ss /100m); run/bike enter speed/power */
-      var intInput=SWIM()?inp('pace',cellVal(row,COL.pace),'m:ss'):inp('speed',cellVal(row,COL.speed),UNIT());
+      var intInput=SWIM()?inp('pace',cellVal(row,COL.pace),'1:30 or 130'):inp('speed',cellVal(row,COL.speed),UNIT());
       return '<div data-dc-row="'+i+'" style="display:grid;'+GT+'gap:6px;align-items:center;margin-bottom:6px;">'+
         leftCell(k,step,i)+
         intInput+
@@ -4074,8 +4091,8 @@ document.getElementById("stage").addEventListener("click",e=>{
   function buildStepsSwim(){
     var b=body();if(!b||typeof rawRow!=='function')return;
     var wp=pSec('dc-warmup'),tpp=pSec('dc-top'),N=numSteps();
-    if(isNaN(wp)){status('Enter the warm-up pace (m:ss /100m).');return;}
-    if(isNaN(tpp)||tpp>=wp){status('Enter a fastest pace quicker than the warm-up (a smaller m:ss).');return;}
+    if(isNaN(wp)){status('Enter the warm-up pace per 100 m (e.g. 1:30, or just 130).');return;}
+    if(isNaN(tpp)||tpp>=wp){status('Enter a fastest pace quicker than the warm-up (a smaller pace, e.g. 1:15 or 115).');return;}
     var existing=stepRows();
     var hasData=existing.some(function(r){return cellVal(r,COL.hr)||cellVal(r,COL.lactate)||cellVal(r,COL.rpe);});
     if(hasData&&!window.confirm('Replace the current '+existing.length+' step(s) with a fresh '+N+'-step protocol? Entered HR / lactate / RPE will be cleared.'))return;
@@ -4130,6 +4147,18 @@ document.getElementById("stage").addEventListener("click",e=>{
     setCell(row,COL[kind],v);
     if(kind==='speed'){var sp=parseFloat(v);setCell(row,COL.pace,(sp>0&&HASPACE())?fmtPace(sp):'');}
     else if(kind==='pace'&&SWIM()){var mps=paceToSpeed(v);setCell(row,COL.speed,(mps>0&&isFinite(mps))?mps.toFixed(3):'');}
+  });
+  /* On blur, tidy a colon-free swim pace ("130") back to "1:30" in the field and the
+     stored cell, so the appendix/report show proper pace and the doctor sees what was
+     understood. Warm-up / fastest pace inputs get the same treatment. */
+  document.addEventListener('change',function(e){
+    var el=e.target; if(!el||!SWIM())return;
+    if((el.id==='dc-warmup'||el.id==='dc-top')){var s=paceToSpeed(el.value);if(s>0&&isFinite(s)){el.value=pace100(s);updateInc();}return;}
+    if(!el.classList||!el.classList.contains('dc-in')||el.getAttribute('data-dc')!=='pace')return;
+    var rowEl=el.closest('[data-dc-row]');if(!rowEl)return;
+    var row=rows()[parseInt(rowEl.getAttribute('data-dc-row'),10)];if(!row)return;
+    var mps=paceToSpeed(el.value);
+    if(mps>0&&isFinite(mps)){var disp=pace100(mps);el.value=disp;setCell(row,COL.pace,disp);setCell(row,COL.speed,mps.toFixed(3));}
   });
   document.addEventListener('click',function(e){
     var t=e.target;
