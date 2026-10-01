@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v69</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v70</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2408,7 +2408,11 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* NB: the VO2 overlay is spread across the lactate data's own x-range (below), so
        its raw stage x-values (which may be in different units) must NOT stretch the axis. */
     [aetSpd,antSpd].forEach(t=>{if(!isNaN(+t)){_axLo=Math.min(_axLo,+t);_axHi=Math.max(_axHi,+t);}});
-    const xmin=_axLo-0.5,xmax=_axHi+0.5;
+    /* Pad the axis by a fraction of its span, not a fixed amount: a flat ±0.5 is a sensible
+       margin in km/h but is huge next to a swim axis measured in m/s (span ~0.3-0.4), which
+       crammed every point into the middle of the chart. 6% works in km/h, W and m/s alike. */
+    const _pad=((_axHi-_axLo)||1)*0.06;
+    const xmin=_axLo-_pad,xmax=_axHi+_pad;
     const ymax=Math.ceil(Math.max(..._ys))+1;
     const px=v=>ml+(v-xmin)/(xmax-xmin)*plotW;
     const py=v=>H-mb-(v/ymax)*plotH;
