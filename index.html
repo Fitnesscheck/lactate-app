@@ -76,6 +76,10 @@
   h2.title{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;line-height:1.12;margin:0 0 20px;color:var(--ink);}
 
   .edit{outline:none;border-radius:4px;}
+  /* Safety net for text pasted into an editable field (incl. older saved drafts): force
+     any nested <span>/<font> to adopt the field's own family & size so a stray pasted font
+     can't show through. Bold / italic are left intact. */
+  .edit *{font-family:inherit !important;font-size:inherit !important;}
   @media screen{
     .edit:hover{background:rgba(29,158,117,0.10);}
     .edit:focus{background:rgba(29,158,117,0.16);box-shadow:0 0 0 2px rgba(29,158,117,0.35);}
@@ -347,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v71</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v72</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2123,6 +2127,24 @@ document.querySelectorAll(".imgslot").forEach(wireSlot);
 /* Live edits inside the report. Delegated on #stage so it keeps working after a
    test-type switch rebuilds the page (and never assumes a table that a given type
    doesn't have - e.g. a VO2 report has no #raw-body). */
+/* Paste as PLAIN TEXT inside the report's editable fields. Copying from Word, a PDF or
+   a web page otherwise drags the source's font, size and colour in as inline <span>/<font>
+   markup, which rendered as a different font on the page (most visibly on the fractional-
+   utilisation prose). Stripping it on paste keeps every page in the report's own fonts and
+   keeps the saved HTML clean. */
+document.getElementById('stage').addEventListener('paste',function(e){
+  var host=e.target&&e.target.closest&&e.target.closest('[contenteditable]');
+  if(!host||!host.isContentEditable)return;
+  e.preventDefault();
+  var text='';
+  try{ text=((e.clipboardData||window.clipboardData).getData('text/plain'))||''; }catch(_){ text=''; }
+  text=text.replace(/\r\n?/g,'\n');
+  try{ document.execCommand('insertText',false,text); }
+  catch(_){
+    var sel=window.getSelection();
+    if(sel&&sel.rangeCount){var r=sel.getRangeAt(0);r.deleteContents();r.insertNode(document.createTextNode(text));r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
+  }
+});
 document.getElementById('stage').addEventListener('input',e=>{
   /* appendix (LT) table: auto-calculate pace when a speed is typed */
   const td=e.target.closest('#raw-body td.first');
