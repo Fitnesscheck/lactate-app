@@ -347,7 +347,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v70</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v71</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2040,13 +2040,23 @@ function selectTestType(key,keepData){
   report.testType=key;
   document.body.setAttribute("data-fc-test-type",key);   /* persists into draft snapshots */
   report.modality=TEST_TYPES[key].modality;
-  var d=DEMO[report.modality]||DEMO.treadmill;
-  report.aet={speed:d.aet.speed,hr:d.aet.hr};
-  report.ant={speed:d.ant.speed,hr:d.ant.hr};
-  report.econZone=null;   /* re-seed the best-economy zone for the new modality/units */
-  /* Switching to a VO2 type from the picker loads that modality's demo curve.
-     keepData is passed by the importer so a real import isn't overwritten. */
-  if((TEST_TYPES[key].kind==='vo2'||TEST_TYPES[key].kind==='combined') && !keepData) report.vo2=vo2Demo(report.modality);
+  /* keepData (the VO2 importer) means "don't overwrite the work already on this report":
+     that includes the thresholds the doctor set from the lactate side and the economy
+     zone, not just the VO2 stages. Only a real type switch from the picker reseeds these
+     to the new modality's demo. */
+  if(!keepData){
+    var d=DEMO[report.modality]||DEMO.treadmill;
+    report.aet={speed:d.aet.speed,hr:d.aet.hr};
+    report.ant={speed:d.ant.speed,hr:d.ant.hr};
+    report.econZone=null;   /* re-seed the best-economy zone for the new modality/units */
+    if(TEST_TYPES[key].kind==='vo2'||TEST_TYPES[key].kind==='combined'){
+      /* Keep real imported VO2 data when the doctor switches between VO2/combined types of
+         the SAME modality (the classic "imported first, then picked Combined" order); only
+         reseed demo when there is no import or the modality actually changed. */
+      var _keepVo2=report.vo2&&report.vo2._imported&&report.vo2._modality===TEST_TYPES[key].modality;
+      if(!_keepVo2) report.vo2=vo2Demo(report.modality);
+    }
+  }
   renderStage();
   var a=document.getElementById('cb-aet'),n2=document.getElementById('cb-ant');
   if(a)a.value=report.aet.speed; if(n2)n2.value=report.ant.speed;
@@ -2913,7 +2923,8 @@ document.getElementById("stage").addEventListener("click",e=>{
       stages:(d.stages||[]).map(function(s){return {step:s.step,speed:s.speed,vo2:s.vo2,hr:s.hr,samples:s.samples||null};}),
       /* keep the cropped PDF graphs on report.vo2 so they persist across re-renders,
          test-type switches and saved drafts (the DOM slots alone don't survive). */
-      graphs:(d.graphs&&(d.graphs.metabolic||d.graphs.ventilation))?{metabolic:d.graphs.metabolic||'',ventilation:d.graphs.ventilation||''}:null
+      graphs:(d.graphs&&(d.graphs.metabolic||d.graphs.ventilation))?{metabolic:d.graphs.metabolic||'',ventilation:d.graphs.ventilation||''}:null,
+      _imported:true, _modality:(d.modality||report.modality)   /* so a later type switch (e.g. to Combined) keeps this real data instead of reseeding demo */
     };
     /* Stay on the current report if it already shows the VO2 pages (a VO2 or a
        combined report) - importing shouldn't switch a combined report back to the
