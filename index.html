@@ -351,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v75</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v76</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1181,6 +1181,10 @@ function recomputeVo2Rating(){
   if(pill){pill.textContent=r.name;pill.style.background=r.color;}
   var norm=document.getElementById('vo2-norm');
   if(norm)norm.textContent='vs '+vo2Sex(sex)+' age '+(isNaN(age)?'-':age);
+  /* keep the "How You Compare" sentence in step with a hand-edited VO₂ max: its rating
+     word + description (the number itself rides the data-vo2max-echo span). */
+  document.querySelectorAll('[data-vo2-rating]').forEach(function(el){if(el.textContent!==r.name)el.textContent=r.name;});
+  document.querySelectorAll('[data-vo2-ratingprose]').forEach(function(el){var t=ratingProse(r.name);if(el.textContent!==t)el.textContent=t;});
 }
 
 /* Deterministic per-stage "samples" for the DEMO only - a handful of readings that
@@ -1346,7 +1350,7 @@ function vo2Analysis(){
   var catIdx=0; for(var ci=0;ci<VO2_CATS.length;ci++){ if(VO2_CATS[ci].name===r.name)catIdx=ci; }
   var compareBlock='<div class="an-block compare" data-block>'+
     '<div class="row"><h3 class="edit" contenteditable="true">How You Compare</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div>'+
-    '<p class="edit" contenteditable="true">For a '+sex.toLowerCase()+' aged '+v.age+', a VO₂ max of '+v.vo2max+' ml/kg/min rates as '+r.name+', '+ratingProse(r.name)+'</p>'+
+    '<p class="edit" contenteditable="true">For a '+sex.toLowerCase()+' aged '+v.age+', a VO₂ max of <span data-vo2max-echo>'+v.vo2max+'</span> ml/kg/min rates as <span data-vo2-rating>'+r.name+'</span>, <span data-vo2-ratingprose>'+ratingProse(r.name)+'</span></p>'+
     '<p class="edit" contenteditable="true">VO₂ max naturally falls with age, mainly because your maximum heart rate drops: as the heart beats fewer times each minute, it delivers less oxygen to the muscles per minute. Most people can expect a decline of around 1% per year, though consistent exercise can cut that roughly in half. Depending on your starting point, VO₂ max can even be increased.</p>'+
     '<div class="vo2-norms-wrap" id="vo2-norms-wrap">'+compareTablesHtml()+'</div>'+
     '<div class="vo2-norms-note">Reference values in ml/kg/min (Cooper Institute norms); your result is highlighted.</div>'+
