@@ -351,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v77</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v78</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -764,14 +764,14 @@ function buildDefaults(){ return {
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
      p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
     {h:"Your Rating of Perceived Exertion (RPE)",
-     p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
+     p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ] : [
     {h:"Aerobic Threshold",
      p:"Your aerobic threshold sits at "+powFmt(report.aet.speed)+" "+UNIT()+" at a heart rate of "+report.aet.hr+" bpm. Targeting an average power below this on your long, easy rides is a good aim. It lets you build aerobic fitness and endurance while staying fresh enough to keep training consistently."},
     {h:"Anaerobic Threshold",
      p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions. It is the highest power you can hold at a steady state before lactate builds up faster than your body can clear it."},
     {h:"Your Rating of Perceived Exertion (RPE)",
-     p:"The raw data from the test can be viewed in the Appendix. For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around 6/10. At your anaerobic threshold, it was around 8.5/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
+     p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
   recs:[
     "Cap easy "+MOD().plural+" at "+intVal(report.aet.speed)+" or "+(HASPACE()?"slower":"lower")+". If your easy days have been "+(HASPACE()?"faster":"harder")+" than this, that is the first thing to fix.",
@@ -1187,6 +1187,36 @@ function recomputeVo2Rating(){
   document.querySelectorAll('[data-vo2-rating]').forEach(function(el){if(el.textContent!==r.name)el.textContent=r.name;});
   document.querySelectorAll('[data-vo2-ratingprose]').forEach(function(el){var t=ratingProse(r.name);if(el.textContent!==t)el.textContent=t;});
 }
+
+/* Fill the analysis RPE paragraph from the real stage data: interpolate the appendix RPE
+   column at each threshold speed and drop it into the "[ ]" slots, so the prose matches
+   what was recorded instead of a fixed example. Leaves the placeholder when the table has
+   no RPE yet. Re-runs on data-collection changes, RPE edits and threshold changes. */
+function rpeAtSpeed(speed){
+  if(speed==null||isNaN(speed))return null;
+  var pts=[];
+  document.querySelectorAll('#raw-body tr').forEach(function(tr){
+    var c=tr.querySelectorAll('td'); if(c.length<6)return;
+    var s=SWIM()?paceToSpeed(c[1].textContent):parseFloat(c[0].textContent);
+    var r=parseFloat(c[5].textContent);
+    if(!isNaN(s)&&s>0&&!isNaN(r))pts.push([s,r]);
+  });
+  if(!pts.length)return null;
+  pts.sort(function(a,b){return a[0]-b[0];});
+  if(speed<=pts[0][0])return pts[0][1];
+  if(speed>=pts[pts.length-1][0])return pts[pts.length-1][1];
+  for(var i=1;i<pts.length;i++){ if(speed<=pts[i][0]){ var a=pts[i-1],b=pts[i],f=(speed-a[0])/(b[0]-a[0]); return a[1]+f*(b[1]-a[1]); } }
+  return null;
+}
+function _rpeFmt(v){ if(v==null||isNaN(v))return null; var x=Math.round(v*2)/2; return (x===Math.round(x))?String(x):x.toFixed(1); }
+function syncRpeProse(){
+  var a=_rpeFmt(rpeAtSpeed(parseFloat(report.aet&&report.aet.speed))),
+      n=_rpeFmt(rpeAtSpeed(parseFloat(report.ant&&report.ant.speed)));
+  if(a!=null)document.querySelectorAll('[data-rpe="aet"]').forEach(function(el){if(el.textContent!==a)el.textContent=a;});
+  if(n!=null)document.querySelectorAll('[data-rpe="ant"]').forEach(function(el){if(el.textContent!==n)el.textContent=n;});
+}
+document.addEventListener('fc-raw-updated',function(){try{syncRpeProse();}catch(e){}});
+document.addEventListener('input',function(e){var t=e.target;if(t&&t.closest&&t.closest('#raw-body')){try{syncRpeProse();}catch(e2){}}});
 
 /* Deterministic per-stage "samples" for the DEMO only - a handful of readings that
    wiggle around the stage mean so the demo at-a-glance trace looks like a real (jagged)
@@ -3049,6 +3079,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       if(rows[0]){const td=rows[0].querySelectorAll('td');if(td[1])td[1].textContent='Below '+report.aet.hr+' bpm';if(td[2])td[2].textContent=aI;}
       if(rows[1]){const td=rows[1].querySelectorAll('td');if(td[1])td[1].textContent='Use '+report.ant.hr+' bpm as a guide';if(td[2])td[2].textContent=nI;}
     }
+    if(typeof syncRpeProse==='function')syncRpeProse();  /* RPE-at-threshold follows the thresholds */
   }
 
   function onEdit(which,field,val,src){
