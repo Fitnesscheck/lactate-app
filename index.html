@@ -351,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v74</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v75</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2882,11 +2882,11 @@ document.getElementById("stage").addEventListener("click",e=>{
       var mark=ok?'<span style="color:#5DCAA5;">&#10003;</span>':'<span style="color:#8FA096;">&#9675;</span>';
       return '<div>'+mark+' '+label+(opt?' <span style="color:#8FA096;">(optional)</span>':'')+(f?' &mdash; <span style="color:#9fdcc6;">'+f.name+'</span>':'')+'</div>';
     }
-    var dataN=(c.txt?1:0)+(c.prot?1:0)+(c.data?1:0);
-    var html='<div style="color:#9fdcc6;margin-bottom:3px;">'+dataN+' of 3 data files staged'+(c.pdf?' &middot; PDF added':'')+':</div>'+
+    var dataN=(c.txt?1:0)+(c.data?1:0);
+    var html='<div style="color:#9fdcc6;margin-bottom:3px;">'+dataN+' of 2 required files staged'+(c.pdf?' &middot; PDF added':'')+':</div>'+
       row(!!c.txt,'Details.txt',c.txt)+
-      row(!!c.prot,'ProtocolSteps.xlsx',c.prot)+
       row(!!c.data,'DataAverage.xlsx',c.data)+
+      row(!!c.prot,'Protocol file',c.prot,true)+
       row(!!c.pdf,'Session PDF (graphs)',c.pdf,true);
     if(c.other.length)html+='<div style="color:#e0b48a;margin-top:2px;">Not recognised: '+c.other.map(function(f){return f.name;}).join(', ')+'</div>';
     if(extra)html+='<div style="margin-top:5px;color:#9fdcc6;">'+extra+'</div>';
@@ -2904,8 +2904,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var all=Object.keys(staged).map(function(k){return staged[k];});
     var pdfs=all.filter(isPdf), nonPdf=all.filter(function(f){return !isPdf(f);});
     renderChecklist();
-    if(nonPdf.length<3){
-      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+'. Still need '+(3-nonPdf.length)+' more data file'+((3-nonPdf.length)===1?'':'s')+' - see the checklist below. You can add them one at a time.');
+    /* Only two files are essential: Details.txt and DataAverage.xlsx. The stages (speeds +
+       VO2 + HR) are built from the DataAverage's target-speed column, so the protocol file
+       is optional. Auto-import once both essentials are present. */
+    var _c=catFiles();
+    if(!_c.txt || !_c.data){
+      var _need=[]; if(!_c.txt)_need.push('Details.txt'); if(!_c.data)_need.push('DataAverage.xlsx');
+      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+'. Still need: '+_need.join(' + ')+'. See the checklist below. You can add them one at a time.');
       return;
     }
     btn.disabled=true; setStatus('Reading '+all.length+' VO₂ Master file'+(all.length===1?'':'s')+'…');
