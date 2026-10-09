@@ -351,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v76</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v77</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -919,7 +919,8 @@ function ataGlance(){
 
 /* ---------- ANALYSIS ---------- */
 function anBlock(b){
-  return '<div class="an-block" data-block><div class="row"><h3 class="edit" contenteditable="true">'+b.h+'</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div><p class="edit" contenteditable="true">'+b.p+'</p><button class="add-below no-print" data-add-an-below title="Insert a new section below this one">+ Add section below</button></div>';
+  var p2=b.p2?'<p class="edit" contenteditable="true">'+b.p2+'</p>':'';
+  return '<div class="an-block" data-block><div class="row"><h3 class="edit" contenteditable="true">'+b.h+'</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div><p class="edit" contenteditable="true">'+b.p+'</p>'+p2+'<button class="add-below no-print" data-add-an-below title="Insert a new section below this one">+ Add section below</button></div>';
 }
 function analysis(){
   let blocks=DEFAULTS.analysis.map(anBlock).join("");
@@ -1368,7 +1369,8 @@ function vo2Analysis(){
   /* "Breathing analysis" - why we look, whether it's a problem (usually not), and
      if not, that there's no work to do here (lungs aren't the O₂-delivery limiter). */
   var breath=anBlock({h:"What Your Breathing Shows",
-    p:"We look at your breathing to screen for disordered or dysfunctional breathing during exercise. [For this athlete: this was NOT a problem, or describe the finding.] Most of the time it is not an issue. Where breathing is not a limiter there is no further work to do in this area: your lungs are not the limiting factor in delivering oxygen to your muscles."});
+    p:"We analyse your breathing to check for abnormalities. The yellow line shows air per breath, blue shows breaths per minute, and green shows total air breathed per minute.",
+    p2:"Your breathing pattern appears normal. Above your anaerobic threshold, the natural response is to breathe faster, you can see the blue line increase while the yellow line remains the same. This is an appropriate response, with no obvious signs of breathing dysfunction."});
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
   return '<div class="sheet vo2-depth">'+rh()+eyb('vo2Analysis','Analysis')+'<h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
