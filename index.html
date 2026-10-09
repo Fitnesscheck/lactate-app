@@ -351,7 +351,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v73</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v74</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1293,8 +1293,11 @@ function vo2StageGraph(stages){
 /* Redraw the live VO₂/HR metabolic chart from the current #vo2-body values, keeping
    each stage's imported jagged samples (they slide to the edited mean). Syncs the
    edited values back onto report.vo2.stages so the graph + everything else agree. */
+/* Sync report.vo2.stages from the editable VO₂ table so economy / fractional and the
+   summary card agree with edits. (The VO₂-in-depth page no longer draws a chart - it
+   shows the imported/uploaded VO₂ Master graph - so there is no host to redraw here.) */
 function computeVo2Graph(){
-  var host=document.getElementById('vo2-metabolic-gen'); if(!host||!report.vo2)return;
+  if(!report.vo2)return;
   var trs=document.querySelectorAll('#vo2-body tr');
   if(trs.length){
     var old=report.vo2.stages||[], next=[];
@@ -1310,7 +1313,7 @@ function computeVo2Graph(){
     });
     if(next.length)report.vo2.stages=next;
   }
-  host.innerHTML=vo2StageGraph(report.vo2.stages||[]);
+  var host=document.getElementById('vo2-metabolic-gen'); if(host)host.innerHTML=vo2StageGraph(report.vo2.stages||[]);
 }
 function vo2Summary(){
   var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex);
@@ -1365,14 +1368,10 @@ function vo2Analysis(){
   var g=(v&&v.graphs)||{};   /* graphs cropped from the VO2 Master PDF on import */
   return '<div class="sheet vo2-depth">'+rh()+eyb('vo2Analysis','Analysis')+'<h2 class="title">Your VO₂, analysed</h2>'+
     '<h3 class="edit vo2-sub" contenteditable="true" style="margin-top:6px;">VO₂ in depth</h3>'+
-    /* When a VO₂ Master image was imported, show THAT by default; a click swaps to the
-       live VO₂/HR chart (which follows appendix edits) and back. With no image, the
-       live chart is the default. */
-    '<div class="curve-slot curve-slot-big combo-graph-area'+(g.metabolic?' use-upload':'')+'">'+
-      '<div class="combo-generated" id="vo2-metabolic-gen">'+vo2StageGraph(v.stages)+'</div>'+
-      slot("slot-vo2-metabolic", g.metabolic)+
-      '<button class="no-print combo-toggle" data-combo-toggle title="Switch between the uploaded VO₂ Master image and the live, editable chart">'+(g.metabolic?'⇄ use live chart':'⇄ use uploaded')+'</button>'+
-    '</div>'+
+    /* The VO₂/HR graph is the one imported (or uploaded by hand) from the VO₂ Master
+       report - no generated chart. The import drops the cropped metabolic graph straight
+       into this slot; if none was imported it shows "Click to upload graph". */
+    '<div class="curve-slot curve-slot-big">'+slot("slot-vo2-metabolic", g.metabolic)+'</div>'+
     '<p class="edit" contenteditable="true" style="font-size:13px;line-height:1.6;color:#4b554f;margin:2px 0 12px;">Throughout the test your VO₂ rose consistently in step with your heart rate, as expected. Your cardiovascular system kept delivering more oxygen as the effort increased.</p>'+
     '<div id="an-list">'+depth+'</div>'+
     '<button class="add no-print" data-add="an">+ Add section</button>'+
