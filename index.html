@@ -246,6 +246,8 @@
   /* A stray prose paragraph that ended up a sibling of the block (older / AI-built
      reports) would otherwise render at the browser default 16px; pin it to prose size. */
   #an-list>p,#vo2-breath>p{font-size:13.5px;line-height:1.62;color:#2c332f;margin:8px 0 0;}
+  /* a prose block repaired by fcNormalizeProse (orphaned <p>/<div>/<span> from editing) */
+  .fc-fixed-prose{font-size:13.5px !important;line-height:1.62;color:#2c332f;margin:8px 0 0;}
 
   ol.recs{margin:0;padding:0;list-style:none;}
   ol.recs li{display:flex;gap:8px;align-items:flex-start;border-left:2px solid var(--green);padding:1px 0 1px 16px;font-size:13.5px;line-height:1.62;color:#2c332f;margin-bottom:16px;break-inside:avoid;}
@@ -354,7 +356,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v80</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v81</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2067,13 +2069,24 @@ function pagesPanel(){
    the analysis / breathing containers editable again. No-op on healthy reports. */
 function fcNormalizeProse(){
   try{
-    document.querySelectorAll('#stage #an-list>p, #stage #vo2-breath>p, #stage .an-block>p, #stage .subsec>p').forEach(function(p){
-      if(!p.isContentEditable && (p.textContent||'').trim()){ p.classList.add('edit'); p.setAttribute('contenteditable','true'); }
+    /* Editing a contenteditable <p> (e.g. pressing Enter) can split its text into a stray
+       <p>, or a plain <div>/<span> wrapper, that drops out of the editable flow - it then
+       renders at the browser default 16px and can't be edited. Find those leaf prose nodes
+       in the analysis / breathing containers and make them editable prose again. */
+    var SKIP=/\b(an-block|row|subsec|vo2-norms|vo2-norms-note|vo2-norms-wrap|vo2-hl-hint|vo2-depth|rec-table|defs|def|frac|fu-|no-print|add-below|cta|imgslot|combo|ig-|ks|vo2-)/;
+    document.querySelectorAll('#stage #an-list p, #stage #an-list div, #stage #vo2-breath p, #stage #vo2-breath div, #stage .an-block p, #stage .an-block div').forEach(function(el){
+      if(SKIP.test(el.className||''))return;
+      /* skip structural containers; a leaf may hold inline <span>/<b>/<a> only */
+      if(el.querySelector('p,div,table,button,h3,h2,dt,dd,ul,ol,svg,img,input,select'))return;
+      if(!(el.textContent||'').trim())return;
+      if(!el.isContentEditable){ el.classList.add('edit'); el.classList.add('fc-fixed-prose'); el.setAttribute('contenteditable','true'); }
     });
   }catch(e){}
 }
-/* also run after an edit that may have orphaned a paragraph (leaving a prose field) */
+/* also run after an edit that may have orphaned a paragraph (leaving a prose field), and
+   on any click in the report so an already-open broken report self-heals without a reopen */
 document.addEventListener('focusout',function(e){ if(e.target&&e.target.closest&&e.target.closest('#stage .an-block, #stage #vo2-breath')) fcNormalizeProse(); });
+document.addEventListener('click',function(e){ if(e.target&&e.target.closest&&e.target.closest('#stage #an-list, #stage #vo2-breath')) fcNormalizeProse(); });
 function renderStage(){
   DEFAULTS = buildDefaults();
   document.getElementById("stage").innerHTML = assembleReport();
