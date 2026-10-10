@@ -354,7 +354,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v79</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v80</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -427,6 +427,11 @@
     <div class="cb-field"><label>Aerobic HR (bpm)</label><input type="number" id="cb-aet-hr" step="1" min="0" style="width:90px;background:#16201B;color:#1D9E75;border:1px solid #1D9E75;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;font-weight:500;"></div>
     <div class="cb-field"><label>Anaerobic threshold (km/h)</label><input type="number" id="cb-ant" step="0.1" min="0" style="width:90px;background:#16201B;color:#e53935;border:1px solid #e53935;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;font-weight:500;"></div>
     <div class="cb-field"><label>Anaerobic HR (bpm)</label><input type="number" id="cb-ant-hr" step="1" min="0" style="width:90px;background:#16201B;color:#e53935;border:1px solid #e53935;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;font-weight:500;"></div>
+    <div class="cb-field"><label>Curve shape</label><select id="cb-curve" title="Shape of the fitted lactate curve on the quick-reference card and analysis page" style="width:160px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;cursor:pointer;">
+      <option value="poly3">3rd-degree polynomial</option>
+      <option value="poly4">4th-degree polynomial</option>
+      <option value="bspline">B-spline (natural)</option>
+    </select></div>
     <div class="cb-btns">
       <button class="btn" id="cb-insert">Generate &amp; insert charts</button>
       <button class="btn cb-btn2" id="cb-dl">⬇ Download IG chart PNG</button>
@@ -747,6 +752,9 @@ var _savedType = document.body && document.body.getAttribute("data-fc-test-type"
 if(_savedType && TEST_TYPES[_savedType]) report.testType = _savedType;
 if(!report.testType || !TEST_TYPES[report.testType]) report.testType = "lt_treadmill";
 report.modality = TEST_TYPES[report.testType].modality;
+/* chosen lactate-curve shape (quick-ref card + analysis page): poly3 | poly4 | bspline */
+var _savedCurve = document.body && document.body.getAttribute("data-fc-curve-fit");
+report.curveFit = (_savedCurve==='poly4'||_savedCurve==='bspline'||_savedCurve==='poly3') ? _savedCurve : (report.curveFit||'poly3');
 function MOD(){ return MODALITIES[report.modality] || MODALITIES.treadmill; }
 function UNIT(){ return MOD().unit; }
 function HASPACE(){ return MOD().hasPace; }
@@ -2435,8 +2443,8 @@ document.getElementById("stage").addEventListener("click",e=>{
 (function(){
   let _coeffs=null,_xs=[],_ys=[],_hrs=[],_igSVG='';
 
-  function polyFit(xs,ys){
-    const d=4,n=xs.length;
+  function polyFit(xs,ys,d){
+    d=d||4;const n=xs.length;
     const A=Array.from({length:d},()=>new Array(d).fill(0));
     const b=new Array(d).fill(0);
     for(let i=0;i<n;i++)for(let r=0;r<d;r++){b[r]+=Math.pow(xs[i],r)*ys[i];for(let c=0;c<d;c++)A[r][c]+=Math.pow(xs[i],r+c);}
@@ -2451,7 +2459,36 @@ document.getElementById("stage").addEventListener("click",e=>{
     return x;
   }
   function evalP(c,x){return c.reduce((s,a,i)=>s+a*Math.pow(x,i),0);}
-  function r2fn(xs,ys,c){const m=ys.reduce((a,b)=>a+b)/ys.length,ss=ys.reduce((s,y)=>s+(y-m)**2,0),sr=ys.reduce((s,y,i)=>s+(y-evalP(c,xs[i]))**2,0);return 1-sr/ss;}
+  function r2fn(xs,ys,fn){const m=ys.reduce((a,b)=>a+b)/ys.length,ss=ys.reduce((s,y)=>s+(y-m)**2,0),sr=ys.reduce((s,y,i)=>s+(y-fn(xs[i]))**2,0);return ss?1-sr/ss:1;}
+  /* Natural cubic spline through the (x,y) points - smooth and follows the data closely.
+     Points are sorted + de-duplicated first; outside the data range it continues the end
+     segment. Returns an evaluator fn(x). Falls back to a polynomial for <3 points. */
+  function naturalSpline(xs,ys){
+    var idx=xs.map(function(_,i){return i;}).sort(function(a,b){return xs[a]-xs[b];});
+    var X=[],Y=[],i;
+    idx.forEach(function(k){ if(X.length&&Math.abs(xs[k]-X[X.length-1])<1e-9){Y[Y.length-1]=(Y[Y.length-1]+ys[k])/2;} else {X.push(xs[k]);Y.push(ys[k]);} });
+    var n=X.length;
+    if(n<3){ var c0=polyFit(xs,ys,Math.min(4,Math.max(2,n))); return function(x){return evalP(c0,x);}; }
+    var h=[]; for(i=0;i<n-1;i++)h[i]=X[i+1]-X[i];
+    var al=new Array(n).fill(0);
+    for(i=1;i<n-1;i++)al[i]=3*((Y[i+1]-Y[i])/h[i]-(Y[i]-Y[i-1])/h[i-1]);
+    var l=new Array(n).fill(0),mu=new Array(n).fill(0),z=new Array(n).fill(0); l[0]=1;
+    for(i=1;i<n-1;i++){l[i]=2*(X[i+1]-X[i-1])-h[i-1]*mu[i-1];mu[i]=h[i]/l[i];z[i]=(al[i]-h[i-1]*z[i-1])/l[i];}
+    l[n-1]=1;
+    var cc=new Array(n).fill(0),bb=new Array(n).fill(0),dd=new Array(n).fill(0);
+    for(i=n-2;i>=0;i--){cc[i]=z[i]-mu[i]*cc[i+1];bb[i]=(Y[i+1]-Y[i])/h[i]-h[i]*(cc[i+1]+2*cc[i])/3;dd[i]=(cc[i+1]-cc[i])/(3*h[i]);}
+    return function(x){
+      var j; if(x<=X[0])j=0; else if(x>=X[n-1])j=n-2; else {for(j=0;j<n-1;j++){if(x<=X[j+1])break;} if(j>n-2)j=n-2;}
+      var t=x-X[j]; return Y[j]+bb[j]*t+cc[j]*t*t+dd[j]*t*t*t;
+    };
+  }
+  /* Evaluator for the lactate curve in the doctor's chosen shape (report.curveFit). */
+  function makeCurveFn(xs,ys){
+    var shape=(typeof report!=='undefined'&&report.curveFit)||'poly3';
+    if(shape==='bspline'&&xs.length>=3)return naturalSpline(xs,ys);
+    var c=polyFit(xs,ys,(shape==='poly4')?5:4);
+    return function(x){return evalP(c,x);};
+  }
   function fmtPace(kmh){const t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);return mm+':'+(ss<10?'0':'')+ss;}
 
   function readTableData(){
@@ -2536,7 +2573,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     s+=`<text x="${antX.toFixed(1)}" y="${mt-18}" text-anchor="middle" font-size="10" font-weight="600" fill="#e53935" font-family="sans-serif">Anaerobic</text>`;
     s+=`<text x="${antX.toFixed(1)}" y="${mt-6}" text-anchor="middle" font-size="10" fill="#e53935" font-family="sans-serif">Threshold</text>`;
     let pts='';const N=300;
-    for(let i=0;i<=N;i++){const xv=_cLo+i*(_cHi-_cLo)/N;pts+=(i?'L':'M')+px(xv).toFixed(1)+' '+py(Math.max(0,evalP(_coeffs,xv))).toFixed(1);}
+    for(let i=0;i<=N;i++){const xv=_cLo+i*(_cHi-_cLo)/N;pts+=(i?'L':'M')+px(xv).toFixed(1)+' '+py(Math.max(0,_coeffs(xv))).toFixed(1);}
     s+=`<path d="${pts}" fill="none" stroke="#1D9E75" stroke-width="2.5" clip-path="url(#pc)"/>`;
     _xs.forEach((xv,i)=>{s+=`<circle cx="${px(xv).toFixed(1)}" cy="${py(_ys[i]).toFixed(1)}" r="3.5" fill="#0F6E56" stroke="#fff" stroke-width="1.5" clip-path="url(#pc)"/>`;});
     if(hasHR){
@@ -2613,7 +2650,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       if(!isNaN(s)&&!isNaN(l)&&s>0&&l>=0){xs.push(s);ys.push(l);hrs.push(isNaN(h)?null:h);}});
     if(xs.length<4)return '';
     const sx=_xs,sy=_ys,sh=_hrs,sc=_coeffs;               // preserve builder state
-    _xs=xs;_ys=ys;_hrs=hrs;_coeffs=polyFit(xs,ys);
+    _xs=xs;_ys=ys;_hrs=hrs;_coeffs=makeCurveFn(xs,ys);
     const svg=buildSVG(!!data.showHR,data.aet,data.ant,{vo2:data.vo2stages,vo2max:data.vo2max});
     _xs=sx;_ys=sy;_hrs=sh;_coeffs=sc;                      // restore
     return svg;
@@ -2629,14 +2666,39 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(xs.length<4){setStatus('Need at least 4 valid rows in the appendix table - fill in Speed and Lactate.','err');return;}
     const{aet:aetSpd,ant:antSpd}=getThresholds();
     _xs=xs;_ys=ys;_hrs=hrs;
-    _coeffs=polyFit(_xs,_ys);
+    _coeffs=makeCurveFn(_xs,_ys);
     _igSVG=buildSVG(false,aetSpd,antSpd);
     insertSlot('slot-ig',svgURL(_igSVG));
     insertSlot('slot-curve',svgURL(buildSVG(true,aetSpd,antSpd)));
     if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();  /* combined card graph too */
-    const fit=r2fn(_xs,_ys,_coeffs);
-    setStatus('\u2713 '+xs.length+' rows read. Aerobic '+aetSpd+' '+UNIT()+' \u00B7 Anaerobic '+antSpd+' '+UNIT()+' \u00B7 R\u00B2\u2248'+fit.toFixed(3),'ok');
+    var _shape=(report.curveFit||'poly3');
+    var _fitTxt=(_shape==='bspline')?'B-spline (through the points)':('R\u00B2\u2248'+r2fn(_xs,_ys,_coeffs).toFixed(3));
+    setStatus('\u2713 '+xs.length+' rows read. Aerobic '+aetSpd+' '+UNIT()+' \u00B7 Anaerobic '+antSpd+' '+UNIT()+' \u00B7 '+_fitTxt,'ok');
   });
+
+  /* Curve-shape picker: changes the fitted shape on the analysis chart (if generated) and
+     the combined quick-reference card, and remembers it on the report. */
+  (function(){
+    var sel=document.getElementById('cb-curve'); if(!sel)return;
+    sel.value=(report.curveFit||'poly3');
+    sel.addEventListener('change',function(){
+      report.curveFit=sel.value;
+      try{document.body.setAttribute('data-fc-curve-fit',report.curveFit);}catch(e){}
+      var d=readTableData();
+      var curveSlot=document.getElementById('slot-curve');
+      var hasCurve=curveSlot&&curveSlot.classList.contains('has-img');
+      if(d.xs.length>=4 && hasCurve){
+        var th=getThresholds();
+        _xs=d.xs;_ys=d.ys;_hrs=d.hrs;_coeffs=makeCurveFn(_xs,_ys);
+        _igSVG=buildSVG(false,th.aet,th.ant);
+        insertSlot('slot-ig',svgURL(_igSVG));
+        insertSlot('slot-curve',svgURL(buildSVG(true,th.aet,th.ant)));
+      }
+      if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+      var label=sel.options[sel.selectedIndex].text;
+      setStatus(hasCurve?('Curve shape set to '+label+'. Charts updated.'):('Curve shape set to '+label+'. Click Generate to draw it.'),'ok');
+    });
+  })();
 
   document.getElementById('cb-dl').addEventListener('click',()=>{
     if(!_coeffs){setStatus('Generate charts first.','err');return;}
@@ -3431,6 +3493,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var QA=function(s,r){return [].slice.call((r||doc).querySelectorAll(s));};
     var b={};
     b.testType=doc.body.getAttribute('data-fc-test-type')||'lt_treadmill';
+    b.curveFit=doc.body.getAttribute('data-fc-curve-fit')||'poly3';
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
@@ -3500,6 +3563,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     report.testType=b.testType;
     report.modality=TEST_TYPES[b.testType].modality;
     document.body.setAttribute('data-fc-test-type',report.testType);
+    report.curveFit=(b.curveFit==='poly4'||b.curveFit==='bspline')?b.curveFit:'poly3';
+    try{document.body.setAttribute('data-fc-curve-fit',report.curveFit);var _cs=document.getElementById('cb-curve');if(_cs)_cs.value=report.curveFit;}catch(e){}
     if(b.client)report.client=b.client;
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
