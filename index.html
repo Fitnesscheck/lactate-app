@@ -243,6 +243,9 @@
   .an-block .row{display:flex;align-items:flex-start;gap:8px;}
   .an-block h3{font-size:14px;font-weight:500;color:var(--green-dark);margin:0 0 4px;flex:1;}
   .an-block p{font-size:13.5px;line-height:1.62;color:#2c332f;margin:0;}
+  /* A stray prose paragraph that ended up a sibling of the block (older / AI-built
+     reports) would otherwise render at the browser default 16px; pin it to prose size. */
+  #an-list>p,#vo2-breath>p{font-size:13.5px;line-height:1.62;color:#2c332f;margin:8px 0 0;}
 
   ol.recs{margin:0;padding:0;list-style:none;}
   ol.recs li{display:flex;gap:8px;align-items:flex-start;border-left:2px solid var(--green);padding:1px 0 1px 16px;font-size:13.5px;line-height:1.62;color:#2c332f;margin-bottom:16px;break-inside:avoid;}
@@ -351,7 +354,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v78</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v79</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2050,6 +2053,19 @@ function pagesPanel(){
   if(!items) return '';
   return '<details class="pages-picker no-print"><summary>Pages</summary><div class="pg-list">'+items+'</div></details>';
 }
+/* Repair prose paragraphs that ended up orphaned outside their editable block (seen on
+   some older / AI-built reports): a <p> sitting as a sibling of an .an-block renders at
+   the browser default size and can't be edited. Make any such non-editable prose <p> in
+   the analysis / breathing containers editable again. No-op on healthy reports. */
+function fcNormalizeProse(){
+  try{
+    document.querySelectorAll('#stage #an-list>p, #stage #vo2-breath>p, #stage .an-block>p, #stage .subsec>p').forEach(function(p){
+      if(!p.isContentEditable && (p.textContent||'').trim()){ p.classList.add('edit'); p.setAttribute('contenteditable','true'); }
+    });
+  }catch(e){}
+}
+/* also run after an edit that may have orphaned a paragraph (leaving a prose field) */
+document.addEventListener('focusout',function(e){ if(e.target&&e.target.closest&&e.target.closest('#stage .an-block, #stage #vo2-breath')) fcNormalizeProse(); });
 function renderStage(){
   DEFAULTS = buildDefaults();
   document.getElementById("stage").innerHTML = assembleReport();
@@ -2070,6 +2086,7 @@ function renderStage(){
      table). Guarded so the initial parse-time render (before the listener exists)
      is harmless. */
   try{document.dispatchEvent(new Event('fc-raw-updated'));}catch(e){}
+  fcNormalizeProse();
 }
 /* Switch the whole report to another test type (picked on the cover). Resets to
    that type's demo data + units and re-renders; panels outside #stage keep their
@@ -3522,6 +3539,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var carried={analysis:setInner('analysis','#an-list',b.analysisHTML),
                  recs:setInner('recommendations','#rec-list',b.recsHTML),
                  defs:setInner('appendix','#def-list',b.defsHTML)||setInner('combinedAppendix','#def-list',b.defsHTML)||setInner('vo2Appendix','#def-list',b.defsHTML)};
+    if(typeof fcNormalizeProse==='function')fcNormalizeProse();  /* repair any orphaned prose paragraph from the saved HTML */
     /* restore uploaded graphs */
     var imgN=0;
     (b.images||[]).forEach(function(im){var sl=document.getElementById(im.id);if(!sl)return;var img=sl.querySelector('.shot');if(img){img.setAttribute('src',im.src);sl.classList.add('has-img');imgN++;}});
