@@ -356,7 +356,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v81</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v82</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2181,7 +2181,14 @@ syncCollectionLabels();
 /* Wake the backend early - Railway sleeps the container when idle, so the FIRST
    threshold compute or VO2 import otherwise waits several seconds for a cold start.
    This fire-and-forget ping gets it warming while the doctor sets the report up. */
-(function(){ try{ fetch(backendUrl()+'/',{cache:'no-store'}).catch(function(){}); }catch(e){} })();
+(function(){ try{
+  fetch(backendUrl()+'/',{cache:'no-store'})
+    .then(function(){ /* once the container is awake, prime the R engine (loads lactater +
+       warms the OS cache) so the doctor's FIRST compute-thresholds is quick, not slow. */
+      try{ fetch(backendUrl()+'/warm',{cache:'no-store'}).catch(function(){}); }catch(e){}
+    })
+    .catch(function(){});
+}catch(e){} })();
 
 /* image slots */
 function wireSlot(slotEl){
