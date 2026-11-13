@@ -359,7 +359,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v85</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v86</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -760,6 +760,11 @@ report.modality = TEST_TYPES[report.testType].modality;
 /* chosen lactate-curve shape (quick-ref card + analysis page): poly3 | poly4 | bspline */
 var _savedCurve = document.body && document.body.getAttribute("data-fc-curve-fit");
 report.curveFit = (_savedCurve==='poly4'||_savedCurve==='bspline'||_savedCurve==='poly3') ? _savedCurve : (report.curveFit||'poly3');
+/* Data points the doctor excluded from the fit in the threshold engine, keyed by
+   intensity. Shared by the engine panel and every report graph, and persisted on
+   <body> so a saved/reopened report redraws its curve with the same points dropped. */
+var _savedExcl = document.body && document.body.getAttribute("data-fc-excluded-points");
+try{ report.excludedPoints = (_savedExcl?JSON.parse(_savedExcl):null) || report.excludedPoints || {}; }catch(e){ report.excludedPoints = report.excludedPoints || {}; }
 function MOD(){ return MODALITIES[report.modality] || MODALITIES.treadmill; }
 function UNIT(){ return MOD().unit; }
 function HASPACE(){ return MOD().hasPace; }
@@ -2527,6 +2532,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   function readTableData(){
     const rows=Array.from(document.querySelectorAll('#raw-body tr'));
     const xs=[],ys=[],hrs=[];
+    const excl=(typeof report!=='undefined'&&report.excludedPoints)||{};
     rows.forEach(row=>{
       const cells=row.querySelectorAll('td');
       if(cells.length<5)return;
@@ -2534,6 +2540,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       const lactate=parseFloat(cells[4].textContent);
       const hr=parseFloat(cells[3].textContent);
       if(!isNaN(speed)&&!isNaN(lactate)&&speed>0&&speed<(HASPACE()?50:2000)&&lactate>=0&&lactate<30){
+        if(excl[speed])return;   /* point excluded from the fit in the threshold engine */
         xs.push(speed);ys.push(lactate);hrs.push(isNaN(hr)?null:hr);
       }
     });
@@ -2679,8 +2686,9 @@ document.getElementById("stage").addEventListener("click",e=>{
      object rather than the appendix table - used by the combined quick-ref card. */
   window.fcLactateChart=function(data){
     const xs=[],ys=[],hrs=[];
+    const excl=(typeof report!=='undefined'&&report.excludedPoints)||{};
     (data.rows||[]).forEach(r=>{const s=parseFloat(r[0]),l=parseFloat(r[4]),h=parseFloat(r[3]);
-      if(!isNaN(s)&&!isNaN(l)&&s>0&&l>=0){xs.push(s);ys.push(l);hrs.push(isNaN(h)?null:h);}});
+      if(!isNaN(s)&&!isNaN(l)&&s>0&&l>=0){if(excl[s])return;xs.push(s);ys.push(l);hrs.push(isNaN(h)?null:h);}});
     if(xs.length<4)return '';
     const sx=_xs,sy=_ys,sh=_hrs,sc=_coeffs;               // preserve builder state
     _xs=xs;_ys=ys;_hrs=hrs;_coeffs=makeCurveFn(xs,ys);
@@ -2732,6 +2740,20 @@ document.getElementById("stage").addEventListener("click",e=>{
       setStatus(hasCurve?('Curve shape set to '+label+'. Charts updated.'):('Curve shape set to '+label+'. Click Generate to draw it.'),'ok');
     });
   })();
+
+  /* If the doctor includes/excludes a point in the threshold engine after the charts
+     have been generated, redraw them so the curve + dots match the current point set. */
+  document.addEventListener('fc-exclusions-changed',function(){
+    var curveSlot=document.getElementById('slot-curve');
+    if(!curveSlot||!curveSlot.classList.contains('has-img'))return;
+    var d=readTableData();if(d.xs.length<4)return;
+    var th=getThresholds();
+    _xs=d.xs;_ys=d.ys;_hrs=d.hrs;_coeffs=makeCurveFn(_xs,_ys);
+    _igSVG=buildSVG(false,th.aet,th.ant);
+    insertSlot('slot-ig',svgURL(_igSVG));
+    insertSlot('slot-curve',svgURL(buildSVG(true,th.aet,th.ant)));
+    if(typeof refreshComboQuickRef==='function')refreshComboQuickRef();
+  });
 
   document.getElementById('cb-dl').addEventListener('click',()=>{
     if(!_coeffs){setStatus('Generate charts first.','err');return;}
@@ -3527,6 +3549,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var b={};
     b.testType=doc.body.getAttribute('data-fc-test-type')||'lt_treadmill';
     b.curveFit=doc.body.getAttribute('data-fc-curve-fit')||'poly3';
+    try{b.excludedPoints=JSON.parse(doc.body.getAttribute('data-fc-excluded-points')||'{}')||{};}catch(e){b.excludedPoints={};}
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
@@ -3598,6 +3621,12 @@ document.getElementById("stage").addEventListener("click",e=>{
     document.body.setAttribute('data-fc-test-type',report.testType);
     report.curveFit=(b.curveFit==='poly4'||b.curveFit==='bspline')?b.curveFit:'poly3';
     try{document.body.setAttribute('data-fc-curve-fit',report.curveFit);var _cs=document.getElementById('cb-curve');if(_cs)_cs.value=report.curveFit;}catch(e){}
+    /* Restore excluded points by MUTATING the shared object (the engine panel holds a
+       live reference to it), then re-persist to <body>. */
+    report.excludedPoints=report.excludedPoints||{};
+    Object.keys(report.excludedPoints).forEach(function(k){delete report.excludedPoints[k];});
+    if(b.excludedPoints)Object.keys(b.excludedPoints).forEach(function(k){report.excludedPoints[k]=b.excludedPoints[k];});
+    try{document.body.setAttribute('data-fc-excluded-points',JSON.stringify(report.excludedPoints));}catch(e){}
     if(b.client)report.client=b.client;
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
@@ -3804,7 +3833,16 @@ document.getElementById("stage").addEventListener("click",e=>{
   var CAT_ANAEROBIC=[{key:'LogPolyModDmax',label:'LogPoly ModDmax',def:true},{key:'ModDmax',label:'ModDmax'},{key:'LTP2',label:'LTP2'}];
   var COL={LTratio:'#1D9E75',Loglog:'#1D9E75',LTP1:'#1D9E75',LogPolyModDmax:'#e53935',ModDmax:'#e53935',LTP2:'#e53935'};
 
-  var excluded={};  // intensities the user (or a spike flag) has excluded from the fit
+  /* Shared with the report graphs + persisted on <body>: excluding a point here also
+     drops it from the report curve, IG card and combined card - now and after the
+     report is saved and reopened. (Mutate this object, never reassign it, so the
+     report-side references stay live.) */
+  report.excludedPoints=report.excludedPoints||{};
+  var excluded=report.excludedPoints;  // intensities the user (or a spike flag) has excluded from the fit
+  function persistExclusions(){
+    try{document.body.setAttribute('data-fc-excluded-points',JSON.stringify(excluded));}catch(e){}
+    try{document.dispatchEvent(new Event('fc-exclusions-changed'));}catch(e){}
+  }
   function fitChoice(){var s=document.getElementById('te-fit');return s?s.value:'poly3';}
   function sourceChoice(){var s=document.getElementById('te-source');return s?s.value:'interp';}
   function readAllPoints(){
@@ -4110,9 +4148,9 @@ document.getElementById("stage").addEventListener("click",e=>{
   var outEl=document.getElementById('te-output');
   if(outEl)outEl.addEventListener('click',function(e){
     var tg=e.target.closest('[data-te-toggle]');
-    if(tg){var k=tg.getAttribute('data-te-toggle');if(excluded[k])delete excluded[k];else excluded[k]=true;doCompute(false);return;}
+    if(tg){var k=tg.getAttribute('data-te-toggle');if(excluded[k])delete excluded[k];else excluded[k]=true;persistExclusions();doCompute(false);return;}
     var xb=e.target.closest('[data-te-exclude]');
-    if(xb){excluded[xb.getAttribute('data-te-exclude')]=true;doCompute(false);return;}
+    if(xb){excluded[xb.getAttribute('data-te-exclude')]=true;persistExclusions();doCompute(false);return;}
     var ub=e.target.closest('[data-te-use]');
     if(ub){applyThreshold(ub.getAttribute('data-te-use'),parseFloat(ub.getAttribute('data-te-spd')),ub.getAttribute('data-te-hr'),ub.getAttribute('data-te-method'));return;}
     var vb=e.target.closest('[data-te-view]');
