@@ -358,7 +358,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v83</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v84</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -777,7 +777,7 @@ function buildDefaults(){ return {
     {h:"Aerobic Threshold, Your Easy Ceiling",
      p:"Your aerobic threshold sits at "+intVal(report.aet.speed)+" at a heart rate of "+report.aet.hr+" bpm. That is the ceiling of easy "+MOD().verb+". Below it you can train for a long time; above it, easy sessions stop being easy and start quietly accumulating fatigue. Many years of consistent training reflects your strong aerobic base."},
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
-     p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable. At 92% of your maximum heart rate (measured at 190 bpm) it sits within the range for an elite endurance athlete. This typically sits at 90 to 92%."},
+     p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable."},
     {h:"Your Rating of Perceived Exertion (RPE)",
      p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ] : [
