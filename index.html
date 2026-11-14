@@ -359,7 +359,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v89</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v90</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1421,7 +1421,7 @@ function vo2Analysis(){
   '</div>';
   var depth=
     anBlock({h:"Your VO₂ Max",
-     p:"Your VO₂ max is <span data-vo2max-echo>"+v.vo2max+"</span> ± 2% ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. You may notice that the blue VO₂ line is jagged due to breathing movement. We look for a plateau and take 30s averages to identify this."})+
+     p:"Your VO₂ max is <span data-vo2max-echo>"+v.vo2max+"</span> ± 2% ml/kg/min, reached at a maximum heart rate of "+(v.maxHR==null?'-':v.maxHR)+" bpm. You may notice that the blue VO₂ line is jagged due to breathing movements. We look for a plateau over 30s averages rather than individual peaks to identify VO₂ max."})+
     anBlock({h:"What is VO₂ Max",
      p:"VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise. It sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
     compareBlock+
