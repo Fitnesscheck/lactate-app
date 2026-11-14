@@ -359,7 +359,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v87</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v88</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1989,7 +1989,7 @@ function fractional(){
     '<div class="fu-head"><h2 class="title" style="margin:0;">Fractional utilisation</h2>'+
       '<button class="fu-workbtn no-print" data-fu-open type="button">&#9998; Show working</button></div>'+
     /* Plain explanation: what FU is and why it matters. */
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:14px 0 0;max-width:none;">Fractional utilisation is the share of your VO₂ max you are actually using at each threshold: how much of your aerobic ceiling is switched on at the intensities you train and race at. A high VO₂ max only helps if you can use a large fraction of it: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice (the part you cannot sustain) as small as possible.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:14px 0 0;max-width:none;">Fractional utilisation is the <b>share of your VO₂ max you are actually using at each threshold:</b> how much of your aerobic ceiling is switched on at the intensities you train and race at. <b>A high VO₂ max only helps if you can use a large fraction of it</b>: two athletes with the same ceiling can perform very differently depending on how much of it they can access. The aim is to push the green and amber slices up and keep the red slice (the part you cannot sustain) as small as possible.</p>'+
     /* On-page = exactly what the PDF prints: the donut, legend and definitions. */
     '<div class="frac-wrap" style="margin-top:18px;">'+
       '<div class="frac-chart" id="frac-chart">'+doughnut((eAer!=null?eAer:0),(eAn!=null?eAn:0),true,(res&&report.vo2)?report.vo2.vo2max:null)+'</div>'+
