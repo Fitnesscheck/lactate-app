@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v101</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v102</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1851,26 +1851,47 @@ function pcSampleLine(){
   return pts;
 }
 function pcHasFuzzy(){return pcSampleLine().length>=4;}
-function powerCadenceChart(simplePts){
-  var fuzzy=pcSampleLine(), usingFuzzy=fuzzy.length>=4, pts=usingFuzzy?fuzzy:(simplePts||[]);
-  if(!pts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">Cadence will appear here once a bike VO₂ file is imported, or enter it per stage below.</div>';
+/* Editor-chosen display power range (watts). Readings outside it are excluded from the
+   chart AND from the average-cadence band - so dropping the top end re-averages. */
+function pcRange(){
+  var f=parseFloat(document.body.getAttribute('data-fc-cad-from'));
+  var t=parseFloat(document.body.getAttribute('data-fc-cad-to'));
+  return {from:isNaN(f)?null:f, to:isNaN(t)?null:t};
+}
+function pcInRange(x,r){return (r.from==null||x>=r.from-0.001)&&(r.to==null||x<=r.to+0.001);}
+function powerCadenceChart(){
+  var r=pcRange();
+  var fuzzyAll=pcSampleLine(), simpleAll=pcStages(), usingFuzzy=fuzzyAll.length>=4;
+  var allPts=usingFuzzy?fuzzyAll:simpleAll;
+  if(!allPts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">Cadence will appear here once a bike VO₂ file is imported, or enter it per stage below.</div>';
+  var pts=allPts.filter(function(p){return pcInRange(p[0],r);});
+  if(!pts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">No readings in the selected power range — widen it below.</div>';
   var W=600,H=300,mL=56,mR=20,mT=20,mB=52,i;
   var xs=pts.map(function(p){return p[0];}), ys=pts.map(function(p){return p[1];});
   var aet=parseFloat(report.aet&&report.aet.speed), ant=parseFloat(report.ant&&report.ant.speed);
   var xlo=Math.min.apply(null,xs), xhi=Math.max.apply(null,xs);
-  [aet,ant].forEach(function(t){if(!isNaN(t)){xlo=Math.min(xlo,t);xhi=Math.max(xhi,t);}});
+  [aet,ant].forEach(function(t){if(!isNaN(t)&&pcInRange(t,r)){xlo=Math.min(xlo,t);xhi=Math.max(xhi,t);}});
   var xpad=((xhi-xlo)||1)*0.06; xlo=Math.max(0,xlo-xpad); xhi+=xpad;
+  /* average cadence over the DISPLAYED readings only (re-computed when the range changes) */
+  var avg=ys.reduce(function(a,b){return a+b;},0)/ys.length, bandLo=avg-5, bandHi=avg+5;
   var ylo=Math.min.apply(null,ys), yhi=Math.max.apply(null,ys);
+  ylo=Math.min(ylo,bandLo); yhi=Math.max(yhi,bandHi);
   var yp=((yhi-ylo)||6)*0.3||6; ylo=Math.max(0,Math.floor((ylo-yp)/5)*5); yhi=Math.ceil((yhi+yp)/5)*5; if(yhi-ylo<10)yhi=ylo+10;
   function X(x){return mL+(x-xlo)/(xhi-xlo)*(W-mL-mR);}
   function Y(y){return H-mB-(y-ylo)/(yhi-ylo)*(H-mT-mB);}
   var s='<svg viewBox="0 0 '+W+' '+H+'" class="econ-svg" xmlns="http://www.w3.org/2000/svg"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';
+  /* green average-cadence band (avg ± 5 RPM) spanning the whole chart width */
+  var by1=Y(bandHi), by2=Y(bandLo);
+  s+='<rect x="'+mL+'" y="'+by1.toFixed(1)+'" width="'+(W-mL-mR)+'" height="'+Math.max(0,by2-by1).toFixed(1)+'" fill="#1D9E75" opacity="0.15"/>';
+  s+='<line x1="'+mL+'" y1="'+by1.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+by1.toFixed(1)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
+  s+='<line x1="'+mL+'" y1="'+by2.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+by2.toFixed(1)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
+  s+='<text x="'+(W-mR-5)+'" y="'+(by1-4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="700" fill="#14663f">Average '+Math.round(avg)+' RPM (±5)</text>';
   var yStep=(yhi-ylo)>60?20:((yhi-ylo)>30?10:5);
   for(var v=Math.ceil(ylo/yStep)*yStep; v<=yhi+0.01; v+=yStep){var yy=Y(v);
     s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/>';
     s+='<text x="'+(mL-7)+'" y="'+(yy+4).toFixed(1)+'" font-size="12" fill="#444" text-anchor="end">'+v+'</text>';}
   s+='<line x1="'+mL+'" y1="'+mT+'" x2="'+mL+'" y2="'+(H-mB)+'" stroke="#333"/><line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="#333"/>';
-  function thr(val,col,lab){ if(isNaN(val)||val<xlo||val>xhi)return ''; var x=X(val);
+  function thr(val,col,lab){ if(isNaN(val)||!pcInRange(val,r)||val<xlo||val>xhi)return ''; var x=X(val);
     return '<line x1="'+x.toFixed(1)+'" y1="'+mT+'" x2="'+x.toFixed(1)+'" y2="'+(H-mB)+'" stroke="'+col+'" stroke-width="1.6" stroke-dasharray="5 4"/>'+
       '<text x="'+x.toFixed(1)+'" y="'+(mT-6)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+col+'">'+lab+'</text>'; }
   s+=thr(aet,'#1D9E75','Aerobic')+thr(ant,'#e53935','Anaerobic');
@@ -1889,28 +1910,34 @@ function powerCadenceChart(simplePts){
   s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-4)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">Power (W)</text>';
   return s+'</svg>';
 }
-function computePowerCadence(){var host=document.getElementById('pc-chart');if(host)host.innerHTML=powerCadenceChart(pcStages());}
+function computePowerCadence(){var host=document.getElementById('pc-chart');if(host)host.innerHTML=powerCadenceChart();}
 function powerCadence(){
-  var powers=pcStagePowers(), cad=pcGetCadence();
+  var powers=pcStagePowers(), cad=pcGetCadence(), r=pcRange();
   var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
-  /* When the import carried per-reading RPM the chart draws a fuzzy line from it, so the
-     per-stage entry boxes aren't needed - show a note instead. Otherwise offer the boxes. */
+  var inSty='background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;width:64px;text-align:center;';
+  /* Editor-only display-range control: readings outside [from,to] are dropped from the
+     chart AND the average band, so chopping the top end re-averages. Never printed. */
+  var rangeCtl='<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">'+
+    'Show power range: <input id="pc-from" type="number" step="1" min="0" placeholder="all" value="'+(r.from==null?'':r.from)+'" style="'+inSty+'"> to '+
+    '<input id="pc-to" type="number" step="1" min="0" placeholder="all" value="'+(r.to==null?'':r.to)+'" style="'+inSty+'"> W '+
+    '<span style="color:#8FA096;">(blank = show all; lower the upper value to drop the top end)</span></div>';
+  /* per-stage entry boxes only when there is no imported per-reading RPM */
   var strip = pcHasFuzzy()
-    ? '<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">Cadence read per reading from the VO₂ Master file.</div>'
-    : '<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">'+
+    ? '<div class="pc-cad-edit no-print" style="margin:4px 0 2px;font-size:12px;color:#6b746f;">Cadence read per reading from the VO₂ Master file.</div>'
+    : '<div class="pc-cad-edit no-print" style="margin:4px 0 2px;font-size:12px;color:#6b746f;">'+
     '<div style="margin-bottom:5px;">Cadence (RPM) per stage — editor only, not printed'+(powers.length?'':'; import the VO₂ stages first')+':</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
       powers.map(function(p,i){return '<label style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">'+
         '<span style="color:#8FA096;">'+Math.round(p)+'W</span>'+
         '<input type="number" class="pc-cad-in" data-pc-i="'+i+'" value="'+(cad[i]!=null&&cad[i]!==''?cad[i]:'')+'" step="1" min="0" placeholder="RPM" style="width:60px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;text-align:center;"></label>';}).join('')+
     '</div></div>';
-  var p1='This graph shows your cadence (pedal revolutions per minute, RPM) at each stage of the test, with your thresholds marked to show intensity.';
-  var p2='Lower cadences fatigue your muscles sooner. Higher cadences ease that load but rely more on your cardiovascular system, raising your heart rate and breathing. Your graph shows where you balance the two and whether you tend to “grind” or “spin.” This may help you find your sweet spot and choose the right drills.';
-  var p3='Bear in mind that this only reflects what we saw on the day of your test.';
+  var p1='This graph shows your cadence (pedal revolutions per minute, RPM) against power intensity. Your lactate thresholds have been marked on the graph for reference.';
+  var p2='Cadence is often a matter of personal preference and a coach can help you work out what suits you best. We’ve included this graph so you can compare your cadence with your target, whether a coach set it or you chose it yourself.';
+  var p3='As a general rule, lower cadence means pushing harder on each stroke, which fatigues your muscles. Higher cadence eases that muscular load but relies more on your cardiovascular system (mainly your heart). Your graph shows the balance between the two and can help you assess whether you are “grinding” or “spinning” too much at certain power intensities.';
   return '<div class="sheet">'+rh()+eyb('powerCadence','Power vs cadence')+
     '<h2 class="title">Power vs Cadence</h2>'+
-    '<div class="combo-chart" id="pc-chart">'+powerCadenceChart(pcStages())+'</div>'+
-    strip+
+    '<div class="combo-chart" id="pc-chart">'+powerCadenceChart()+'</div>'+
+    rangeCtl+strip+
     '<div class="subsec" style="margin-top:14px;">'+
       '<p '+psty+'margin:0 0 9px;">'+p1+'</p>'+
       '<p '+psty+'margin:0 0 9px;">'+p2+'</p>'+
@@ -1924,6 +1951,14 @@ document.addEventListener('input',function(e){
     var cad=pcGetCadence(); while(cad.length<=i)cad.push('');
     var v=parseFloat(el.value); cad[i]=isNaN(v)?'':v; pcSetCadence(cad);
     el.setAttribute('value',el.value);
+    computePowerCadence();
+    return;
+  }
+  if(el&&(el.id==='pc-from'||el.id==='pc-to')){
+    var attr=(el.id==='pc-from')?'data-fc-cad-from':'data-fc-cad-to';
+    var val=parseFloat(el.value);
+    if(isNaN(val))document.body.removeAttribute(attr);else document.body.setAttribute(attr,val);
+    el.setAttribute('value',el.value);   /* bake for snapshot */
     computePowerCadence();
   }
 });
@@ -3842,6 +3877,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     b.nextStep=doc.body.getAttribute('data-fc-next-step')||'';
     try{b.notes=JSON.parse(doc.body.getAttribute('data-fc-notes')||'[]')||[];}catch(e){b.notes=[];}
     try{b.cadence=JSON.parse(doc.body.getAttribute('data-fc-cadence')||'[]')||[];}catch(e){b.cadence=[];}
+    b.cadFrom=doc.body.getAttribute('data-fc-cad-from');
+    b.cadTo=doc.body.getAttribute('data-fc-cad-to');
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
@@ -3923,6 +3960,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     try{if(b.nextStep)document.body.setAttribute('data-fc-next-step',b.nextStep);else document.body.removeAttribute('data-fc-next-step');}catch(e){}
     try{document.body.setAttribute('data-fc-notes',JSON.stringify(b.notes||[]));}catch(e){}
     try{if(b.cadence&&b.cadence.length)document.body.setAttribute('data-fc-cadence',JSON.stringify(b.cadence));else document.body.removeAttribute('data-fc-cadence');}catch(e){}
+    try{if(b.cadFrom!=null&&b.cadFrom!=='')document.body.setAttribute('data-fc-cad-from',b.cadFrom);else document.body.removeAttribute('data-fc-cad-from');}catch(e){}
+    try{if(b.cadTo!=null&&b.cadTo!=='')document.body.setAttribute('data-fc-cad-to',b.cadTo);else document.body.removeAttribute('data-fc-cad-to');}catch(e){}
     if(b.client)report.client=b.client;
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
