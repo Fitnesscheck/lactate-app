@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v95</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v96</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -753,14 +753,14 @@ var TEST_TYPES = {
     sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] },
   combined_bike:{ label:"Combined - bike · 4-min staged", modality:"bike", kind:"combined",
     title:"Combined Performance<br>Testing Report", subtitle:"Lactate Thresholds · VO₂ Max · Economy · Fractional Utilisation",
-    sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, fractional, recommendations, combinedAppendix] }
+    sections:[cover, combinedQuickRef, analysis, vo2Analysis, economy, powerCadence, fractional, recommendations, combinedAppendix] }
 };
 /* Human labels for the per-report Pages panel (keyed by section-builder name). */
 var SECTION_META = {
   cover:"Cover", ataGlance:"At a glance", analysis:"Lactate analysis",
   recommendations:"Recommendations", appendix:"Appendix",
   vo2Summary:"VO₂ summary", vo2Analysis:"VO₂ in depth + breathing", vo2Appendix:"VO₂ appendix",
-  combinedQuickRef:"Quick reference", economy:"Economy", fractional:"Fractional utilisation",
+  combinedQuickRef:"Quick reference", economy:"Economy", powerCadence:"Power vs cadence", fractional:"Fractional utilisation",
   combinedAppendix:"Appendix (raw data)"
 };
 /* sample thresholds + curve per modality (fictional demo data, replaced per test) */
@@ -1293,10 +1293,10 @@ function vo2Demo(modality){
     ? { age:34, sex:"Male", height:178, weight:76, userPiece:"-", maskSize:"-",
         vo2max:50.8, maxHR:184, topSpeed:340, duration:"36:00",
         stages:[
-          {step:1,speed:120,vo2:25.0,hr:110},{step:2,speed:150,vo2:29.5,hr:124},
-          {step:3,speed:180,vo2:34.0,hr:137},{step:4,speed:210,vo2:38.5,hr:149},
-          {step:5,speed:240,vo2:42.5,hr:160},{step:6,speed:270,vo2:46.2,hr:170},
-          {step:7,speed:300,vo2:49.0,hr:178},{step:8,speed:340,vo2:50.6,hr:183}
+          {step:1,speed:120,vo2:25.0,hr:110,cadence:82},{step:2,speed:150,vo2:29.5,hr:124,cadence:86},
+          {step:3,speed:180,vo2:34.0,hr:137,cadence:89},{step:4,speed:210,vo2:38.5,hr:149,cadence:91},
+          {step:5,speed:240,vo2:42.5,hr:160,cadence:92},{step:6,speed:270,vo2:46.2,hr:170,cadence:90},
+          {step:7,speed:300,vo2:49.0,hr:178,cadence:88},{step:8,speed:340,vo2:50.6,hr:183,cadence:85}
         ] }
     : { age:34, sex:"Male", height:178, weight:76, userPiece:"-", maskSize:"-",
         vo2max:52.4, maxHR:186, topSpeed:15.6, duration:"38:00",
@@ -1585,6 +1585,7 @@ function refreshComboQuickRef(){
   var v=report.vo2||{};
   var svg=window.fcLactateChart({rows:comboRawRows(),aet:report.aet.speed,ant:report.ant.speed,showHR:false});
   if(svg)host.innerHTML=svg;
+  if(typeof computePowerCadence==='function')computePowerCadence();   /* thresholds moved -> redraw power-vs-cadence lines */
 }
 
 /* ---- Economy: VO2(weight-adjusted) x60 / (speed or power) per stage ----
@@ -1794,6 +1795,7 @@ function computeEconomy(){
   readEconZone();
   var host=document.getElementById('econ-chart');if(host)host.innerHTML=econChart(econStages());
   var wk=document.getElementById('econ-work');if(wk)wk.innerHTML=econWorkTableHtml();
+  if(typeof computePowerCadence==='function')computePowerCadence();   /* keep the power-vs-cadence chart in step */
 }
 /* Redraw the economy band live as the doctor edits its range / visibility, and mirror
    the control state into HTML attributes so it survives a saved-snapshot round-trip
@@ -1805,6 +1807,90 @@ function syncEconZoneAttrs(){
 }
 document.addEventListener('input',function(e){if(e.target&&/^econ-zone-(from|to|on)$/.test(e.target.id||'')){syncEconZoneAttrs();computeEconomy();}});
 document.addEventListener('change',function(e){if(e.target&&e.target.id==='econ-zone-on'){syncEconZoneAttrs();computeEconomy();}});
+
+/* ===== POWER vs CADENCE (combined bike only) =====
+   Optional section after Economy: cadence (RPM, y) vs power (W, x), with the lactate
+   thresholds as vertical dotted lines. Cadence per stage is captured from the VO2 Master
+   import when present and persisted on <body> (data-fc-cadence, index-aligned to the VO2
+   stages) - NOT shown in the appendix. Editable via an editor-only (never printed) strip. */
+function pcGetCadence(){try{var a=JSON.parse(document.body.getAttribute('data-fc-cadence')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+function pcSetCadence(a){try{document.body.setAttribute('data-fc-cadence',JSON.stringify(a));}catch(e){}}
+function pcStagePowers(){
+  var xs=[];
+  document.querySelectorAll('#vo2-body tr').forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<3)return;var x=parseFloat(c[1].textContent);if(!isNaN(x)&&x>0)xs.push(x);});
+  if(!xs.length)xs=((report.vo2&&report.vo2.stages)||[]).map(function(s){return parseFloat(s.speed);}).filter(function(x){return !isNaN(x)&&x>0;});
+  return xs;
+}
+function pcStages(){
+  var xs=pcStagePowers(), cad=pcGetCadence(), out=[];
+  for(var i=0;i<xs.length;i++){var c=parseFloat(cad[i]);if(!isNaN(c)&&c>0)out.push([xs[i],c]);}
+  return out;
+}
+function powerCadenceChart(pts){
+  if(!pts||!pts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">Cadence (RPM) per stage will appear here once it is imported or entered below.</div>';
+  var W=600,H=300,mL=56,mR=20,mT=20,mB=52,i;
+  var xs=pts.map(function(p){return p[0];}), ys=pts.map(function(p){return p[1];});
+  var aet=parseFloat(report.aet&&report.aet.speed), ant=parseFloat(report.ant&&report.ant.speed);
+  var xlo=Math.min.apply(null,xs), xhi=Math.max.apply(null,xs);
+  [aet,ant].forEach(function(t){if(!isNaN(t)){xlo=Math.min(xlo,t);xhi=Math.max(xhi,t);}});
+  var xpad=((xhi-xlo)||1)*0.06; xlo=Math.max(0,xlo-xpad); xhi+=xpad;
+  var ylo=Math.min.apply(null,ys), yhi=Math.max.apply(null,ys);
+  var yp=((yhi-ylo)||6)*0.3||6; ylo=Math.max(0,Math.floor((ylo-yp)/5)*5); yhi=Math.ceil((yhi+yp)/5)*5; if(yhi-ylo<10)yhi=ylo+10;
+  function X(x){return mL+(x-xlo)/(xhi-xlo)*(W-mL-mR);}
+  function Y(y){return H-mB-(y-ylo)/(yhi-ylo)*(H-mT-mB);}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="econ-svg" xmlns="http://www.w3.org/2000/svg"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';
+  var yStep=(yhi-ylo)>60?20:((yhi-ylo)>30?10:5);
+  for(var v=Math.ceil(ylo/yStep)*yStep; v<=yhi+0.01; v+=yStep){var yy=Y(v);
+    s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/>';
+    s+='<text x="'+(mL-7)+'" y="'+(yy+4).toFixed(1)+'" font-size="12" fill="#444" text-anchor="end">'+v+'</text>';}
+  s+='<line x1="'+mL+'" y1="'+mT+'" x2="'+mL+'" y2="'+(H-mB)+'" stroke="#333"/><line x1="'+mL+'" y1="'+(H-mB)+'" x2="'+(W-mR)+'" y2="'+(H-mB)+'" stroke="#333"/>';
+  function thr(val,col,lab){ if(isNaN(val)||val<xlo||val>xhi)return ''; var x=X(val);
+    return '<line x1="'+x.toFixed(1)+'" y1="'+mT+'" x2="'+x.toFixed(1)+'" y2="'+(H-mB)+'" stroke="'+col+'" stroke-width="1.6" stroke-dasharray="5 4"/>'+
+      '<text x="'+x.toFixed(1)+'" y="'+(mT-6)+'" text-anchor="middle" font-size="10" font-weight="600" fill="'+col+'">'+lab+'</text>'; }
+  s+=thr(aet,'#1D9E75','Aerobic')+thr(ant,'#e53935','Anaerobic');
+  var nx=6; for(i=0;i<=nx;i++){var xv=xlo+(xhi-xlo)*i/nx,xx=X(xv);
+    s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+16)+'" font-size="11.5" fill="#444" text-anchor="middle">'+Math.round(xv)+'</text>';}
+  var order=pts.slice().sort(function(a,b){return a[0]-b[0];});
+  s+='<path d="'+order.map(function(p,j){return (j?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#2E86D6" stroke-width="2.2"/>';
+  order.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4" fill="#2E86D6" stroke="#fff" stroke-width="1"/>';});
+  s+='<text transform="rotate(-90 14 '+(H/2)+')" x="14" y="'+(H/2)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">Cadence (RPM)</text>';
+  s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-4)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">Power (W)</text>';
+  return s+'</svg>';
+}
+function computePowerCadence(){var host=document.getElementById('pc-chart');if(host)host.innerHTML=powerCadenceChart(pcStages());}
+function powerCadence(){
+  var powers=pcStagePowers(), cad=pcGetCadence();
+  var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
+  var strip='<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">'+
+    '<div style="margin-bottom:5px;">Cadence (RPM) per stage — editor only, not printed'+(powers.length?'':'; import the VO₂ stages first')+':</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
+      powers.map(function(p,i){return '<label style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">'+
+        '<span style="color:#8FA096;">'+Math.round(p)+'W</span>'+
+        '<input type="number" class="pc-cad-in" data-pc-i="'+i+'" value="'+(cad[i]!=null&&cad[i]!==''?cad[i]:'')+'" step="1" min="0" placeholder="RPM" style="width:60px;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;text-align:center;"></label>';}).join('')+
+    '</div></div>';
+  var p1='This graph shows your cadence (pedal revolutions per minute, RPM) at each stage of the test, with your thresholds marked to show intensity.';
+  var p2='Lower cadences fatigue your muscles sooner. Higher cadences ease that load but rely more on your cardiovascular system, raising your heart rate and breathing. Your graph shows where you balance the two and whether you tend to “grind” or “spin.” This may help you find your sweet spot and choose the right drills.';
+  var p3='Bear in mind that this only reflects what we saw on the day of your test.';
+  return '<div class="sheet">'+rh()+eyb('powerCadence','Power vs cadence')+
+    '<h2 class="title">Power vs Cadence</h2>'+
+    '<div class="combo-chart" id="pc-chart">'+powerCadenceChart(pcStages())+'</div>'+
+    strip+
+    '<div class="subsec" style="margin-top:14px;">'+
+      '<p '+psty+'margin:0 0 9px;">'+p1+'</p>'+
+      '<p '+psty+'margin:0 0 9px;">'+p2+'</p>'+
+      '<p '+psty+'margin:0 0 2px;">'+p3+'</p>'+
+    '</div></div>';
+}
+document.addEventListener('input',function(e){
+  var el=e.target;
+  if(el&&el.classList&&el.classList.contains('pc-cad-in')){
+    var i=parseInt(el.getAttribute('data-pc-i'),10);
+    var cad=pcGetCadence(); while(cad.length<=i)cad.push('');
+    var v=parseFloat(el.value); cad[i]=isNaN(v)?'':v; pcSetCadence(cad);
+    el.setAttribute('value',el.value);
+    computePowerCadence();
+  }
+});
 
 /* Fractional utilisation doughnut. Whole ring = VO2max (100%). Segments come from
    EDITABLE % fields: aerobic utilisation, then transition, then unsustainable. */
@@ -2199,7 +2285,11 @@ function selectTestType(key,keepData){
          the SAME modality (the classic "imported first, then picked Combined" order); only
          reseed demo when there is no import or the modality actually changed. */
       var _keepVo2=report.vo2&&report.vo2._imported&&report.vo2._modality===TEST_TYPES[key].modality;
-      if(!_keepVo2) report.vo2=vo2Demo(report.modality);
+      if(!_keepVo2){ report.vo2=vo2Demo(report.modality);
+        /* Seed the Power-vs-Cadence demo (bike only) so the chart renders out of the box;
+           a real import or hand-entry overwrites it. Cleared for non-bike demo. */
+        try{ if(report.modality==='bike'){ document.body.setAttribute('data-fc-cadence',JSON.stringify((report.vo2.stages||[]).map(function(s){return s.cadence!=null?s.cadence:'';}))); } else { document.body.removeAttribute('data-fc-cadence'); } }catch(e){}
+      }
     }
   }
   renderStage();
@@ -3172,6 +3262,13 @@ document.getElementById("stage").addEventListener("click",e=>{
       graphs:(d.graphs&&(d.graphs.metabolic||d.graphs.ventilation))?{metabolic:d.graphs.metabolic||'',ventilation:d.graphs.ventilation||''}:null,
       _imported:true, _modality:(d.modality||report.modality)   /* so a later type switch (e.g. to Combined) keeps this real data instead of reseeding demo */
     };
+    /* Capture per-stage cadence (RPM) from the import when the backend provides it,
+       into the Power-vs-Cadence store. Harmless when absent (left for hand-entry). */
+    try{
+      var _cad=(d.stages||[]).map(function(s){var v=(s.cadence!=null?s.cadence:(s.rpm!=null?s.rpm:(s.RPM!=null?s.RPM:(s.cad!=null?s.cad:''))));var n=parseFloat(v);return isNaN(n)?'':n;});
+      if(_cad.some(function(v){return v!==''&&v!=null;})) document.body.setAttribute('data-fc-cadence',JSON.stringify(_cad));
+      else document.body.removeAttribute('data-fc-cadence');
+    }catch(e){}
     /* Stay on the current report if it already shows the VO2 pages (a VO2 or a
        combined report) - importing shouldn't switch a combined report back to the
        plain VO2 one. Otherwise switch to the matching VO2 report. */
@@ -3702,6 +3799,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     try{b.excludedPoints=JSON.parse(doc.body.getAttribute('data-fc-excluded-points')||'{}')||{};}catch(e){b.excludedPoints={};}
     b.nextStep=doc.body.getAttribute('data-fc-next-step')||'';
     try{b.notes=JSON.parse(doc.body.getAttribute('data-fc-notes')||'[]')||[];}catch(e){b.notes=[];}
+    try{b.cadence=JSON.parse(doc.body.getAttribute('data-fc-cadence')||'[]')||[];}catch(e){b.cadence=[];}
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
@@ -3782,6 +3880,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     /* Carry the Doctor's-notes handoff data across an upgrade. */
     try{if(b.nextStep)document.body.setAttribute('data-fc-next-step',b.nextStep);else document.body.removeAttribute('data-fc-next-step');}catch(e){}
     try{document.body.setAttribute('data-fc-notes',JSON.stringify(b.notes||[]));}catch(e){}
+    try{if(b.cadence&&b.cadence.length)document.body.setAttribute('data-fc-cadence',JSON.stringify(b.cadence));else document.body.removeAttribute('data-fc-cadence');}catch(e){}
     if(b.client)report.client=b.client;
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
