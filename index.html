@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v99</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v100</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3807,7 +3807,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     build();updateVisibility();
     setInterval(updateVisibility,2500);   /* reveal once the report is saved to cloud */
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  /* Build now (document.body already exists - this script is inside <body>), not only on
+     DOMContentLoaded: an opened saved/cloud report is written via document.write, whose
+     page often never fires DOMContentLoaded, which previously left the button unbuilt. The
+     event + load are kept as idempotent backups (init() no-ops if the button exists). */
+  init();
+  document.addEventListener('DOMContentLoaded',init);
+  window.addEventListener('load',init);
 })();
 </script>
 <script>
