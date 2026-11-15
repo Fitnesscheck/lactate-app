@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v98</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v99</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1279,10 +1279,13 @@ document.addEventListener('input',function(e){var t=e.target;if(t&&t.closest&&t.
 /* Deterministic per-stage "samples" for the DEMO only - a handful of readings that
    wiggle around the stage mean so the demo at-a-glance trace looks like a real (jagged)
    VO2 plot. Real imports carry the actual last-minute samples from the VO2 Master file. */
-function vo2SynthSamples(vo2,hr,seed){
-  var vOff=[-0.4,0.6,-0.2,0.9,-0.5], hOff=[-1,2,-1,1,0], out=[];
+function vo2SynthSamples(vo2,hr,seed,cadence){
+  var vOff=[-0.4,0.6,-0.2,0.9,-0.5], hOff=[-1,2,-1,1,0], rOff=[3,-4,5,-2,-2], out=[];
+  var cad=parseFloat(cadence);
   for(var k=0;k<5;k++){var i=(seed+k)%5;
-    out.push({vo2:Math.round((vo2+vOff[i]+(k-2)*0.1)*10)/10, hr:(hr==null?null:Math.round(hr+hOff[i]))});
+    var o={vo2:Math.round((vo2+vOff[i]+(k-2)*0.1)*10)/10, hr:(hr==null?null:Math.round(hr+hOff[i]))};
+    if(!isNaN(cad))o.rpm=Math.round(cad+rOff[i]);
+    out.push(o);
   }
   return out;
 }
@@ -1306,7 +1309,7 @@ function vo2Demo(modality){
           {step:5,speed:12.5,vo2:43.1,hr:162},{step:6,speed:13.7,vo2:47.0,hr:171},
           {step:7,speed:14.9,vo2:50.3,hr:179},{step:8,speed:16.1,vo2:52.0,hr:185}
         ] };
-  base.stages.forEach(function(st,i){ st.samples=vo2SynthSamples(st.vo2,st.hr,i); });
+  base.stages.forEach(function(st,i){ st.samples=vo2SynthSamples(st.vo2,st.hr,i,st.cadence); });
   return base;
 }
 function vo2Tile(lab,val,unit){
@@ -1826,8 +1829,31 @@ function pcStages(){
   for(var i=0;i<xs.length;i++){var c=parseFloat(cad[i]);if(!isNaN(c)&&c>0)out.push([xs[i],c]);}
   return out;
 }
-function powerCadenceChart(pts){
-  if(!pts||!pts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">Cadence (RPM) per stage will appear here once it is imported or entered below.</div>';
+/* Per-reading cadence points for the fuzzy line: each stage's samples spread across a
+   narrow power band centred on the stage power, loaded stages only (so no rest drops).
+   Empty when the import carried no per-sample RPM (then the chart uses the 8-point line). */
+function pcSampleLine(){
+  var stages=(report.vo2&&report.vo2.stages)||[];
+  var powers=stages.map(function(s){return parseFloat(s.speed);}).filter(function(x){return !isNaN(x)&&x>0;});
+  if(powers.length<2)return [];
+  var sorted=powers.slice().sort(function(a,b){return a-b;});
+  var minGap=Infinity; for(var i=1;i<sorted.length;i++){var g=sorted[i]-sorted[i-1]; if(g>0)minGap=Math.min(minGap,g);}
+  if(!isFinite(minGap))minGap=powers[0]||1;
+  var bandW=minGap*0.72, pts=[];
+  stages.forEach(function(st){
+    var P=parseFloat(st.speed); if(isNaN(P)||P<=0)return;
+    var samp=((st.samples)||[]).map(function(x){var r=parseFloat(x.rpm);return (!isNaN(r)&&r>0)?r:null;}).filter(function(r){return r!=null;});
+    if(!samp.length)return;
+    var N=samp.length;
+    samp.forEach(function(r,j){var frac=(N<=1)?0.5:j/(N-1); pts.push([P+(frac-0.5)*bandW, r]);});
+  });
+  pts.sort(function(a,b){return a[0]-b[0];});
+  return pts;
+}
+function pcHasFuzzy(){return pcSampleLine().length>=4;}
+function powerCadenceChart(simplePts){
+  var fuzzy=pcSampleLine(), usingFuzzy=fuzzy.length>=4, pts=usingFuzzy?fuzzy:(simplePts||[]);
+  if(!pts.length) return '<div class="fu-note" style="padding:30px 12px;text-align:center;color:#8FA096;">Cadence will appear here once a bike VO₂ file is imported, or enter it per stage below.</div>';
   var W=600,H=300,mL=56,mR=20,mT=20,mB=52,i;
   var xs=pts.map(function(p){return p[0];}), ys=pts.map(function(p){return p[1];});
   var aet=parseFloat(report.aet&&report.aet.speed), ant=parseFloat(report.ant&&report.ant.speed);
@@ -1851,8 +1877,14 @@ function powerCadenceChart(pts){
   var nx=6; for(i=0;i<=nx;i++){var xv=xlo+(xhi-xlo)*i/nx,xx=X(xv);
     s+='<text x="'+xx.toFixed(1)+'" y="'+(H-mB+16)+'" font-size="11.5" fill="#444" text-anchor="middle">'+Math.round(xv)+'</text>';}
   var order=pts.slice().sort(function(a,b){return a[0]-b[0];});
-  s+='<path d="'+order.map(function(p,j){return (j?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#2E86D6" stroke-width="2.2"/>';
-  order.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4" fill="#2E86D6" stroke="#fff" stroke-width="1"/>';});
+  var d=order.map(function(p,j){return (j?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ');
+  if(usingFuzzy){
+    s+='<path d="'+d+'" fill="none" stroke="#2E86D6" stroke-width="1.4" stroke-linejoin="round"/>';
+    order.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="1.6" fill="#2E86D6"/>';});
+  } else {
+    s+='<path d="'+d+'" fill="none" stroke="#2E86D6" stroke-width="2.2"/>';
+    order.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4" fill="#2E86D6" stroke="#fff" stroke-width="1"/>';});
+  }
   s+='<text transform="rotate(-90 14 '+(H/2)+')" x="14" y="'+(H/2)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">Cadence (RPM)</text>';
   s+='<text x="'+((mL+W-mR)/2)+'" y="'+(H-4)+'" font-size="13" font-weight="600" fill="#444" text-anchor="middle">Power (W)</text>';
   return s+'</svg>';
@@ -1861,7 +1893,11 @@ function computePowerCadence(){var host=document.getElementById('pc-chart');if(h
 function powerCadence(){
   var powers=pcStagePowers(), cad=pcGetCadence();
   var psty='class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;';
-  var strip='<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">'+
+  /* When the import carried per-reading RPM the chart draws a fuzzy line from it, so the
+     per-stage entry boxes aren't needed - show a note instead. Otherwise offer the boxes. */
+  var strip = pcHasFuzzy()
+    ? '<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">Cadence read per reading from the VO₂ Master file.</div>'
+    : '<div class="pc-cad-edit no-print" style="margin:8px 0 2px;font-size:12px;color:#6b746f;">'+
     '<div style="margin-bottom:5px;">Cadence (RPM) per stage — editor only, not printed'+(powers.length?'':'; import the VO₂ stages first')+':</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
       powers.map(function(p,i){return '<label style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">'+
