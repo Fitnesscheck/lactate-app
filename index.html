@@ -359,7 +359,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v91</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v92</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1582,7 +1582,7 @@ function econStages(){
 function movingAvg2(pts){var o=[];for(var i=1;i<pts.length;i++)o.push([pts[i][0],(pts[i-1][1]+pts[i][1])/2]);return o;}
 function econChart(pts){
   var run=HASPACE();
-  var W=600,H=300,mL=62,mR=22,mT=16,mB=58,i;
+  var W=600,H=300,mL=62,mR=(run?22:78),mT=16,mB=58,i;   /* cycling: wider right gutter for the "Better economy" arrow */
   var xs=pts.map(function(p){return p[0];});
   var xlo=xs.length?Math.min.apply(null,xs):0, xhi=xs.length?Math.max.apply(null,xs):1;
   var pad=(xhi-xlo)*0.06||1; xlo=Math.max(0,xlo-pad); xhi+=pad;
@@ -1599,6 +1599,17 @@ function econChart(pts){
       s+='<rect x="'+mL+'" y="'+y1.toFixed(1)+'" width="'+(W-mL-mR)+'" height="'+(y2-y1).toFixed(1)+'" fill="'+b.color+'" opacity="0.82"/>';
       s+='<text x="'+(mL+(W-mL-mR)/2)+'" y="'+((y1+y2)/2+3).toFixed(1)+'" font-size="10" font-weight="700" fill="#16324a" text-anchor="middle" opacity="0.75">'+b.label.toUpperCase()+'</text>';
       prev=top; });
+  }
+  else {
+    /* Cycling has no validated economy grades, so instead of labelled bands we wash the
+       plot with a vertical red->amber->green gradient. Lower on the axis = lower ml/kg/W
+       = better economy, so green sits at the bottom. Kept subtle so the data reads on top. */
+    s+='<defs><linearGradient id="econGrad" x1="0" y1="0" x2="0" y2="1">'+
+         '<stop offset="0" stop-color="#e8604a"/>'+
+         '<stop offset="0.5" stop-color="#f5c451"/>'+
+         '<stop offset="1" stop-color="#4faf7b"/>'+
+       '</linearGradient></defs>';
+    s+='<rect x="'+mL+'" y="'+mT+'" width="'+(W-mL-mR)+'" height="'+(H-mT-mB)+'" fill="url(#econGrad)" opacity="0.22"/>';
   }
   /* Best-economy zone: a translucent, per-report editable band over the power/pace
      range where this athlete is most economical. Read from report.econZone (seeded
@@ -1627,6 +1638,13 @@ function econChart(pts){
   /* Last two points red: at the very top of the test VO2 has plateaued, so that
      portion isn't sustainable and its economy values aren't meaningful. */
   pts.forEach(function(p,i){var end=i>=pts.length-2;s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="'+(end?4.2:3.6)+'" fill="'+(end?'#e53935':'#1f6b8f')+'"/>';});
+  if(!run){
+    /* "Better economy" down-arrow in the right gutter: down the axis = lower = better. */
+    var axCx=W-mR+30, ay1=mT+24, ay2=H-mB-16, aMid=(ay1+ay2)/2;
+    s+='<line x1="'+axCx+'" y1="'+ay1+'" x2="'+axCx+'" y2="'+(ay2-9)+'" stroke="#2f9e6e" stroke-width="2.4"/>';
+    s+='<path d="M'+(axCx-5)+' '+(ay2-10)+' L'+(axCx+5)+' '+(ay2-10)+' L'+axCx+' '+ay2+' Z" fill="#2f9e6e"/>';
+    s+='<text transform="rotate(-90 '+(axCx+17)+' '+aMid+')" x="'+(axCx+17)+'" y="'+aMid+'" font-size="11.5" font-weight="700" fill="#2f9e6e" text-anchor="middle">Better economy</text>';
+  }
   return s+'</svg>';
 }
 /* The auto "Overall, your economy averages..." line. Built from the LIVE VO2 table
