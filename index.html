@@ -270,6 +270,32 @@
   .ig-link{display:inline-flex;align-items:center;gap:8px;color:#C13584;text-decoration:none;font-size:13.5px;font-weight:500;}
   .ig-link span{border-bottom:1px solid rgba(193,53,132,0.4);}
   .ig-follow{margin-top:10px;}
+  /* ===== Doctor's notes (cloud reports only) - never printed ===== */
+  #fc-notes-fab{position:fixed;right:18px;bottom:18px;z-index:9000;display:none;align-items:center;gap:7px;background:#1D9E75;color:#08120d;border:none;border-radius:999px;padding:11px 17px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,0.3);}
+  #fc-notes-fab.on{display:inline-flex;}
+  #fc-notes-fab .fcn-dot{width:7px;height:7px;border-radius:50%;background:#08120d;opacity:0.55;}
+  #fc-notes-panel{position:fixed;right:18px;bottom:70px;z-index:9001;width:330px;max-width:calc(100vw - 36px);max-height:72vh;background:#0F1714;color:var(--cream);border:1px solid #2A3A33;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.45);display:none;flex-direction:column;overflow:hidden;font-size:13px;}
+  #fc-notes-panel.on{display:flex;}
+  #fc-notes-panel .fcn-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #2A3A33;font-weight:600;font-size:13.5px;}
+  #fc-notes-panel .fcn-x{background:transparent;border:none;color:#8FA096;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;}
+  #fc-notes-panel .fcn-next{padding:11px 14px 9px;border-bottom:1px solid #2A3A33;}
+  #fc-notes-panel .fcn-next label{display:block;font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:#8FA096;margin-bottom:5px;}
+  #fc-notes-panel .fcn-next input{width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:8px 9px;font-size:13px;font-family:inherit;box-sizing:border-box;}
+  #fc-notes-panel .fcn-thread{flex:1;overflow-y:auto;padding:11px 14px;display:flex;flex-direction:column;gap:9px;min-height:90px;}
+  #fc-notes-panel .fcn-empty{color:#8FA096;font-size:12px;}
+  #fc-notes-panel .fcn-msg{background:#16201B;border:1px solid #2A3A33;border-left:3px solid #1D9E75;border-radius:9px;padding:7px 10px;}
+  #fc-notes-panel .fcn-msg.luke{border-left-color:#2E86D6;}
+  #fc-notes-panel .fcn-meta{font-size:10.5px;color:#8FA096;margin-bottom:3px;}
+  #fc-notes-panel .fcn-msg.sim .fcn-meta b{color:#5DCAA5;}
+  #fc-notes-panel .fcn-msg.luke .fcn-meta b{color:#73b4ec;}
+  #fc-notes-panel .fcn-body{color:var(--cream);line-height:1.5;word-break:break-word;}
+  #fc-notes-panel .fcn-compose{border-top:1px solid #2A3A33;padding:10px 14px;}
+  #fc-notes-panel .fcn-who{font-size:11px;color:#8FA096;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+  #fc-notes-panel .fcn-who button{background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:999px;padding:3px 13px;font-size:11.5px;font-family:inherit;cursor:pointer;}
+  #fc-notes-panel .fcn-who button.on{background:#1D9E75;color:#08120d;border-color:#1D9E75;font-weight:600;}
+  #fc-notes-panel .fcn-compose textarea{width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:8px 9px;font-size:13px;font-family:inherit;box-sizing:border-box;resize:vertical;}
+  #fc-notes-panel .fcn-add{margin-top:7px;width:100%;background:#1D9E75;color:#08120d;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
+  @media print{#fc-notes-fab,#fc-notes-panel{display:none !important;}}
   .subsec{margin-top:26px;padding-top:20px;border-top:0.5px solid var(--line);break-inside:avoid;}
   .subsec .subtitle{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:21px;color:var(--ink);margin:0 0 10px;}
 
@@ -359,7 +385,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v93</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v94</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3394,7 +3420,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     document.querySelectorAll('input[type=text],input[type=number],input[type=url]').forEach(function(i){if(i.id)i.setAttribute('value',i.value);});
     document.querySelectorAll('textarea').forEach(function(t){t.textContent=t.value;});
     /* detach transient UI so it isn't baked in */
-    var tmp=[].slice.call(document.querySelectorAll('#fc-resume-bar,#fc-toast'));
+    var tmp=[].slice.call(document.querySelectorAll('#fc-resume-bar,#fc-toast,#fc-notes-fab,#fc-notes-panel'));
     var spots=tmp.map(function(node){return [node,node.parentNode,node.nextSibling];});
     tmp.forEach(function(node){if(node.parentNode)node.parentNode.removeChild(node);});
     var h=document.documentElement.outerHTML;
@@ -3543,12 +3569,110 @@ document.getElementById("stage").addEventListener("click",e=>{
     var d=e.target.closest&&e.target.closest('[data-cldel]');if(d){cloudDelete(d.getAttribute('data-cldel'));return;}
   });
   setInterval(function(){if(cloudSyncOn&&cloudDirty)cloudSave(false);},60000);
+  /* Hook for the Doctor's-notes module: mark dirty and push to the cloud now. */
+  window.fcCloudSaveNow=function(){dirty=true;cloudDirty=true;scheduleSave();return (cloudSyncOn&&!closing)?cloudSave(false):Promise.resolve();};
   if(cloudId){clStatus('Cloud-synced report. Auto-syncing as you edit.','ok');}
   /* ===== END CLOUD SYNC ===== */
 
   init();
 })();
 /* ===== END AUTOSAVE + LOCAL DRAFTS ===== */
+</script>
+<script>
+/* ===== DOCTOR'S NOTES (cloud reports only) =====
+   A tiny handoff tool between Sim and Luke: a floating button (bottom-right,
+   never printed) opens a panel with an editable "Next step", a comment thread,
+   and a Sim/Luke identity toggle. Data lives on <body> (data-fc-next-step,
+   data-fc-notes) so it rides the existing cloud snapshot + auto-sync for free;
+   the UI nodes are stripped from the snapshot and rebuilt on load. The button
+   appears only once the report is cloud-synced (data-fc-cloud-id present).
+   NB: cloud sync is last-saver-wins on the whole report, so this is a
+   sequential handoff tool - open the report fresh from the cloud list to see
+   the other person's latest notes. */
+(function(){
+  function me(){try{return (localStorage.getItem('fc_notes_author')==='Luke')?'Luke':'Sim';}catch(e){return 'Sim';}}
+  function setMe(v){try{localStorage.setItem('fc_notes_author',v);}catch(e){}}
+  function getNextStep(){return document.body.getAttribute('data-fc-next-step')||'';}
+  function setNextStep(v){if(v)document.body.setAttribute('data-fc-next-step',v);else document.body.removeAttribute('data-fc-next-step');}
+  function getNotes(){try{return JSON.parse(document.body.getAttribute('data-fc-notes')||'[]')||[];}catch(e){return [];}}
+  function setNotes(a){document.body.setAttribute('data-fc-notes',JSON.stringify(a));}
+  function cloudOn(){return !!document.body.getAttribute('data-fc-cloud-id');}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function fmt(ts){try{var d=new Date(ts);return d.toLocaleDateString([], {day:'numeric',month:'short'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+  function sync(){try{if(window.fcCloudSaveNow)window.fcCloudSaveNow();}catch(e){}}
+
+  var fab,panel,thread,nextIn,composer,open=false;
+
+  function build(){
+    fab=document.createElement('button');
+    fab.id='fc-notes-fab';fab.type='button';fab.className='no-print';
+    fab.innerHTML='<span class="fcn-dot"></span>Notes';
+    fab.addEventListener('click',function(){toggle();});
+    document.body.appendChild(fab);
+
+    panel=document.createElement('div');panel.id='fc-notes-panel';panel.className='no-print';
+    panel.innerHTML=
+      '<div class="fcn-head"><span>Doctor’s notes</span><button type="button" class="fcn-x" aria-label="Close">✕</button></div>'+
+      '<div class="fcn-next"><label>Next step</label><input id="fcn-next" type="text" placeholder="e.g. Awaiting Luke’s review"></div>'+
+      '<div class="fcn-thread" id="fcn-thread"></div>'+
+      '<div class="fcn-compose">'+
+        '<div class="fcn-who">You are: <button type="button" data-who="Sim">Sim</button><button type="button" data-who="Luke">Luke</button></div>'+
+        '<textarea id="fcn-text" rows="2" placeholder="Add a note…"></textarea>'+
+        '<button type="button" id="fcn-add" class="fcn-add">Add note</button>'+
+      '</div>';
+    document.body.appendChild(panel);
+    thread=panel.querySelector('#fcn-thread');
+    nextIn=panel.querySelector('#fcn-next');
+    composer=panel.querySelector('#fcn-text');
+
+    panel.querySelector('.fcn-x').addEventListener('click',function(){toggle(false);});
+    nextIn.addEventListener('input',function(){setNextStep(nextIn.value);});
+    nextIn.addEventListener('change',function(){setNextStep(nextIn.value);sync();});
+    nextIn.addEventListener('blur',function(){setNextStep(nextIn.value);sync();});
+    [].forEach.call(panel.querySelectorAll('.fcn-who button'),function(btn){
+      btn.addEventListener('click',function(){setMe(btn.getAttribute('data-who'));renderWho();});
+    });
+    panel.querySelector('#fcn-add').addEventListener('click',addNote);
+    renderWho();
+  }
+
+  function renderWho(){
+    var m=me();
+    [].forEach.call(panel.querySelectorAll('.fcn-who button'),function(b){b.classList.toggle('on',b.getAttribute('data-who')===m);});
+  }
+  function renderThread(){
+    var notes=getNotes();
+    if(!notes.length){thread.innerHTML='<div class="fcn-empty">No notes yet. Leave the first handoff note below.</div>';return;}
+    thread.innerHTML=notes.map(function(n){
+      var cls=(n.a==='Luke')?'luke':'sim';
+      return '<div class="fcn-msg '+cls+'"><div class="fcn-meta"><b>'+esc(n.a||'')+'</b> · '+fmt(n.ts)+'</div><div class="fcn-body">'+esc(n.t).replace(/\n/g,'<br>')+'</div></div>';
+    }).join('');
+    thread.scrollTop=thread.scrollHeight;
+  }
+  function addNote(){
+    var txt=(composer.value||'').trim();if(!txt)return;
+    var notes=getNotes();notes.push({a:me(),t:txt,ts:Date.now()});setNotes(notes);
+    composer.value='';renderThread();sync();
+  }
+  function toggle(force){
+    open=(typeof force==='boolean')?force:!open;
+    panel.classList.toggle('on',open);
+    if(open){nextIn.value=getNextStep();renderThread();}
+  }
+  function updateVisibility(){
+    var on=cloudOn();
+    fab.classList.toggle('on',on);
+    if(!on&&open)toggle(false);
+  }
+
+  function init(){
+    if(document.getElementById('fc-notes-fab'))return;
+    if(!document.body)return;
+    build();updateVisibility();
+    setInterval(updateVisibility,2500);   /* reveal once the report is saved to cloud */
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
 <script>
 /* ===== UPGRADE AN OLD REPORT TO THE LATEST VERSION =====
@@ -3573,6 +3697,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     b.testType=doc.body.getAttribute('data-fc-test-type')||'lt_treadmill';
     b.curveFit=doc.body.getAttribute('data-fc-curve-fit')||'poly3';
     try{b.excludedPoints=JSON.parse(doc.body.getAttribute('data-fc-excluded-points')||'{}')||{};}catch(e){b.excludedPoints={};}
+    b.nextStep=doc.body.getAttribute('data-fc-next-step')||'';
+    try{b.notes=JSON.parse(doc.body.getAttribute('data-fc-notes')||'[]')||[];}catch(e){b.notes=[];}
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
     b.client=T(Q('.cov-name'));
     b.location=T(Q('.cov-loc'));
@@ -3650,6 +3776,9 @@ document.getElementById("stage").addEventListener("click",e=>{
     Object.keys(report.excludedPoints).forEach(function(k){delete report.excludedPoints[k];});
     if(b.excludedPoints)Object.keys(b.excludedPoints).forEach(function(k){report.excludedPoints[k]=b.excludedPoints[k];});
     try{document.body.setAttribute('data-fc-excluded-points',JSON.stringify(report.excludedPoints));}catch(e){}
+    /* Carry the Doctor's-notes handoff data across an upgrade. */
+    try{if(b.nextStep)document.body.setAttribute('data-fc-next-step',b.nextStep);else document.body.removeAttribute('data-fc-next-step');}catch(e){}
+    try{document.body.setAttribute('data-fc-notes',JSON.stringify(b.notes||[]));}catch(e){}
     if(b.client)report.client=b.client;
     if(b.date)report.date=b.date;
     if(b.location)report.location=b.location;
