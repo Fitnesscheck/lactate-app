@@ -278,6 +278,7 @@
   #fc-notes-panel.on{display:flex;}
   #fc-notes-panel .fcn-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid #2A3A33;font-weight:600;font-size:13.5px;}
   #fc-notes-panel .fcn-x{background:transparent;border:none;color:#8FA096;font-size:15px;cursor:pointer;font-family:inherit;line-height:1;}
+  #fc-notes-panel .fcn-hint{padding:8px 14px;background:#2a2412;color:#f0c674;font-size:11.5px;line-height:1.45;border-bottom:1px solid #3a3a20;}
   #fc-notes-panel .fcn-next{padding:11px 14px 9px;border-bottom:1px solid #2A3A33;}
   #fc-notes-panel .fcn-next label{display:block;font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:#8FA096;margin-bottom:5px;}
   #fc-notes-panel .fcn-next input{width:100%;background:#16201B;color:var(--cream);border:1px solid #2A3A33;border-radius:8px;padding:8px 9px;font-size:13px;font-family:inherit;box-sizing:border-box;}
@@ -385,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v94</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v95</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3613,6 +3614,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     panel=document.createElement('div');panel.id='fc-notes-panel';panel.className='no-print';
     panel.innerHTML=
       '<div class="fcn-head"><span>Doctor’s notes</span><button type="button" class="fcn-x" aria-label="Close">✕</button></div>'+
+      '<div class="fcn-hint" id="fcn-hint">Not saved to the cloud yet — use <b>Save to cloud</b> so your partner can see these notes.</div>'+
       '<div class="fcn-next"><label>Next step</label><input id="fcn-next" type="text" placeholder="e.g. Awaiting Luke’s review"></div>'+
       '<div class="fcn-thread" id="fcn-thread"></div>'+
       '<div class="fcn-compose">'+
@@ -3660,9 +3662,10 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(open){nextIn.value=getNextStep();renderThread();}
   }
   function updateVisibility(){
-    var on=cloudOn();
-    fab.classList.toggle('on',on);
-    if(!on&&open)toggle(false);
+    /* Always show the button; the panel itself tells you when it isn't cloud-synced. */
+    fab.classList.add('on');
+    var hint=panel&&panel.querySelector('#fcn-hint');
+    if(hint)hint.style.display=cloudOn()?'none':'block';
   }
 
   function init(){
