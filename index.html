@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v103</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v104</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -2240,11 +2240,13 @@ function combinedAppendix(){
   var rows=DEFAULTS.raw.map(rawRow).join("");
   var vrows=report.vo2.stages.map(vo2StageRow).join("");
   var defs=DEFAULTS.defs.map(defItem).join("");
-  var intHead=HASPACE()?"Speed (km/h)":"Power (W)";
+  var intHead=SWIM()?"Speed (m/s)":(HASPACE()?"Speed (km/h)":"Power (W)");
+  var paceHead=SWIM()?"Pace (/100m)":"Pace (/km)";
+  var rawClass=HASPACE()?"raw":"raw no-pace";
   return '<div class="sheet">'+rh()+eyb('combinedAppendix','Appendix')+'<h2 class="title">Raw data & definitions</h2>'+
-    (!HASPACE()?'<p class="edit" contenteditable="true" style="margin:2px 0 14px;max-width:none;">Why watts? On the bike we measure your effort in watts (your actual power output) rather than speed or gear. Power is independent of the resistance setting, gradient or wind, so a given wattage always means the same physiological demand, which makes it the fairest and most repeatable way to prescribe and track your training. (A fuller explanation is coming in a future blog post.)</p>':'')+
+    (!HASPACE()?'<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.65;color:#2c332f;margin:2px 0 14px;max-width:none;">Why watts? On the bike we measure your effort in watts (your actual power output) rather than speed or gear. Power is independent of the resistance setting, gradient or wind, so a given wattage always means the same physiological demand, which makes it the fairest and most repeatable way to prescribe and track your training.</p>':'')+
     '<h3 class="subtitle" style="font-size:18px;margin:0 0 8px;">Lactate stages</h3>'+
-    '<table class="raw"><thead><tr><th>'+intHead+'</th><th>Pace (/km)</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
+    '<table class="'+rawClass+'"><thead><tr><th>'+intHead+'</th><th>'+paceHead+'</th><th>Stage (min)</th><th>HR (bpm)</th><th>Lactate (mmol/L)</th><th>RPE</th><th class="rmcell no-print"></th></tr></thead><tbody id="raw-body">'+rows+'</tbody></table>'+
     '<button class="add no-print" data-add="row">+ Add row</button>'+
     '<h3 class="subtitle" style="font-size:18px;margin:20px 0 8px;">VO₂ stages</h3>'+
     '<table class="raw vo2-raw"><thead><tr><th>Step</th><th>'+intHead+'</th><th>VO₂ (ml/kg/min)</th><th>HR (bpm)</th><th class="rmcell no-print"></th></tr></thead><tbody id="vo2-body">'+vrows+'</tbody></table>'+
