@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v96</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v97</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -417,7 +417,7 @@
       <input type="file" id="be-photo" accept="image/*" style="display:none;">
       <button class="btn cb-btn2" id="be-extract" title="Read a photo of a paper data sheet into the table (needs internet)">&#128247; Extract from photo</button>
       <input type="file" id="be-vo2-files" multiple style="display:none;">
-      <button class="btn cb-btn2" id="be-vo2" title="Import the VO2 Master exports (Details.txt, ProtocolSteps.xlsx, DataAverage.xlsx + optional PDF for the graphs) into a VO&#8322; max report. You can add them one at a time; it imports once all three data files are in (needs internet).">&#129504; Import VO&#8322; Master files</button>
+      <button class="btn cb-btn2" id="be-vo2" title="Import the VO2 Master exports into a VO&#8322; max report. Only DataAverage.xlsx is required; Details.txt (name/date), ProtocolSteps.xlsx and a PDF for the graphs are optional. You can add them one at a time; it imports once DataAverage.xlsx is in (needs internet).">&#129504; Import VO&#8322; Master files</button>
     </div>
     <div id="be-vo2-checklist" class="no-print" style="display:none;border-top:1px solid #2A3A33;padding-top:8px;font-size:11.5px;line-height:1.7;"></div>
     <div class="cal-only" style="border-top:1px solid #2A3A33;padding-top:8px;font-size:10px;color:#8FA096;">
@@ -3192,10 +3192,10 @@ document.getElementById("stage").addEventListener("click",e=>{
       var mark=ok?'<span style="color:#5DCAA5;">&#10003;</span>':'<span style="color:#8FA096;">&#9675;</span>';
       return '<div>'+mark+' '+label+(opt?' <span style="color:#8FA096;">(optional)</span>':'')+(f?' &mdash; <span style="color:#9fdcc6;">'+f.name+'</span>':'')+'</div>';
     }
-    var dataN=(c.txt?1:0)+(c.data?1:0);
-    var html='<div style="color:#9fdcc6;margin-bottom:3px;">'+dataN+' of 2 required files staged'+(c.pdf?' &middot; PDF added':'')+':</div>'+
-      row(!!c.txt,'Details.txt',c.txt)+
+    var dataN=(c.data?1:0);
+    var html='<div style="color:#9fdcc6;margin-bottom:3px;">'+dataN+' of 1 required file staged'+(c.pdf?' &middot; PDF added':'')+':</div>'+
       row(!!c.data,'DataAverage.xlsx',c.data)+
+      row(!!c.txt,'Details.txt',c.txt,true)+
       row(!!c.prot,'Protocol file',c.prot,true)+
       row(!!c.pdf,'Session PDF (graphs)',c.pdf,true);
     if(c.other.length)html+='<div style="color:#e0b48a;margin-top:2px;">Not recognised: '+c.other.map(function(f){return f.name;}).join(', ')+'</div>';
@@ -3214,13 +3214,13 @@ document.getElementById("stage").addEventListener("click",e=>{
     var all=Object.keys(staged).map(function(k){return staged[k];});
     var pdfs=all.filter(isPdf), nonPdf=all.filter(function(f){return !isPdf(f);});
     renderChecklist();
-    /* Only two files are essential: Details.txt and DataAverage.xlsx. The stages (speeds +
-       VO2 + HR) are built from the DataAverage's target-speed column, so the protocol file
-       is optional. Auto-import once both essentials are present. */
+    /* Only DataAverage.xlsx is essential: the stages (power/speed + VO2 + HR) are built
+       from its target column. Details.txt (athlete name/date) and the protocol file are
+       optional - without Details you just write the name and date on the report. Auto-
+       import once DataAverage is present. */
     var _c=catFiles();
-    if(!_c.txt || !_c.data){
-      var _need=[]; if(!_c.txt)_need.push('Details.txt'); if(!_c.data)_need.push('DataAverage.xlsx');
-      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+'. Still need: '+_need.join(' + ')+'. See the checklist below. You can add them one at a time.');
+    if(!_c.data){
+      setStatus('Added '+all.length+' file'+(all.length===1?'':'s')+'. Still need: DataAverage.xlsx. See the checklist below. You can add files one at a time.');
       return;
     }
     btn.disabled=true; setStatus('Reading '+all.length+' VO₂ Master file'+(all.length===1?'':'s')+'…');
