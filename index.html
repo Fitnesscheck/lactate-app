@@ -359,7 +359,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v92</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v93</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1639,10 +1639,16 @@ function econChart(pts){
      portion isn't sustainable and its economy values aren't meaningful. */
   pts.forEach(function(p,i){var end=i>=pts.length-2;s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="'+(end?4.2:3.6)+'" fill="'+(end?'#e53935':'#1f6b8f')+'"/>';});
   if(!run){
-    /* "Better economy" down-arrow in the right gutter: down the axis = lower = better. */
+    /* "Better economy" down-arrow in the right gutter: down the axis = lower = better.
+       The arrow fades red -> amber -> green down its length, matching the plot wash. */
     var axCx=W-mR+30, ay1=mT+24, ay2=H-mB-16, aMid=(ay1+ay2)/2;
-    s+='<line x1="'+axCx+'" y1="'+ay1+'" x2="'+axCx+'" y2="'+(ay2-9)+'" stroke="#2f9e6e" stroke-width="2.4"/>';
-    s+='<path d="M'+(axCx-5)+' '+(ay2-10)+' L'+(axCx+5)+' '+(ay2-10)+' L'+axCx+' '+ay2+' Z" fill="#2f9e6e"/>';
+    s+='<defs><linearGradient id="econArrowGrad" gradientUnits="userSpaceOnUse" x1="0" y1="'+ay1+'" x2="0" y2="'+ay2+'">'+
+         '<stop offset="0" stop-color="#e8604a"/>'+
+         '<stop offset="0.5" stop-color="#f0b43f"/>'+
+         '<stop offset="1" stop-color="#2f9e6e"/>'+
+       '</linearGradient></defs>';
+    s+='<line x1="'+axCx+'" y1="'+ay1+'" x2="'+axCx+'" y2="'+(ay2-9)+'" stroke="url(#econArrowGrad)" stroke-width="2.6"/>';
+    s+='<path d="M'+(axCx-5)+' '+(ay2-10)+' L'+(axCx+5)+' '+(ay2-10)+' L'+axCx+' '+ay2+' Z" fill="url(#econArrowGrad)"/>';
     s+='<text transform="rotate(-90 '+(axCx+17)+' '+aMid+')" x="'+(axCx+17)+'" y="'+aMid+'" font-size="11.5" font-weight="700" fill="#2f9e6e" text-anchor="middle">Better economy</text>';
   }
   return s+'</svg>';
