@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v109</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v110</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -812,14 +812,14 @@ function buildDefaults(){ return {
     {h:"Anaerobic Threshold, Your Lactate Ceiling",
      p:"Your anaerobic threshold is "+intVal(report.ant.speed)+" at "+report.ant.hr+" bpm. This is your lactate ceiling. Push past it and lactate accumulates faster than your body can clear it, so a steady state is no longer reachable."},
     {h:"Your Rating of Perceived Exertion (RPE)",
-     p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
+     p:"For RPE, we asked you to rate how hard each stage felt out of 10. It is subjective and varies day to day. It can be useful to see how well your sense of effort matches the intensity that your body is experiencing. At your aerobic threshold you rated the effort around <span data-rpe='aet'>[ ]</span>/10, while the physiological effort at this point usually corresponds to a 4–6/10. At your anaerobic threshold you rated the effort around <span data-rpe='ant'>[ ]</span>/10, while the physiological effort at this point usually corresponds to a 7-9/10."}
   ] : [
     {h:"Aerobic Threshold",
      p:"Your aerobic threshold sits at "+powFmt(report.aet.speed)+" "+UNIT()+" at a heart rate of "+report.aet.hr+" bpm. Targeting an average power below this on your long, easy rides is a good aim. It lets you build aerobic fitness and endurance while staying fresh enough to keep training consistently."},
     {h:"Anaerobic Threshold",
      p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions. It is the level you can hold at a steady state before lactate builds up faster than your body can clear it."},
     {h:"Your Rating of Perceived Exertion (RPE)",
-     p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
+     p:"For RPE, we asked you to rate how hard each stage felt out of 10. It is subjective and varies day to day. It can be useful to see how well your sense of effort matches the intensity that your body is experiencing. At your aerobic threshold you rated the effort around <span data-rpe='aet'>[ ]</span>/10, while the physiological effort at this point usually corresponds to a 4–6/10. At your anaerobic threshold you rated the effort around <span data-rpe='ant'>[ ]</span>/10, while the physiological effort at this point usually corresponds to a 7-9/10."}
   ],
   recs:[
     "Cap easy "+MOD().plural+" at "+intVal(report.aet.speed)+" or "+(HASPACE()?"slower":"lower")+". If your easy days have been "+(HASPACE()?"faster":"harder")+" than this, that is the first thing to fix.",
@@ -1482,7 +1482,7 @@ function vo2Analysis(){
      p:"VO₂ max is the maximum rate at which your body can take in, transport and use oxygen during intense exercise. It sets the ceiling of your aerobic engine and the upper limit of your endurance performance."})+
     compareBlock+
     anBlock({h:"How To Improve It",
-     p:"In the short term, high-intensity training raises VO₂ max quickly, but it plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what improves heart function and the blood supply to your muscles, lifting a ceiling that hard intervals alone cannot."});
+     p:"In the short term, high-intensity training raises VO₂ max quickly but this method plateaus within a few months. To keep improving it sustainably over the long term, dedicate most of your training volume to steady, 'easy' cardiovascular exercise: this is what improves heart function and the blood supply to your muscles."});
   /* "Breathing analysis" - why we look, whether it's a problem (usually not), and
      if not, that there's no work to do here (lungs aren't the O₂-delivery limiter). */
   var breath=anBlock({h:"What Your Breathing Shows",
@@ -1791,8 +1791,9 @@ function economy(){
       '<p '+psty+'margin:0 0 7px;">'+endNote+'</p>'+
       '<p '+psty+'margin:0 0 10px;">'+specific+'</p></div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">How to improve</h3>'+
-      '<p '+psty+'margin:0 0 7px;">'+improveGen+'</p>'+
-      '<p '+psty+'margin:0 0 10px;">'+improveSpec+'</p></div>'+
+      '<p '+psty+'margin:0 0 '+(run?'7px':'10px')+';">'+improveGen+'</p>'+
+      /* cycling: drop the "[Specific to you...]" placeholder paragraph (treadmill keeps it) */
+      (run?('<p '+psty+'margin:0 0 10px;">'+improveSpec+'</p>'):'')+'</div>'+
     /* Working popup - editor only (never printed), same pattern as fractional. */
     '<div class="fu-pop-back no-print" data-fu-back>'+
       '<div class="fu-pop-card">'+
