@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v114</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v115</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1791,9 +1791,8 @@ function economy(){
       '<p '+psty+'margin:0 0 7px;">'+endNote+'</p>'+
       '<p '+psty+'margin:0 0 10px;">'+specific+'</p></div>'+
     '<div class="subsec"><h3 class="subtitle edit" contenteditable="true">How to improve</h3>'+
-      '<p '+psty+'margin:0 0 '+(run?'7px':'10px')+';">'+improveGen+'</p>'+
-      /* cycling: drop the "[Specific to you...]" placeholder paragraph (treadmill keeps it) */
-      (run?('<p '+psty+'margin:0 0 10px;">'+improveSpec+'</p>'):'')+'</div>'+
+      /* the "[Specific to you...]" placeholder paragraph is dropped for both run and bike */
+      '<p '+psty+'margin:0 0 10px;">'+improveGen+'</p></div>'+
     /* Working popup - editor only (never printed), same pattern as fractional. */
     '<div class="fu-pop-back no-print" data-fu-back>'+
       '<div class="fu-pop-card">'+
