@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v107</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v108</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1139,6 +1139,27 @@ var VO2_CATS=[
   {name:"Excellent",color:"#2E9E6B"},{name:"Superior",color:"#1D9E75"}
 ];
 function vo2Sex(s){ s=(s||"").toString().trim().toLowerCase(); return (s.charAt(0)==="f")?"Female":"Male"; }
+/* Set the athlete's sex everywhere (report, Sex cell if the page has one, rating pill /
+   prose) and persist it on <body> so a saved draft keeps it. */
+function fcSetVo2Sex(sx){
+  report.vo2=report.vo2||{}; report.vo2.sex=sx; report.vo2._compareSex=sx;
+  try{document.body.setAttribute('data-fc-vo2-sex',sx);}catch(e){}
+  document.querySelectorAll('[data-vo2-sex]').forEach(function(el){el.textContent=sx;});
+  document.querySelectorAll('[data-vo2-sexword]').forEach(function(el){el.textContent=sx.toLowerCase();});
+  try{var r=vo2Rating(parseFloat(report.vo2.vo2max),report.vo2.age,sx);
+    document.querySelectorAll('[data-vo2-rating]').forEach(function(el){el.textContent=r.name;});
+    document.querySelectorAll('[data-vo2-ratingprose]').forEach(function(el){el.textContent=ratingProse(r.name);});}catch(e){}
+  if(typeof recomputeVo2Rating==='function')try{recomputeVo2Rating();}catch(e){}
+  if(typeof refreshFuExamples==='function')try{refreshFuExamples();}catch(e){}
+}
+/* Re-adopt a sex / highlighted cell chosen in an earlier session of this draft. */
+function fcAdoptSavedVo2Picks(){
+  try{
+    if(!report.vo2)return;
+    var sx=document.body.getAttribute('data-fc-vo2-sex'); if(sx)report.vo2.sex=sx;
+    var hc=document.body.getAttribute('data-fc-hl-cell'); if(hc)report.vo2._hlCell=JSON.parse(hc);
+  }catch(e){}
+}
 function vo2Rating(vo2max,age,sex){
   var rows=VO2_NORMS[vo2Sex(sex)]||VO2_NORMS.Male;
   var a=parseInt(age,10); if(isNaN(a))a=30;
@@ -1176,7 +1197,7 @@ function normsTable(sexKey,hlBandMax,hlCatIdx,clickable){
       /* clickable cells carry their row (age band) + column so a click can move the
          highlight - used to fix a report where the age was entered wrong. */
       var attr=clickable
-        ? ' data-hl-band="'+row.max+'" data-hl-cat="'+ci+'" class="pickcell'+(isHl?' hl':'')+'"'
+        ? ' data-hl-sex="'+sexKey+'" data-hl-band="'+row.max+'" data-hl-cat="'+ci+'" class="pickcell'+(isHl?' hl':'')+'"'
         : (isHl?' class="hl"':'');
       return '<td'+attr+'>'+t+'</td>';
     }).join('');
@@ -1187,6 +1208,7 @@ function normsTable(sexKey,hlBandMax,hlCatIdx,clickable){
 /* The two reference tables (Men/Women) with the athlete's own cell highlighted -
    rebuilt from report.vo2 so a VO2 max / age / sex edit can refresh the highlight. */
 function compareTablesHtml(){
+  fcAdoptSavedVo2Picks();
   var v=report.vo2, r=vo2Rating(v.vo2max,v.age,v.sex), sex=vo2Sex(v.sex);
   var aNum=parseInt(v.age,10); if(isNaN(aNum))aNum=30;
   var rows=VO2_NORMS[sex], bandMax=rows[rows.length-1].max;
@@ -1204,9 +1226,12 @@ function compareTablesHtml(){
   var toggle='<div class="vo2-sex-toggle no-print">'+['Male','Female'].map(function(sx){
     return '<button type="button" data-compare-sex="'+sx+'"'+(sx===sel?' class="on"':'')+'>'+(sx==='Male'?'Men':'Women')+'</button>';
   }).join('')+'</div>';
-  var hint=own?'<div class="vo2-hl-hint no-print" style="font-size:11px;color:#6b746f;margin:5px 0 0;">Click any cell to move the highlighted box'+(overridden?' · <a href="#" data-hl-reset style="color:var(--green-dark);">reset to age</a>':'')+'.</div>':'';
+  /* Every shown table is clickable. Clicking a cell in the other sex's table also sets
+     the athlete's sex (a combined report has no Sex field, and an import without
+     Details.txt leaves it blank = Male), so women can be highlighted too. */
+  var hint='<div class="vo2-hl-hint no-print" style="font-size:11px;color:#6b746f;margin:5px 0 0;">'+(own?'Click any cell to move the highlighted box':'Click a cell to highlight it (this sets the athlete as '+(sel==='Male'?'male':'female')+')')+(own&&overridden?' · <a href="#" data-hl-reset style="color:var(--green-dark);">reset to age</a>':'')+'.</div>';
   return toggle+'<div><div class="vo2-norms-cap">'+(sel==='Male'?'Men':'Women')+'</div>'+
-    normsTable(sel, own?hlBand:null, own?hlCat:null, own)+'</div>'+hint;
+    normsTable(sel, own?hlBand:null, own?hlCat:null, true)+'</div>'+hint;
 }
 function refreshCompareTables(){ var w=document.getElementById('vo2-norms-wrap'); if(w)w.innerHTML=compareTablesHtml(); }
 /* Single source of truth for VO2 max (report.vo2.vo2max). Editing it anywhere - the
@@ -1228,6 +1253,7 @@ function syncVo2Max(srcEl){
 }
 /* recompute the rating pill + norm line live when VO2max / age / sex are edited */
 function recomputeVo2Rating(){
+  fcAdoptSavedVo2Picks();
   var mxEl=document.querySelector('[data-vo2max]');
   if(!mxEl)return;
   var mx=parseFloat(mxEl.textContent);
@@ -1405,7 +1431,7 @@ function computeVo2Graph(){
                  speed:isNaN(sp)?o.speed:sp,
                  vo2:isNaN(v)?o.vo2:v,
                  hr:(h===''?null:(isNaN(parseFloat(h))?o.hr:parseFloat(h))),
-                 samples:o.samples||null});
+                 samples:o.samples||null, rpm_all:o.rpm_all||null});
     });
     if(next.length)report.vo2.stages=next;
   }
@@ -1442,7 +1468,7 @@ function vo2Analysis(){
   var catIdx=0; for(var ci=0;ci<VO2_CATS.length;ci++){ if(VO2_CATS[ci].name===r.name)catIdx=ci; }
   var compareBlock='<div class="an-block compare" data-block>'+
     '<div class="row"><h3 class="edit" contenteditable="true">How You Compare</h3><button class="rm no-print" data-rm title="Remove section">✕</button></div>'+
-    '<p class="edit" contenteditable="true">For a '+sex.toLowerCase()+' aged '+v.age+', a VO₂ max of <span data-vo2max-echo>'+v.vo2max+'</span> ml/kg/min rates as <span data-vo2-rating>'+r.name+'</span>, <span data-vo2-ratingprose>'+ratingProse(r.name)+'</span></p>'+
+    '<p class="edit" contenteditable="true">For a <span data-vo2-sexword>'+sex.toLowerCase()+'</span> aged '+v.age+', a VO₂ max of <span data-vo2max-echo>'+v.vo2max+'</span> ml/kg/min rates as <span data-vo2-rating>'+r.name+'</span>, <span data-vo2-ratingprose>'+ratingProse(r.name)+'</span></p>'+
     '<p class="edit" contenteditable="true">VO₂ max naturally falls with age, mainly because your maximum heart rate drops: as the heart beats fewer times each minute, it delivers less oxygen to the muscles per minute. Most people can expect a decline of around 1% per year, though consistent exercise can cut that roughly in half. Depending on your starting point, VO₂ max can even be increased.</p>'+
     '<div class="vo2-norms-wrap" id="vo2-norms-wrap">'+compareTablesHtml()+'</div>'+
     '<div class="vo2-norms-note">Reference values in ml/kg/min (Cooper Institute norms); your result is highlighted.</div>'+
@@ -1821,10 +1847,18 @@ function pcSetCadence(a){try{document.body.setAttribute('data-fc-cadence',JSON.s
 /* Per-reading cadence (every 30 s RPM reading per stage) persisted on <body> as
    data-fc-cad-samples ([[rpm,...],...], index-aligned to the VO2 stages) so the fuzzy
    line survives Save draft / reopen - report.vo2.stages[].samples is not saved. */
+/* All cadence readings for one stage: rpm_all (every reading while loaded, from the
+   backend) when present, else the stage's plateau samples. */
+function pcStageRpms(st){
+  var ok=function(r){r=parseFloat(r);return (!isNaN(r)&&r>0)?r:null;};
+  var all=((st&&st.rpm_all)||[]).map(ok).filter(function(r){return r!=null;});
+  if(all.length)return all;
+  return ((st&&st.samples)||[]).map(function(x){return ok(x&&x.rpm);}).filter(function(r){return r!=null;});
+}
 function pcGetSampleStore(){try{var a=JSON.parse(document.body.getAttribute('data-fc-cad-samples')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
 function pcStoreSamplesFromStages(stages){
   try{
-    var a=(stages||[]).map(function(st){return ((st&&st.samples)||[]).map(function(x){var r=parseFloat(x&&x.rpm);return (!isNaN(r)&&r>0)?Math.round(r):null;}).filter(function(r){return r!=null;});});
+    var a=(stages||[]).map(function(st){return pcStageRpms(st).map(Math.round);});
     if(a.some(function(x){return x.length;}))document.body.setAttribute('data-fc-cad-samples',JSON.stringify(a));
     else document.body.removeAttribute('data-fc-cad-samples');
   }catch(e){}
@@ -1853,7 +1887,7 @@ function pcSampleLine(){
   var bandW=minGap*0.72, pts=[], store=pcGetSampleStore();
   stages.forEach(function(st,si){
     var P=parseFloat(st.speed); if(isNaN(P)||P<=0)return;
-    var samp=((st.samples)||[]).map(function(x){var r=parseFloat(x.rpm);return (!isNaN(r)&&r>0)?r:null;}).filter(function(r){return r!=null;});
+    var samp=pcStageRpms(st);
     if(!samp.length&&Array.isArray(store[si]))samp=store[si].map(parseFloat).filter(function(r){return !isNaN(r)&&r>0;});
     if(!samp.length)return;
     var N=samp.length;
@@ -2680,9 +2714,13 @@ document.getElementById("stage").addEventListener("click",e=>{
   const _fr=e.target.closest("[data-fu-reset]");
   if(_fr){ e.preventDefault(); report.fuOverride=null; report.fuNums=null; if(typeof computeFractional==='function')computeFractional(); return; }
   const _hlr=e.target.closest("[data-hl-reset]");
-  if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
+  if(_hlr){ e.preventDefault(); delete report.vo2._hlCell; try{document.body.removeAttribute('data-fc-hl-cell');}catch(_e){} if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   const _hc=e.target.closest("[data-hl-band]");
-  if(_hc){ report.vo2._hlCell={bandMax:parseInt(_hc.getAttribute("data-hl-band"),10),catIdx:parseInt(_hc.getAttribute("data-hl-cat"),10)}; if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
+  if(_hc){ report.vo2._hlCell={bandMax:parseInt(_hc.getAttribute("data-hl-band"),10),catIdx:parseInt(_hc.getAttribute("data-hl-cat"),10)};
+    var _hs=_hc.getAttribute("data-hl-sex");
+    if(_hs&&_hs!==vo2Sex(report.vo2.sex)){ fcSetVo2Sex(_hs); }
+    try{document.body.setAttribute('data-fc-hl-cell',JSON.stringify(report.vo2._hlCell));}catch(_e){}
+    if(typeof refreshCompareTables==='function')refreshCompareTables(); return; }
   if(e.target.closest("[data-fu-open]")){const sh=e.target.closest(".sheet"),bk=sh&&sh.querySelector("[data-fu-back]");if(bk)bk.classList.add("open");return;}
   if(e.target.closest("[data-fu-close]")||e.target.matches("[data-fu-back]")){const bk=e.target.closest("[data-fu-back]");if(bk)bk.classList.remove("open");return;}
   const rm=e.target.closest("[data-rm]");
@@ -3341,7 +3379,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       userPiece:a.user_piece||'-', maskSize:a.mask_size||'-',
       vo2max:d.vo2max, maxHR:d.max_hr, topSpeed:d.top_speed,
       duration:d.duration||a.duration||'',
-      stages:(d.stages||[]).map(function(s){return {step:s.step,speed:s.speed,vo2:s.vo2,hr:s.hr,samples:s.samples||null};}),
+      stages:(d.stages||[]).map(function(s){return {step:s.step,speed:s.speed,vo2:s.vo2,hr:s.hr,samples:s.samples||null,rpm_all:s.rpm_all||null};}),
       /* keep the cropped PDF graphs on report.vo2 so they persist across re-renders,
          test-type switches and saved drafts (the DOM slots alone don't survive). */
       graphs:(d.graphs&&(d.graphs.metabolic||d.graphs.ventilation))?{metabolic:d.graphs.metabolic||'',ventilation:d.graphs.ventilation||''}:null,
@@ -3355,6 +3393,10 @@ document.getElementById("stage").addEventListener("click",e=>{
       else document.body.removeAttribute('data-fc-cadence');
     }catch(e){}
     pcStoreSamplesFromStages(d.stages);
+    /* a new import resets the manual table highlight; keep a sex chosen earlier only
+       when the file itself doesn't say (Details.txt is optional) */
+    try{document.body.removeAttribute('data-fc-hl-cell');
+      if(a.sex&&String(a.sex).trim())document.body.setAttribute('data-fc-vo2-sex',vo2Sex(a.sex));}catch(e){}
     /* Stay on the current report if it already shows the VO2 pages (a VO2 or a
        combined report) - importing shouldn't switch a combined report back to the
        plain VO2 one. Otherwise switch to the matching VO2 report. */
@@ -3893,7 +3935,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   /* ---- Carry ALL hand-edited text across an upgrade ----
      Every editable block outside the lists carried wholesale (analysis, recs, defs)
-     and the data tables. Reports saved by fc-v107+ mark each block the doctor typed
+     and the data tables. Reports saved by fc-v108+ mark each block the doctor typed
      in (data-fc-edited), so only those carry and new default wording still flows in;
      older snapshots have no marks, so every editable block is carried (better to keep
      their text than lose it). Blocks are aligned per section by tag/class sequence
@@ -3983,7 +4025,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     b.vo2max=numOrNull(T(Q('[data-vo2max-echo]')||Q('[data-vo2max]')||Q('.ks-main .v')||Q('.vo2-max .v')));
     b.maxHR=numOrNull(T(Q('.vo2-maxhr .v')||Q('.ks-side b')));
     b.age=numOrNull(T(Q('[data-vo2-age]')));
-    var sx=T(Q('[data-vo2-sex]'));b.sex=(sx&&sx!=='-')?sx:null;
+    var sx=T(Q('[data-vo2-sex]'));b.sex=(sx&&sx!=='-')?sx:(doc.body.getAttribute('data-fc-vo2-sex')||null);
+    b.hlCell=doc.body.getAttribute('data-fc-hl-cell')||null;
     /* uploaded graph images (baked as data: URIs in the snapshot) */
     b.images=QA('.imgslot').map(function(sl){var img=Q('.shot',sl);var src=img?img.getAttribute('src'):'';return (sl.id&&src)?{id:sl.id,src:src}:null;}).filter(Boolean);
     /* hand-written prose, scoped by section so combined reports' duplicate ids
@@ -4054,7 +4097,8 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(b.vo2max!=null)report.vo2.vo2max=b.vo2max;
     if(b.maxHR!=null)report.vo2.maxHR=b.maxHR;
     if(b.age!=null)report.vo2.age=b.age;
-    if(b.sex)report.vo2.sex=b.sex;
+    if(b.sex){report.vo2.sex=b.sex;try{document.body.setAttribute('data-fc-vo2-sex',vo2Sex(b.sex));}catch(e){}}
+    try{if(b.hlCell)document.body.setAttribute('data-fc-hl-cell',b.hlCell);else document.body.removeAttribute('data-fc-hl-cell');}catch(e){}
     if(b.vo2stages&&b.vo2stages.length)report.vo2.stages=b.vo2stages;
     /* Restore the imported VO₂ Master graphs BEFORE render so the VO₂ analysis page
        defaults to showing the imported image (not the live chart). Without this the
