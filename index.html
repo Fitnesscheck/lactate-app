@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v111</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v112</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -997,7 +997,7 @@ function recTable(){
         :(HASPACE()?("Slower than "+pace(report.aet.speed)+"/km"):("Below "+report.aet.speed+" "+UNIT()));
   const nI=SWIM()?("Use "+pace100(report.ant.speed)+" /100m as a guide")
         :(HASPACE()?("Use "+pace(report.ant.speed)+"/km as a guide"):("Use "+report.ant.speed+" "+UNIT()+" as a guide"));
-  return '<table class="rec-table"><thead><tr><th>Goal</th><th>Heart rate</th><th>'+col+'</th></tr></thead><tbody>'+
+  return '<table class="rec-table" id="rec-goal-table"><thead><tr><th>Goal</th><th>Heart rate</th><th>'+col+'</th></tr></thead><tbody>'+
     '<tr><td class="goal" contenteditable="true">Improve aerobic base</td><td contenteditable="true">Below '+aH+' bpm</td><td contenteditable="true">'+aI+'</td></tr>'+
     '<tr><td class="goal" contenteditable="true">Target anaerobic threshold</td><td contenteditable="true">Use '+nH+' bpm as a guide</td><td contenteditable="true">'+nI+'</td></tr>'+
     '</tbody></table>';
@@ -3480,7 +3480,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     const ah=document.getElementById('cb-aet-hr'),nh=document.getElementById('cb-ant-hr');
     if(ah&&ah!==skip)ah.value=(report.aet.hr==null?'':report.aet.hr);
     if(nh&&nh!==skip)nh.value=(report.ant.hr==null?'':report.ant.hr);
-    const rt=document.querySelector('.rec-table');
+    const rt=document.getElementById('rec-goal-table');   /* the recommendations table specifically - a combined report has other .rec-tables (fractional, quick-ref) that must NOT be touched here */
     if(rt){const rows=rt.querySelectorAll('tbody tr');
       var aI,nI;
       if(SWIM()){aI='Slower than '+pace100(report.aet.speed)+' /100m';nI='Use '+pace100(report.ant.speed)+' /100m as a guide';}
