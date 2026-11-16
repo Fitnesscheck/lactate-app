@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v113</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v114</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1070,7 +1070,7 @@ function coachBlock(){
 function recommendations(){
   let items=DEFAULTS.recs.map(recItem).join("");
   return '<div class="sheet">'+rh()+eyb('recommendations','What to do next')+'<h2 class="title">Recommendations</h2>'+
-    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 10px;">Training programmes are written in different ways. Some prescribe target '+(HASPACE()?'paces':'power targets')+', others target heart rates. To account for both, we have given you the data for each below. We recommend you don\u2019t try to hit both at once. Pick whichever is most suited to how your programme is structured.</p>'+
+    '<p class="edit" contenteditable="true" style="font-size:13.5px;line-height:1.6;color:#2c332f;margin:0 0 10px;">Training programmes are written in different ways. Some prescribe '+(HASPACE()?'pace targets':'power targets')+', others target heart rates. To account for both, we have given you the data for each below. We recommend you don\u2019t try to hit both at once. Pick whichever is most suited to how your programme is structured.</p>'+
     '<p class="edit" contenteditable="true" style="font-size:12.5px;line-height:1.55;color:#6B756F;margin:0 0 16px;">(Factors such as fatigue, illness, injury and terrain can affect the '+(HASPACE()?'pace':'power')+' you are able to sustain. Likewise, heart rate can be influenced by factors including caffeine intake and hydration status. It is important to bear this in mind when training.)</p>'+
     recTable()+
     eduBlock()+
