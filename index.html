@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v105</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v106</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1885,19 +1885,19 @@ function powerCadenceChart(){
   [aet,ant].forEach(function(t){if(!isNaN(t)&&pcInRange(t,r)){xlo=Math.min(xlo,t);xhi=Math.max(xhi,t);}});
   var xpad=((xhi-xlo)||1)*0.06; xlo=Math.max(0,xlo-xpad); xhi+=xpad;
   /* average cadence over the DISPLAYED readings only (re-computed when the range changes) */
-  var avg=ys.reduce(function(a,b){return a+b;},0)/ys.length, bandLo=avg-5, bandHi=avg+5;
+  var avg=ys.reduce(function(a,b){return a+b;},0)/ys.length, bandLo=avg-3, bandHi=avg+3;
   var ylo=Math.min.apply(null,ys), yhi=Math.max.apply(null,ys);
   ylo=Math.min(ylo,bandLo); yhi=Math.max(yhi,bandHi);
   var yp=((yhi-ylo)||6)*0.3||6; ylo=Math.max(0,Math.floor((ylo-yp)/5)*5); yhi=Math.ceil((yhi+yp)/5)*5; if(yhi-ylo<10)yhi=ylo+10;
   function X(x){return mL+(x-xlo)/(xhi-xlo)*(W-mL-mR);}
   function Y(y){return H-mB-(y-ylo)/(yhi-ylo)*(H-mT-mB);}
   var s='<svg viewBox="0 0 '+W+' '+H+'" class="econ-svg" xmlns="http://www.w3.org/2000/svg"><rect width="'+W+'" height="'+H+'" fill="#fff"/>';
-  /* green average-cadence band (avg ± 5 RPM) spanning the whole chart width */
+  /* green average-cadence band (avg ± 3 RPM) spanning the whole chart width */
   var by1=Y(bandHi), by2=Y(bandLo);
   s+='<rect x="'+mL+'" y="'+by1.toFixed(1)+'" width="'+(W-mL-mR)+'" height="'+Math.max(0,by2-by1).toFixed(1)+'" fill="#1D9E75" opacity="0.15"/>';
   s+='<line x1="'+mL+'" y1="'+by1.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+by1.toFixed(1)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
   s+='<line x1="'+mL+'" y1="'+by2.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+by2.toFixed(1)+'" stroke="#1D9E75" stroke-width="1" opacity="0.55" stroke-dasharray="3 3"/>';
-  s+='<text x="'+(W-mR-5)+'" y="'+(by1-4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="700" fill="#14663f">Average '+Math.round(avg)+' RPM (±5)</text>';
+  s+='<text x="'+(W-mR-5)+'" y="'+(by1-4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="700" fill="#14663f">Average '+Math.round(avg)+' RPM (±3)</text>';
   var yStep=(yhi-ylo)>60?20:((yhi-ylo)>30?10:5);
   for(var v=Math.ceil(ylo/yStep)*yStep; v<=yhi+0.01; v+=yStep){var yy=Y(v);
     s+='<line x1="'+mL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+yy.toFixed(1)+'" stroke="#EEE"/>';
