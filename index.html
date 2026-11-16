@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v108</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v109</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -817,7 +817,7 @@ function buildDefaults(){ return {
     {h:"Aerobic Threshold",
      p:"Your aerobic threshold sits at "+powFmt(report.aet.speed)+" "+UNIT()+" at a heart rate of "+report.aet.hr+" bpm. Targeting an average power below this on your long, easy rides is a good aim. It lets you build aerobic fitness and endurance while staying fresh enough to keep training consistently."},
     {h:"Anaerobic Threshold",
-     p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions. It is the highest power you can hold at a steady state before lactate builds up faster than your body can clear it."},
+     p:"Your anaerobic threshold is "+powFmt(report.ant.speed)+" "+UNIT()+" at "+report.ant.hr+" bpm. Use it to target your intervals and hardest sustainable training sessions. It is the level you can hold at a steady state before lactate builds up faster than your body can clear it."},
     {h:"Your Rating of Perceived Exertion (RPE)",
      p:"For RPE we asked you to rate how difficult each stage felt out of 10. At your aerobic threshold you reported an RPE of around <span data-rpe='aet'>[ ]</span>/10. At your anaerobic threshold, it was around <span data-rpe='ant'>[ ]</span>/10. Your perception of effort is well calibrated to your physiology, which is meaningful as athletes who can read their own intensity will make better training decisions."}
   ],
@@ -3935,7 +3935,7 @@ document.getElementById("stage").addEventListener("click",e=>{
 
   /* ---- Carry ALL hand-edited text across an upgrade ----
      Every editable block outside the lists carried wholesale (analysis, recs, defs)
-     and the data tables. Reports saved by fc-v108+ mark each block the doctor typed
+     and the data tables. Reports saved by fc-v109+ mark each block the doctor typed
      in (data-fc-edited), so only those carry and new default wording still flows in;
      older snapshots have no marks, so every editable block is carried (better to keep
      their text than lose it). Blocks are aligned per section by tag/class sequence
