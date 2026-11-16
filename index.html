@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v104</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v105</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -1818,6 +1818,17 @@ document.addEventListener('change',function(e){if(e.target&&e.target.id==='econ-
    stages) - NOT shown in the appendix. Editable via an editor-only (never printed) strip. */
 function pcGetCadence(){try{var a=JSON.parse(document.body.getAttribute('data-fc-cadence')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
 function pcSetCadence(a){try{document.body.setAttribute('data-fc-cadence',JSON.stringify(a));}catch(e){}}
+/* Per-reading cadence (every 30 s RPM reading per stage) persisted on <body> as
+   data-fc-cad-samples ([[rpm,...],...], index-aligned to the VO2 stages) so the fuzzy
+   line survives Save draft / reopen - report.vo2.stages[].samples is not saved. */
+function pcGetSampleStore(){try{var a=JSON.parse(document.body.getAttribute('data-fc-cad-samples')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+function pcStoreSamplesFromStages(stages){
+  try{
+    var a=(stages||[]).map(function(st){return ((st&&st.samples)||[]).map(function(x){var r=parseFloat(x&&x.rpm);return (!isNaN(r)&&r>0)?Math.round(r):null;}).filter(function(r){return r!=null;});});
+    if(a.some(function(x){return x.length;}))document.body.setAttribute('data-fc-cad-samples',JSON.stringify(a));
+    else document.body.removeAttribute('data-fc-cad-samples');
+  }catch(e){}
+}
 function pcStagePowers(){
   var xs=[];
   document.querySelectorAll('#vo2-body tr').forEach(function(tr){var c=tr.querySelectorAll('td');if(c.length<3)return;var x=parseFloat(c[1].textContent);if(!isNaN(x)&&x>0)xs.push(x);});
@@ -1839,10 +1850,11 @@ function pcSampleLine(){
   var sorted=powers.slice().sort(function(a,b){return a-b;});
   var minGap=Infinity; for(var i=1;i<sorted.length;i++){var g=sorted[i]-sorted[i-1]; if(g>0)minGap=Math.min(minGap,g);}
   if(!isFinite(minGap))minGap=powers[0]||1;
-  var bandW=minGap*0.72, pts=[];
-  stages.forEach(function(st){
+  var bandW=minGap*0.72, pts=[], store=pcGetSampleStore();
+  stages.forEach(function(st,si){
     var P=parseFloat(st.speed); if(isNaN(P)||P<=0)return;
     var samp=((st.samples)||[]).map(function(x){var r=parseFloat(x.rpm);return (!isNaN(r)&&r>0)?r:null;}).filter(function(r){return r!=null;});
+    if(!samp.length&&Array.isArray(store[si]))samp=store[si].map(parseFloat).filter(function(r){return !isNaN(r)&&r>0;});
     if(!samp.length)return;
     var N=samp.length;
     samp.forEach(function(r,j){var frac=(N<=1)?0.5:j/(N-1); pts.push([P+(frac-0.5)*bandW, r]);});
@@ -2361,7 +2373,7 @@ function selectTestType(key,keepData){
       if(!_keepVo2){ report.vo2=vo2Demo(report.modality);
         /* Seed the Power-vs-Cadence demo (bike only) so the chart renders out of the box;
            a real import or hand-entry overwrites it. Cleared for non-bike demo. */
-        try{ if(report.modality==='bike'){ document.body.setAttribute('data-fc-cadence',JSON.stringify((report.vo2.stages||[]).map(function(s){return s.cadence!=null?s.cadence:'';}))); } else { document.body.removeAttribute('data-fc-cadence'); } }catch(e){}
+        try{ if(report.modality==='bike'){ document.body.setAttribute('data-fc-cadence',JSON.stringify((report.vo2.stages||[]).map(function(s){return s.cadence!=null?s.cadence:'';}))); pcStoreSamplesFromStages(report.vo2.stages); } else { document.body.removeAttribute('data-fc-cadence'); document.body.removeAttribute('data-fc-cad-samples'); } }catch(e){}
       }
     }
   }
@@ -3342,6 +3354,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       if(_cad.some(function(v){return v!==''&&v!=null;})) document.body.setAttribute('data-fc-cadence',JSON.stringify(_cad));
       else document.body.removeAttribute('data-fc-cadence');
     }catch(e){}
+    pcStoreSamplesFromStages(d.stages);
     /* Stay on the current report if it already shows the VO2 pages (a VO2 or a
        combined report) - importing shouldn't switch a combined report back to the
        plain VO2 one. Otherwise switch to the matching VO2 report. */
@@ -3879,6 +3892,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     b.nextStep=doc.body.getAttribute('data-fc-next-step')||'';
     try{b.notes=JSON.parse(doc.body.getAttribute('data-fc-notes')||'[]')||[];}catch(e){b.notes=[];}
     try{b.cadence=JSON.parse(doc.body.getAttribute('data-fc-cadence')||'[]')||[];}catch(e){b.cadence=[];}
+    try{b.cadSamples=JSON.parse(doc.body.getAttribute('data-fc-cad-samples')||'[]')||[];}catch(e){b.cadSamples=[];}
     b.cadFrom=doc.body.getAttribute('data-fc-cad-from');
     b.cadTo=doc.body.getAttribute('data-fc-cad-to');
     var isSwim=((TEST_TYPES[b.testType]||{}).modality==='swim');
@@ -3962,6 +3976,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     try{if(b.nextStep)document.body.setAttribute('data-fc-next-step',b.nextStep);else document.body.removeAttribute('data-fc-next-step');}catch(e){}
     try{document.body.setAttribute('data-fc-notes',JSON.stringify(b.notes||[]));}catch(e){}
     try{if(b.cadence&&b.cadence.length)document.body.setAttribute('data-fc-cadence',JSON.stringify(b.cadence));else document.body.removeAttribute('data-fc-cadence');}catch(e){}
+    try{if(b.cadSamples&&b.cadSamples.length)document.body.setAttribute('data-fc-cad-samples',JSON.stringify(b.cadSamples));else document.body.removeAttribute('data-fc-cad-samples');}catch(e){}
     try{if(b.cadFrom!=null&&b.cadFrom!=='')document.body.setAttribute('data-fc-cad-from',b.cadFrom);else document.body.removeAttribute('data-fc-cad-from');}catch(e){}
     try{if(b.cadTo!=null&&b.cadTo!=='')document.body.setAttribute('data-fc-cad-to',b.cadTo);else document.body.removeAttribute('data-fc-cad-to');}catch(e){}
     if(b.client)report.client=b.client;
