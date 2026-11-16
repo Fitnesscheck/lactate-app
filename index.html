@@ -386,7 +386,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v106</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v107</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -3867,6 +3867,19 @@ document.getElementById("stage").addEventListener("click",e=>{
 })();
 </script>
 <script>
+/* Mark every editable block the doctor types in, so "Upgrade" can carry exactly the
+   hand-written text (see fcExtractEdits). The body flag tells the upgrade that this
+   snapshot was saved with tracking on. */
+(function(){
+  try{document.body.setAttribute('data-fc-edit-tracking','1');}catch(e){}
+  function mark(e){var t=e.target;if(!t||!t.closest)return;var el=t.closest('[contenteditable="true"]');if(!el)return;
+    var p;while(el.parentElement&&(p=el.parentElement.closest('[contenteditable="true"]')))el=p;
+    el.setAttribute('data-fc-edited','1');}
+  document.addEventListener('input',mark,true);
+  document.addEventListener('paste',mark,true);
+})();
+</script>
+<script>
 /* ===== UPGRADE AN OLD REPORT TO THE LATEST VERSION =====
    Saved/cloud reports are full-page snapshots that run their OWN (old) code when
    opened, so they never pick up new formatting. This reads an old snapshot's DATA
@@ -3877,6 +3890,52 @@ document.getElementById("stage").addEventListener("click",e=>{
 (function(){
   function T(el){return el?(el.textContent||'').trim():'';}
   function numOrNull(v){var n=parseFloat(v);return isNaN(n)?null:n;}
+
+  /* ---- Carry ALL hand-edited text across an upgrade ----
+     Every editable block outside the lists carried wholesale (analysis, recs, defs)
+     and the data tables. Reports saved by fc-v107+ mark each block the doctor typed
+     in (data-fc-edited), so only those carry and new default wording still flows in;
+     older snapshots have no marks, so every editable block is carried (better to keep
+     their text than lose it). Blocks are aligned per section by tag/class sequence
+     (LCS), so a paragraph added or removed in a newer version doesn't shift the rest. */
+  var FC_SKIP='#an-list,#rec-list,#def-list,#raw-body,#vo2-body,.ig-th,[data-vo2max],[data-vo2max-echo],[data-vo2-age],[data-vo2-sex],.no-print';
+  function fcEditables(root){
+    return [].slice.call(root.querySelectorAll('[contenteditable="true"]')).filter(function(el){
+      if(el.parentElement&&el.parentElement.closest('[contenteditable="true"]'))return false; /* outermost only */
+      if(el.closest(FC_SKIP))return false;
+      return true;
+    });
+  }
+  function fcSig(el){return el.tagName+'.'+String(el.className||'').split(/\s+/).filter(function(c){return c&&c!=='edit';}).sort().join('.');}
+  function fcAlign(a,b){ /* LCS over signature arrays -> list of [i,j] pairs */
+    var n=a.length,m=b.length,L=[],i,j;
+    for(i=0;i<=n;i++){L.push(new Array(m+1).fill(0));}
+    for(i=n-1;i>=0;i--)for(j=m-1;j>=0;j--)L[i][j]=(a[i]===b[j])?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+    var out=[];i=0;j=0;
+    while(i<n&&j<m){if(a[i]===b[j]){out.push([i,j]);i++;j++;}else if(L[i+1][j]>=L[i][j+1])i++;else j++;}
+    return out;
+  }
+  window.fcExtractEdits=function(doc){
+    var tracked=doc.body.getAttribute('data-fc-edit-tracking')==='1', out={};
+    [].slice.call(doc.querySelectorAll('[data-section]')).forEach(function(sec){
+      var list=fcEditables(sec).map(function(el){return {sig:fcSig(el),html:el.innerHTML,keep:(!tracked||el.getAttribute('data-fc-edited')==='1')};});
+      if(list.some(function(x){return x.keep;}))out[sec.getAttribute('data-section')]=list;
+    });
+    return out;
+  };
+  window.fcApplyEdits=function(edits){
+    var n=0;
+    Object.keys(edits||{}).forEach(function(name){
+      var sec=document.querySelector('[data-section="'+name+'"]'); if(!sec)return;
+      var olds=edits[name], news=fcEditables(sec);
+      fcAlign(olds.map(function(x){return x.sig;}),news.map(fcSig)).forEach(function(pr){
+        var o=olds[pr[0]], el=news[pr[1]];
+        if(!o.keep||el.innerHTML===o.html)return;
+        el.innerHTML=o.html; el.setAttribute('data-fc-edited','1'); n++;
+      });
+    });
+    return n;
+  };
 
   /* Core extractor: pull a compact data bundle from any document (a parsed snapshot
      OR the live page). This is the whole report in a few KB - no app code, no baked
@@ -3938,6 +3997,7 @@ document.getElementById("stage").addEventListener("click",e=>{
         zt=doc.getElementById?doc.getElementById('econ-zone-to'):Q('#econ-zone-to'),
         zo=doc.getElementById?doc.getElementById('econ-zone-on'):Q('#econ-zone-on');
     if(zf||zt||zo){b.econZone={from:(zf&&zf.value!==''?numOrNull(zf.value):null),to:(zt&&zt.value!==''?numOrNull(zt.value):null),on:zo?!!zo.checked:true};}
+    try{b.edits=window.fcExtractEdits(doc);}catch(e){b.edits={};}
     return b;
   };
   /* Parse a saved snapshot's HTML, then extract from it. */
@@ -4018,6 +4078,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var carried={analysis:setInner('analysis','#an-list',b.analysisHTML),
                  recs:setInner('recommendations','#rec-list',b.recsHTML),
                  defs:setInner('appendix','#def-list',b.defsHTML)||setInner('combinedAppendix','#def-list',b.defsHTML)||setInner('vo2Appendix','#def-list',b.defsHTML)};
+    try{carried.text=window.fcApplyEdits(b.edits);}catch(e){carried.text=0;}
     if(typeof fcNormalizeProse==='function')fcNormalizeProse();  /* repair any orphaned prose paragraph from the saved HTML */
     /* restore uploaded graphs */
     var imgN=0;
@@ -4038,7 +4099,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var ver=T(document.querySelector('.t-left span'))||'the latest version';
     var msg='Upgrade this report to '+ver+'?\n\n'+
       'Carries over: your test data ('+(b.raw||[]).length+' lactate stages, '+(b.vo2stages||[]).length+' VO₂ stages), '+
-      'thresholds, uploaded graphs, cover details, and your written analysis / recommendations / definitions.\n\n'+
+      'thresholds, uploaded graphs, cover details, your written analysis / recommendations / definitions, and any other text you edited.\n\n'+
       'Rebuilt in the new format: the computed sections (quick reference, VO₂ depth, economy, fractional utilisation).\n\n'+
       'Your original saved report is kept as a backup. Continue?';
     if(!window.confirm(msg))return;
@@ -4049,7 +4110,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(b.vo2max==null&&TEST_TYPES[b.testType].kind!=='lt')check.push('VO₂ max');
     if(!b.sex&&TEST_TYPES[b.testType].kind!=='lt')check.push('athlete sex (for the VO₂ comparison table)');
     var summary='✓ Upgraded "'+(report.client||'report')+'" to '+ver+'. Carried '+r.rawN+' lactate stages, '+r.vo2N+' VO₂ stages, '+
-      r.images+' graph image(s)'+(r.carried.analysis?', your analysis':'')+(r.carried.recs?', recommendations':'')+(r.carried.defs?', definitions':'')+'.'+
+      r.images+' graph image(s)'+(r.carried.analysis?', your analysis':'')+(r.carried.recs?', recommendations':'')+(r.carried.defs?', definitions':'')+(r.carried.text?', '+r.carried.text+' other edited text block(s)':'')+'.'+
       (check.length?(' Please double-check '+check.join(', ')+'.'):'')+
       ' Review it, then use "Save draft" (or Save to cloud) to store the upgraded copy.';
     var el=document.getElementById('sd-status');if(el){el.textContent=summary;el.className='cb-status ok';}
