@@ -389,7 +389,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v117</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v118</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -4278,8 +4278,10 @@ document.getElementById("stage").addEventListener("click",e=>{
         <button type="button" class="te-vm" id="te-vm-fit">Best fit</button>
         <button type="button" class="te-vm" id="te-vm-curve">Curve</button>
       </div>
+      <div id="te-view-pending" style="display:none;margin-bottom:8px;font-size:12px;"></div>
       <div id="te-view-body"></div>
-      <div id="te-view-desc" style="margin-top:12px;font-size:12px;color:#9fdcc6;line-height:1.5;"></div>
+      <div style="margin-top:8px;font-size:11px;color:#8FA096;">Click a point to exclude it from the fit; click a faded &#10005; to include it again. The overview updates too.</div>
+      <div id="te-view-desc" style="margin-top:10px;font-size:12px;color:#9fdcc6;line-height:1.5;"></div>
     </div>
   </div>
 </div>
@@ -4327,6 +4329,21 @@ document.getElementById("stage").addEventListener("click",e=>{
   function readPoints(){return readAllPoints().filter(function(p){return !excluded[p.intensity];});}
   function pace(kmh){if(!kmh)return '-';var t=60/kmh,mm=Math.floor(t),ss=Math.round((t-mm)*60);if(ss===60){mm++;ss=0;}return mm+':'+(ss<10?'0':'')+ss;}
 
+  /* A measured point as a clickable SVG mark, shared by the overview and the method popups.
+     `attr` is the data attribute the click handler listens for; `x` is the raw intensity (the
+     exclusion key); included = ring, excluded = faded red cross; a larger invisible circle
+     gives a comfortable click target. */
+  function ptMark(attr,x,X,Y,ring,fill){
+    var ex=!!excluded[x];
+    var g='<g '+attr+'="'+x+'" style="cursor:pointer"><title>'+(ex?'Excluded - click to include it again':'Click to exclude this point')+'</title>'+
+      '<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="11" fill="transparent"/>';
+    if(ex){
+      g+='<g stroke="#e08a8a" stroke-width="1.6" opacity="0.85"><line x1="'+(X-3.4)+'" y1="'+(Y-3.4)+'" x2="'+(X+3.4)+'" y2="'+(Y+3.4)+'"/><line x1="'+(X-3.4)+'" y1="'+(Y+3.4)+'" x2="'+(X+3.4)+'" y2="'+(Y-3.4)+'"/></g>';
+    }else{
+      g+='<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="'+ring+'" fill="'+fill+'" stroke="#EFE7D6" stroke-width="1.3"/>';
+    }
+    return g+'</g>';
+  }
   function buildChart(data,allPts){
     allPts=allPts||[];
     var curve=data.curve;if(!curve||!curve.length)return '';
@@ -4360,12 +4377,9 @@ document.getElementById("stage").addEventListener("click",e=>{
        Points outside the plotted range (e.g. a resting baseline row) are skipped. */
     allPts.forEach(function(p){
       if(p.intensity<xmin-1e-9||p.intensity>xmax+1e-9||p.lactate<0||p.lactate>ymax)return;
-      var X=px(p.intensity),Y=py(p.lactate);
-      if(excluded[p.intensity]){
-        s+='<g stroke="#e08a8a" stroke-width="1.5" opacity="0.8"><line x1="'+(X-3.2)+'" y1="'+(Y-3.2)+'" x2="'+(X+3.2)+'" y2="'+(Y+3.2)+'"/><line x1="'+(X-3.2)+'" y1="'+(Y+3.2)+'" x2="'+(X+3.2)+'" y2="'+(Y-3.2)+'"/></g>';
-      }else{
-        s+='<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="3.8" fill="#0F1714" stroke="#EFE7D6" stroke-width="1.3"/>';
-      }
+      /* data-te-toggle = the same hook the data-point chips use, so a click here excludes /
+         re-includes the point and recomputes through the existing handler */
+      s+=ptMark('data-te-toggle',p.intensity,px(p.intensity),py(p.lactate),3.8,'#0F1714');
     });
     Object.keys(data.methods).forEach(function(k){var m=data.methods[k];if(m.intensity==null)return;
       var c=COL[k]||'#9fdcc6',X=px(m.intensity),Y=py(m.lactate);
@@ -4424,6 +4438,11 @@ document.getElementById("stage").addEventListener("click",e=>{
     else if(m.ratio>ymax)ymax=m.ratio;
     if(opts.fit)opts.fit.forEach(function(p){if(p[1]>ymax)ymax=p[1];});
     ymax=ymax*1.12;if(ymax<=0)ymax=1;
+    /* excluded points (opts.exc): drawn as faded crosses so they can be clicked back in; they
+       never stretch the axis, so one outside the range is simply not shown */
+    var vexc=(opts.exc||[]).filter(function(p){return p.x>=xmin-1e-9&&p.x<=xmax+1e-9;})
+                .map(function(p){return {x:p.x,y:isRatio?(p.x>0?p.y/p.x:0):p.y};})
+                .filter(function(p){return p.y>=0&&p.y<=ymax;});
     var px=function(v){return ml+(v-xmin)/(xmax-xmin)*pw;};
     var py=function(v){return mt+ph-(v/ymax)*ph;};
     var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0F1714;border:1px solid #2A3A33;border-radius:10px;">';
@@ -4446,7 +4465,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     s+='<path d="'+d+'" fill="none" stroke="#e05a8a" stroke-width="2" stroke-linejoin="round"/>';
     var col=COL[key]||'#9fdcc6';
     var mkx=opts.marker?opts.marker[0]:m.intensity, mky=opts.marker?opts.marker[1]:m.lactate;
-    vpts.forEach(function(p){s+='<circle cx="'+px(p.x).toFixed(1)+'" cy="'+py(p.y).toFixed(1)+'" r="4" fill="none" stroke="#EFE7D6" stroke-width="1.3"/>';});
+    vpts.concat(vexc).forEach(function(p){s+=ptMark('data-te-pt',p.x,px(p.x),py(p.y),4,'none');});
     if(!isRatio){
       if(m.line){s+='<line x1="'+px(m.line[0][0])+'" y1="'+py(m.line[0][1])+'" x2="'+px(m.line[1][0])+'" y2="'+py(m.line[1][1])+'" stroke="#EFE7D6" stroke-width="1.6"/>';}
       else{s+='<line x1="'+px(mkx)+'" y1="'+(mt+ph)+'" x2="'+px(mkx)+'" y2="'+py(mky)+'" stroke="'+col+'" stroke-width="1.2" stroke-dasharray="3 3"/>';}
@@ -4522,7 +4541,7 @@ document.getElementById("stage").addEventListener("click",e=>{
   }
   function lnStep(span,maxTicks){var st=[0.1,0.2,0.25,0.5,1,2];for(var i=0;i<st.length;i++){if(span/st[i]<=maxTicks)return st[i];}return 2;}
   function lnLab(v){return String(Math.abs(v)<1e-9?0:Math.round(v*100)/100);}
-  function buildLogLogSVG(data,key,pts,mode){
+  function buildLogLogSVG(data,key,pts,mode,exc){
     var m=data.methods[key];if(!m||m.intensity==null)return '';
     var curve=(data.curve||[]).filter(function(p){return p[0]>0;}).map(function(p){return [Math.log(p[0]),Math.log(Math.max(p[1],1e-6))];});
     if(!curve.length)return '<div style="color:#8FA096;font-size:12px;">No curve available.</div>';
@@ -4530,11 +4549,14 @@ document.getElementById("stage").addEventListener("click",e=>{
     var fit=loglogFit(data,psi);                 /* computed in both modes so the axes never shift on toggle */
     var showFit=(mode==='fit')&&!!fit;
     var xmin=Math.min.apply(null,curve.map(function(p){return p[0];})),xmax=Math.max.apply(null,curve.map(function(p){return p[0];}));
-    var P=pts.filter(function(p){return p.x>0&&p.y>0;}).map(function(p){return [Math.log(p.x),Math.log(p.y)];})
-             .filter(function(p){return p[0]>=xmin-1e-9&&p[0]<=xmax+1e-9;});
-    var ys=curve.map(function(p){return p[1];}).concat(P.map(function(p){return p[1];}));
+    var tf=function(p){return {x:p.x,lx:Math.log(p.x),ly:Math.log(p.y)};};   /* x kept raw: it is the exclusion key */
+    var P=pts.filter(function(p){return p.x>0&&p.y>0;}).map(tf)
+             .filter(function(p){return p.lx>=xmin-1e-9&&p.lx<=xmax+1e-9;});
+    var ys=curve.map(function(p){return p[1];}).concat(P.map(function(p){return p.ly;}));
     if(fit)fit.verts.forEach(function(p){ys.push(p[1]);});
     var ymin=Math.min(0,Math.floor(Math.min.apply(null,ys)*2)/2),ymax=Math.ceil(Math.max.apply(null,ys)*2)/2+0.1;
+    var PX=(exc||[]).filter(function(p){return p.x>0&&p.y>0;}).map(tf)
+             .filter(function(p){return p.lx>=xmin-1e-9&&p.lx<=xmax+1e-9&&p.ly>=ymin&&p.ly<=ymax;});
     var W=660,H=380,ml=56,mr=16,mt=16,mb=48,pw=W-ml-mr,ph=H-mt-mb;
     var px=function(v){return ml+(v-xmin)/(xmax-xmin)*pw;};
     var py=function(v){return mt+ph-(v-ymin)/(ymax-ymin)*ph;};
@@ -4553,7 +4575,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     s+='<text transform="translate(13,'+(mt+ph/2)+') rotate(-90)" fill="#8FA096" font-size="10" text-anchor="middle">Lactate (ln)</text>';
     var line=showFit?fit.verts:curve;
     s+='<path d="'+line.map(function(p,i){return (i?'L':'M')+px(p[0]).toFixed(1)+' '+py(p[1]).toFixed(1);}).join(' ')+'" fill="none" stroke="#e05a8a" stroke-width="2" stroke-linejoin="round"/>';
-    P.forEach(function(p){s+='<circle cx="'+px(p[0]).toFixed(1)+'" cy="'+py(p[1]).toFixed(1)+'" r="4" fill="none" stroke="#EFE7D6" stroke-width="1.3"/>';});
+    P.concat(PX).forEach(function(p){s+=ptMark('data-te-pt',p.x,px(p.lx),py(p.ly),4,'none');});
     var col=COL[key]||'#9fdcc6';
     var mk=showFit?fit.marker:[psi,Math.log(Math.max(m.lactate,1e-6))];
     s+='<line x1="'+px(mk[0])+'" y1="'+(mt+ph)+'" x2="'+px(mk[0])+'" y2="'+py(mk[1])+'" stroke="'+col+'" stroke-width="1.2" stroke-dasharray="3 3"/>';
@@ -4601,10 +4623,15 @@ document.getElementById("stage").addEventListener("click",e=>{
     var extra=(key==='LogPolyModDmax'&&m.source==='raw')?' (ExPhysLab raw)':'';
     document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' - '+(SWIM()?(pace100(m.intensity)+' /100m'):(m.intensity+' '+UNIT()));
     var ro=document.getElementById('te-view-readout');if(ro)ro.innerHTML=readoutHtml(m);
+    var exc=readAllPoints().filter(function(p){return excluded[p.intensity];}).map(function(p){return {x:p.intensity,y:p.lactate};});
     var body;
-    if(key==='Loglog')body=buildLogLogSVG(lastResult,key,incl,viewMode);
-    else if((key==='LTP1'||key==='LTP2')&&viewMode==='fit')body=buildMethodSVG(lastResult,key,incl,ltpFitOpts(lastResult,key)||{note:'Best-fit lines unavailable for this data - showing the curve'});
-    else body=buildMethodSVG(lastResult,key,incl);
+    if(key==='Loglog')body=buildLogLogSVG(lastResult,key,incl,viewMode,exc);
+    else{
+      var o=null;
+      if((key==='LTP1'||key==='LTP2')&&viewMode==='fit')o=ltpFitOpts(lastResult,key)||{note:'Best-fit lines unavailable for this data - showing the curve'};
+      o=o||{};o.exc=exc;
+      body=buildMethodSVG(lastResult,key,incl,o);
+    }
     document.getElementById('te-view-body').innerHTML=body;
     document.getElementById('te-view-desc').textContent=METHOD_INFO[key]||'';
   }
@@ -4658,9 +4685,9 @@ document.getElementById("stage").addEventListener("click",e=>{
      by readAllPoints() as the intensity-0 point. The engine includes it in the curve
      fit and lets log-log / LT ratio / LTP skip the intensity-0 value (x0_pos logic in
      threshold_engine.compute); exclude its chip to leave it out entirely. */
-  function doCompute(fromSlider,after){
+  function doCompute(fromSlider,after,onFail){
     var pts=readPoints();
-    if(pts.length<4){teStatus('Need at least 4 data rows in the appendix table.','err');return;}
+    if(pts.length<4){teStatus('Need at least 4 data rows in the appendix table.','err');if(typeof onFail==='function')onFail('need at least 4 points');return;}
     var val=portion();
     var only=fromSlider&&!!lastResult;   // fast path once a full result exists
     if(!only)teStatus('Computing…','');
@@ -4692,7 +4719,8 @@ document.getElementById("stage").addEventListener("click",e=>{
          then becomes instant. */
       if(!only && lastResult && !(lastResult.loglog_sweep&&lastResult.loglog_sweep.length)) fetchSweep(pts);
     })
-    .catch(function(e){clearTimeout(_to);clearTimeout(_warn);teStatus((only?'Slider ':'Compute ')+'failed: '+(e&&e.name==='AbortError'?'timed out - the server was slow to wake, please try again in a moment.':(e&&e.message||e)),'err');});
+    .catch(function(e){clearTimeout(_to);clearTimeout(_warn);teStatus((only?'Slider ':'Compute ')+'failed: '+(e&&e.name==='AbortError'?'timed out - the server was slow to wake, please try again in a moment.':(e&&e.message||e)),'err');
+      if(typeof onFail==='function')onFail(e&&e.name==='AbortError'?'timed out - the server was slow to respond':String(e&&e.message||e));});
   }
   /* Background: fetch the (slow, R-mode) slider sweep off the critical path. On success
      the slider switches from network calls to instant client-side lookups. */
@@ -4751,6 +4779,39 @@ document.getElementById("stage").addEventListener("click",e=>{
   var fitSel=document.getElementById('te-fit');if(fitSel)fitSel.addEventListener('change',function(){doCompute(false);});
   var srcSel=document.getElementById('te-source');if(srcSel)srcSel.addEventListener('change',function(){doCompute(false);});
   var teViewClose=document.getElementById('te-view-close');if(teViewClose)teViewClose.addEventListener('click',function(){var v=document.getElementById('te-view');if(v)v.style.display='none';});
+  /* Exclude / re-include a point straight from a method graph. Same shared exclusion set the
+     chips use: persist it, show the dot's new state at once, then re-run the engine; when the
+     result lands the overview re-renders (render() in doCompute) and this popup redraws. */
+  function viewMsg(t,busy){
+    var el=document.getElementById('te-view-pending');if(!el)return;
+    el.textContent=t||'';el.style.display=t?'block':'none';el.style.color=busy?'#9fdcc6':'#f0c674';
+  }
+  var teViewBody=document.getElementById('te-view-body');
+  if(teViewBody)teViewBody.addEventListener('click',function(e){
+    var g=e.target.closest&&e.target.closest('[data-te-pt]');if(!g)return;
+    var k=g.getAttribute('data-te-pt');
+    if(!excluded[k]&&readPoints().length<=4){viewMsg('Keep at least 4 points - the engine needs them to fit a curve.',false);return;}
+    var wasEx=!!excluded[k];
+    if(wasEx)delete excluded[k];else excluded[k]=true;
+    persistExclusions();
+    viewMsg('Recomputing…',true);
+    drawMethodView();   /* the point flips to its new look immediately; the curve/values follow */
+    doCompute(false,function(){
+      viewMsg('',false);
+      if(!lastResult||!lastResult.methods[viewKey]){
+        var v=document.getElementById('te-view');if(v)v.style.display='none';
+        teStatus((METHOD_LABEL[viewKey]||viewKey)+' has no value with the remaining points.','err');
+        return;
+      }
+      drawMethodView();
+    },function(msg){
+      /* the engine couldn't answer: put the point back so the exclusion set (which also drives
+         the report graphs) never disagrees with the numbers on screen */
+      if(wasEx)excluded[k]=true;else delete excluded[k];
+      persistExclusions();drawMethodView();
+      viewMsg('Couldn’t recompute ('+msg+') - the point was left as it was.',false);
+    });
+  });
   [['te-vm-fit','fit'],['te-vm-curve','curve']].forEach(function(pair){
     var b=document.getElementById(pair[0]);
     if(b)b.addEventListener('click',function(){viewMode=pair[1];syncModeRow();drawMethodView();});
