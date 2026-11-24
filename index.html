@@ -389,7 +389,7 @@
   <div class="url">fitnesscheck.co.uk</div>
 </div>
 <div class="toolbar">
-  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v116</span></div>
+  <div class="t-left">Fitness<b>Check</b> · report editor <span style="color:#8FA096;font-size:11px;font-weight:400;margin-left:6px;">fc-v117</span></div>
   <div class="t-right">
     <span class="hint">Click any text to edit. Use + / ✕ to add or remove sections. Upload graphs, then Save as PDF (A4, margins None, background graphics on). Edits aren't saved on reload - print before closing.</span>
     <button class="btn" style="background:#2A3A33;color:var(--cream);" onclick="saveAsDraft()">Save draft</button>
@@ -4266,6 +4266,7 @@ document.getElementById("stage").addEventListener("click",e=>{
       <button id="te-view-close" title="back" style="cursor:pointer;background:transparent;border:none;color:#8FA096;font-size:24px;line-height:1;padding:0 4px;">&times;</button>
     </div>
     <div style="padding:16px 18px;">
+      <div id="te-view-readout" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #2A3A33;"></div>
       <div id="te-view-slider-row" style="display:none;align-items:center;gap:10px;font-size:12px;color:#9fdcc6;margin-bottom:12px;">
         <label for="te-view-loglog" style="white-space:nowrap;">Log-log portion</label>
         <input type="range" id="te-view-loglog" min="0.25" max="1" step="0.05" value="0.75" style="flex:1;accent-color:#1D9E75;">
@@ -4560,6 +4561,24 @@ document.getElementById("stage").addEventListener("click",e=>{
     if(mode==='fit'&&!fit)s+='<text x="'+(ml+8)+'" y="'+(mt+14)+'" fill="#f0c674" font-size="10">Two-line fit unavailable at this portion - showing the curve</text>';
     s+='</svg>';return s;
   }
+  /* Readout strip at the top of every method popup: the engine's value for THIS method
+     (speed/power, pace, HR, lactate) - the same figures as its row in the table, so they
+     stay visible while the graph covers the table. Rebuilt on every redraw, so it follows
+     the log-log portion slider; it is the engine's value, so the display mode doesn't change it. */
+  function readoutHtml(m){
+    function cell(lab,val,unit,big){
+      return '<div><div style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:#8FA096;margin-bottom:2px;">'+lab+'</div>'+
+        '<div style="font-size:'+(big?'26':'17')+'px;font-weight:600;color:var(--cream);line-height:1.1;">'+val+
+        (unit?' <span style="font-size:'+(big?'13':'12')+'px;font-weight:400;color:#8FA096;">'+unit+'</span>':'')+'</div></div>';
+    }
+    var v=m.intensity,first,second='';
+    if(SWIM()){first=cell('Pace',pace100(v),'/100m',true);second=cell('Speed',v.toFixed(3),'m/s');}
+    else if(HASPACE()){first=cell('Speed',Number(v.toFixed(2)),UNIT(),true);second=cell('Pace',pace(v),'/km');}
+    else{first=cell('Power',Math.round(v),UNIT(),true);}
+    return first+second+
+      (m.hr!=null?cell('Heart rate',m.hr,'bpm'):cell('Heart rate','-',''))+
+      (m.lactate!=null?cell('Lactate',m.lactate,'mmol/L'):cell('Lactate','-',''));
+  }
   var viewKey=null,viewMode='fit';   /* 'fit' (best fit / two lines) is the default; 'curve' the alternative */
   function modeLabels(key){
     if(key==='Loglog')return {on:true,fit:'Two lines',curve:'Curve'};
@@ -4581,6 +4600,7 @@ document.getElementById("stage").addEventListener("click",e=>{
     var m=lastResult.methods[key];
     var extra=(key==='LogPolyModDmax'&&m.source==='raw')?' (ExPhysLab raw)':'';
     document.getElementById('te-view-title').textContent=(METHOD_LABEL[key]||key)+extra+' - '+(SWIM()?(pace100(m.intensity)+' /100m'):(m.intensity+' '+UNIT()));
+    var ro=document.getElementById('te-view-readout');if(ro)ro.innerHTML=readoutHtml(m);
     var body;
     if(key==='Loglog')body=buildLogLogSVG(lastResult,key,incl,viewMode);
     else if((key==='LTP1'||key==='LTP2')&&viewMode==='fit')body=buildMethodSVG(lastResult,key,incl,ltpFitOpts(lastResult,key)||{note:'Best-fit lines unavailable for this data - showing the curve'});
